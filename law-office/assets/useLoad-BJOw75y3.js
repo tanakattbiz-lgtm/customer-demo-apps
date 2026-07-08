@@ -1,0 +1,1 @@
+import{H as e,z as t}from"./index-B6wRsCCa.js";import{t as n}from"./fakeApi-Bjq-0Phf.js";var r=e(t(),1);function i(e=550){let[t,i]=(0,r.useState)(!0);return(0,r.useEffect)(()=>{let t=!0;return n(!0,e).then(()=>t&&i(!1)),()=>{t=!1}},[e]),t}export{i as t};
