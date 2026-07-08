@@ -18,7 +18,9 @@ customer-demo-apps/
 ├── .nojekyll         # GitHub Pages で Jekyll 処理を無効化
 ├── CLAUDE.md         # AI 向け開発ルール(モック作成の憲法)
 ├── README.md         # このファイル
-├── customerA/        # 顧客ごとにディレクトリを分ける
+├── src/              # ビルドが必要なデモのソースコード(Vite + React など)
+│   └── customerA/    #   ビルド成果物を下の公開ディレクトリへ出力する
+├── customerA/        # 公開されるデモ本体(顧客ごとにディレクトリを分ける)
 │   └── index.html    # 各ディレクトリ直下に必ず index.html を置く
 └── customerB/
     ├── index.html
@@ -48,8 +50,10 @@ customer-demo-apps/
 
 ### 4. 技術ルール(詳細は [CLAUDE.md](./CLAUDE.md))
 
-- **静的ファイルのみ**(GitHub Pages で動くこと)。サーバーサイド処理・DB は使えない
-- リンク・アセット参照は**相対パス**(GitHub Pages はサブパス配信のため絶対パス `/...` は壊れる)
+- React 等のモダン技術 OK。ただし **公開ディレクトリに入るのは静的ファイルのみ**
+  (`src/<顧客名>/` で開発 → ビルド成果物を `<顧客名>/` に出力してコミット)
+- リンク・アセット参照は**相対パス**(GitHub Pages はサブパス配信のため絶対パス `/...` は壊れる)。SPA は HashRouter を使う
+- `node_modules/` はコミットしない(`src/` 配下に `.gitignore` を置く)
 - 機密情報(API キー・実データ・顧客の内部情報)は**絶対にコミットしない**。データはすべてダミー
 
 ### 5. デモの削除・アーカイブ
@@ -59,10 +63,12 @@ customer-demo-apps/
 
 ## 🚀 新しいデモの追加手順
 
-1. `mkdir <顧客名>` してディレクトリを作成
-2. `<顧客名>/index.html` にモックを作成(作り方は [CLAUDE.md](./CLAUDE.md) 参照)
+1. モックを作成(作り方・技術選定は [CLAUDE.md](./CLAUDE.md) 参照)
+   - 簡単なもの: `<顧客名>/index.html` に直接作成
+   - React 等を使うもの: `src/<顧客名>/` で開発 → `npm run build` で `<顧客名>/` に出力
+2. ローカルで動作確認(`python3 -m http.server 8080` → `http://localhost:8080/<顧客名>/`)
 3. ルート `index.html` の `DEMOS` 配列にエントリを追加
-4. コミット & `main` にプッシュ → 数分で GitHub Pages に反映
+4. コミット(ソースと成果物の両方)& `main` にプッシュ → 数分で GitHub Pages に反映
 5. `https://<owner>.github.io/customer-demo-apps/<顧客名>/` を顧客に共有
 
 ## ⚠️ セキュリティ上の注意
