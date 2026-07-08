@@ -1,0 +1,318 @@
+# CLAUDE.md — customer-demo-apps 開発憲法
+
+このリポジトリは、**受託開発の提案用モック(デモアプリ)を GitHub Pages で顧客に共有する**ためのものです。
+モックの品質 = 受注率。あなたの使命は **「顧客が『もう完成してるじゃん』と錯覚するレベルの、実際に触れて動くデモ」** を作ることです。
+
+このドキュメントは、**書いてある通りに従えば誰でも同じ品質で作れる**ように書かれています。判断に迷ったら、自分で考える前にまずこのファイルの該当セクションを読み直すこと。
+
+---
+
+## 0. 全体像(まずこれを理解する)
+
+```
+公開の仕組み:
+  main ブランチにプッシュ → GitHub Pages が配信
+  https://<owner>.github.io/customer-demo-apps/<顧客名>/  ← 顧客に渡す URL
+  https://<owner>.github.io/customer-demo-apps/           ← デモ一覧(パスワード保護・社内用)
+
+リポジトリの構成:
+  customer-demo-apps/
+  ├── index.html            # デモ一覧ページ(パスワード保護)。DEMOS 配列で管理
+  ├── .nojekyll             # 消さない
+  ├── CLAUDE.md / README.md
+  ├── src/                  # ★ビルドが必要なデモのソースコード置き場
+  │   └── <顧客名>/         #   (Vite + React などのプロジェクト一式)
+  ├── <顧客名>/             # ★公開されるデモ本体(ビルド成果物 or 手書き HTML)
+  │   └── index.html
+  └── <顧客名>/<デモ名>/    # 同一顧客に複数デモがある場合
+```
+
+**重要な原則: 公開ディレクトリ(`<顧客名>/`)に入るのは「ブラウザがそのまま実行できる静的ファイル」だけ。** GitHub Pages はビルドしてくれないので、ビルドが必要な技術を使う場合は `src/<顧客名>/` で開発し、**ビルド成果物を `<顧客名>/` にコミットする**。
+
+---
+
+## 1. 絶対ルール(違反禁止)
+
+1. **顧客ごとにディレクトリを分ける。** 他顧客のディレクトリを参照・リンク・変更しない
+2. **エントリポイントは必ず `index.html`。** ディレクトリ URL だけで開けること
+3. **アセット参照はすべて相対パス。** GitHub Pages はサブパス配信(`/customer-demo-apps/...`)なので、`/assets/...` のようなルート絶対パスは 404 になる。Vite なら `base: "./"` を必ず設定する
+4. **SPA のルーティングは HashRouter(`#/...`)を使う。** BrowserRouter は GitHub Pages でリロード時に 404 になるため禁止
+5. **機密情報禁止。** API キー、実在の個人情報、顧客から預かった実データは絶対にコミットしない。データはすべて自作のダミー
+6. **デモを追加したらルート `index.html` の `DEMOS` 配列に登録する**(→ §7)
+7. **ルート `index.html` のパスワードゲートを壊さない・弱めない。** パスワード平文をコード・コメント・コミットメッセージに書かない
+8. **`node_modules/` をコミットしない。** `src/` 配下の各プロジェクトに `.gitignore` を必ず置く
+9. **ビルド成果物とソースの両方をコミットする。**(成果物 = 公開物、ソース = 修正用)ビルドし直したら成果物も必ずコミットし直す
+10. **全ページに `<meta name="robots" content="noindex">` を入れる**(検索エンジン避け)
+
+---
+
+## 2. 技術選定(2 トラック方式)
+
+デモの規模で 2 つのトラックから選ぶ。**迷ったら Track B(React)。** 顧客体験の再現度が高いのは B。
+
+### Track A: 単一 HTML(ビルドなし)
+
+**使う場面:** LP モック、1〜2 画面の簡単なデモ、静的なデザイン確認
+**構成:** `<顧客名>/index.html` に HTML/CSS/JS をすべてインラインで書く。ライブラリは CDN(`<script>` タグ)で読み込む
+**技術:** モダン CSS(カスタムプロパティ、Grid、`oklch()`、`clamp()`、コンテナクエリ)+ Vanilla JS(ES Modules)
+
+### Track B: Vite + React + TypeScript(推奨・標準)
+
+**使う場面:** 管理画面、業務システム、SaaS、複数画面あるもの、CRUD があるもの — つまりほとんどの案件
+**標準スタック:**
+
+| 用途 | ライブラリ | 備考 |
+|---|---|---|
+| ビルド | Vite | `base: "./"` 必須 |
+| UI | React 18+ + TypeScript | |
+| スタイル | Tailwind CSS v4 | `@import "tailwindcss"` 方式 |
+| ルーティング | react-router-dom の **HashRouter** | BrowserRouter 禁止(ルール 4) |
+| 状態管理 | zustand(グローバル)+ useState(ローカル) | Redux 禁止(過剰) |
+| アニメーション | motion(旧 framer-motion) | |
+| チャート | recharts | ダッシュボード系で |
+| アイコン | lucide-react | |
+| 日付 | date-fns | |
+| トースト | sonner | |
+
+これ以外のライブラリを使いたい場合は、CDN 不要・静的ビルド可能であることを確認してから使う。
+
+---
+
+## 3. Track B の作成手順(この通りに実行する)
+
+顧客名を `acme-corp` とした例。`acme-corp` を実際の顧客名に読み替えること。
+
+### Step 1: プロジェクト作成
+
+```bash
+cd src
+npm create vite@latest acme-corp -- --template react-ts
+cd acme-corp
+npm install
+npm install react-router-dom zustand motion lucide-react date-fns sonner
+npm install tailwindcss @tailwindcss/vite
+```
+
+### Step 2: 設定ファイル(必ずこの形にする)
+
+`src/acme-corp/vite.config.ts`:
+
+```ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  base: "./",                      // ★必須: サブパス配信対応
+  build: {
+    outDir: "../../acme-corp",     // ★公開ディレクトリへ直接出力
+    emptyOutDir: true,
+  },
+});
+```
+
+`src/acme-corp/.gitignore`(なければ作る。Vite テンプレートに含まれる場合は node_modules と dist が入っていることを確認):
+
+```
+node_modules
+dist
+```
+
+`src/acme-corp/src/index.css` の先頭に:
+
+```css
+@import "tailwindcss";
+```
+
+`index.html` の `<head>` に必ず追加:
+
+```html
+<meta name="robots" content="noindex, nofollow" />
+<title>【デモ】○○システム | ACME株式会社</title>
+```
+
+ルーティングは必ず:
+
+```tsx
+import { HashRouter } from "react-router-dom";
+// <BrowserRouter> は禁止。<HashRouter> を使う
+```
+
+### Step 3: 実装(→ §4 UX 基準、§5 デザイン基準に従う)
+
+### Step 4: ビルドと動作確認(省略禁止)
+
+```bash
+cd src/acme-corp
+npm run build                                  # → ../../acme-corp/ に出力される
+cd ../..
+python3 -m http.server 8080                    # リポジトリルートで配信
+# ブラウザ(または Playwright)で http://localhost:8080/acme-corp/ を開いて確認
+```
+
+**確認必須項目:** 画面が表示される / 画面遷移が動く / リロードしても 404 にならない / コンソールエラーなし / モバイル幅(375px)で崩れない
+
+### Step 5: DEMOS 登録(§7)→ コミット(ソースと成果物の両方)
+
+---
+
+## 4. UX 基準 — 「実際にシステムを使っている体験」を作る(最重要)
+
+モックは静止画ではない。**顧客が自分の手で触って、自社の業務がこのシステムで回る未来を体感できる**ことがゴール。以下は Track B では全項目必須、Track A でも可能な限り満たす。
+
+### 4.1 データが「本物っぽい」こと
+
+- ダミーデータは**現実的な件数**(一覧なら 15〜50 件)を用意する。「テスト1」「あああ」「sample」は禁止
+- 実在しそうな日本語の氏名・会社名・住所・電話番号・金額・日付を自作する(実在の個人・企業は使わない)
+- 日付は「今日」を基準に相対生成する(`date-fns` で `subDays(new Date(), n)`)。デモを開いたとき常に「最近のデータ」に見えるように
+- データは `src/data/seed.ts` のような 1 ファイルにまとめ、型を付ける
+
+### 4.2 操作が「本当に動く」こと
+
+- **CRUD は全部動かす。** 追加・編集・削除・検索・絞り込み・並び替え・ページネーションは見た目だけでなく実際に機能させる
+- データの保持は「zustand ストア + localStorage 永続化」。**ページをリロードしても顧客が入れたデータが残る**こと(`zustand/middleware` の `persist` を使う)
+- 「リセット」ボタンをどこか(設定画面やフッター)に置き、初期データに戻せるようにする
+
+### 4.3 「システムの手応え」を再現する
+
+本物のシステムには通信の待ち時間がある。**疑似 API レイヤー**を必ず作る:
+
+```ts
+// src/lib/fakeApi.ts — すべてのデータ操作はこれを通す
+export async function fakeApi<T>(result: T, ms = 400): Promise<T> {
+  await new Promise((r) => setTimeout(r, ms + Math.random() * 300));
+  return result;
+}
+```
+
+- 一覧の初回ロード → **スケルトンスクリーン**を 0.4〜0.7 秒表示
+- 保存・送信 → ボタンをローディング状態(スピナー + disabled)にし、完了後に **sonner でトースト**(「保存しました」)
+- 削除 → 確認ダイアログ → 実行 → トースト
+- フォーム → リアルタイムバリデーション(必須・形式チェック)とエラーメッセージ表示
+
+### 4.4 状態を出し分ける
+
+- **空状態**: データ 0 件のとき専用の Empty State(イラスト or アイコン + 「最初の○○を作成しましょう」+ CTA ボタン)
+- **検索 0 件**: 「該当する結果がありません」表示
+- **ローディング**: スケルトン(スピナーだけで済ませない)
+
+### 4.5 業務フローを最後まで通す
+
+- 提案の肝となるユースケースを**最初から最後まで 1 本通せる**ようにする(例: 予約システムなら「空き確認 → 予約作成 → 一覧に反映 → 変更 → キャンセル」)
+- ログイン画面を付ける場合: 入力欄に**デモ用アカウントを最初から入力済み**にして「ログイン」を押すだけで入れるようにする(ゲスト用の「デモデータでログイン」ボタンでも可)。本物の認証は実装しない
+- 通知ベル・アバター・設定など、業務システムにあるべき「ガワ」も置く(未実装部分はクリックで「このデモでは省略しています」トーストを出し、無反応にしない)
+
+### 4.6 触り心地
+
+- ホバー・フォーカス・押下に必ず反応がある(`transition` 150〜300ms、`ease-out`)
+- 画面遷移・モーダル・リストの追加削除に motion で軽いアニメーション(fade + 8〜12px の slide 程度。派手にしない)
+- `prefers-reduced-motion` を尊重する
+- モバイル(375px)・タブレット(768px)・PC(1280px)で操作可能。管理画面ならサイドバーはモバイルでドロワーにする
+
+---
+
+## 5. デザイン基準
+
+テンプレ感のある「素の Bootstrap 風」は禁止。**その顧客の業種・ブランドに合わせて毎回設計する。**
+
+### 5.1 最初にデザイントークンを定義する
+
+実装を始める前に、CSS カスタムプロパティ(Tailwind v4 なら `@theme`)で必ず定義:
+
+```css
+@theme {
+  --color-primary: oklch(55% 0.2 260);   /* 業種から選定 */
+  --font-sans: "Noto Sans JP", sans-serif;
+  --radius-lg: 12px;
+}
+```
+
+- **配色**: プライマリ 1 色 + ニュートラル階調 + セマンティック色(成功/警告/エラー)。業種に合わせる(医療 = 清潔な青緑 / 飲食 = 温かい暖色 / 士業・金融 = 信頼の紺 / SaaS = 知的な青紫)
+- **フォント**: 日本語 `Noto Sans JP` or `Zen Kaku Gothic New`、英数 `Inter`(Google Fonts、`display=swap`)
+- **余白**: 詰めない。カード内 24〜32px、セクション間は大胆に
+- **角丸・影**: 全体でトーン統一。影は薄く多層に
+
+### 5.2 表現の引き出し(適材適所)
+
+ベントーグリッド / ガラスモーフィズム(`backdrop-filter`)/ グラデーションメッシュ背景 / 数値カウントアップ / スクロール連動 / ダークモード(`prefers-color-scheme`、SaaS 系で加点)
+
+### 5.3 品質の目安
+
+「Linear、Notion、Vercel のダッシュボードに並べても違和感がないか?」を自問する。違和感があるなら余白・階調・タイポグラフィを見直す。
+
+---
+
+## 6. Track A(単一 HTML)の要点
+
+- HTML/CSS/JS を 1 ファイルにインライン。外部依存は CDN の `<script>`/`<link>` のみ
+- `<html lang="ja">`、viewport、`noindex` メタを必ず入れる
+- §4 の UX 基準(ダミーデータ、動く操作、状態出し分け)は Vanilla JS で可能な範囲で満たす。データ保持は `localStorage` を直接使う
+- 画像は `assets/` に閉じ、WebP/SVG で軽量に(1 ファイル 500KB 以内)。写真がなければ SVG イラスト・CSS グラデーションで代替
+
+---
+
+## 7. デモ一覧への登録(忘れると一覧に出ない)
+
+ルート `index.html` 内の `DEMOS` 配列に 1 エントリ追加:
+
+```js
+{
+  customer: "acme-corp",        // ディレクトリ名
+  name:     "ACME 株式会社",     // 顧客表示名
+  title:    "予約管理システム",   // デモのタイトル
+  path:     "./acme-corp/",      // 相対パス(末尾スラッシュ必須)
+  date:     "2026-07-08",        // 作成日
+  tags:     ["予約", "管理画面", "React"],
+  status:   "active",            // active | archived
+}
+```
+
+---
+
+## 8. コミット前チェックリスト(全部 YES になるまでコミット禁止)
+
+- [ ] `npm run build` が警告なしで成功した(Track B)
+- [ ] リポジトリルートで `python3 -m http.server 8080` を起動し、`http://localhost:8080/<顧客名>/` を**実際にブラウザ(Playwright 可)で開いて**操作した
+- [ ] 主要ユースケースを最初から最後まで 1 本通した
+- [ ] リロードしても 404 にならない・入力データが残る
+- [ ] コンソールエラーが 0 件
+- [ ] 375px / 768px / 1280px で崩れない
+- [ ] すべての参照が相対パス(ビルド出力の `index.html` を開き、`src="/` や `href="/` で始まる参照がないことを grep で確認)
+- [ ] `noindex` メタが入っている
+- [ ] ダミーデータに実在の個人情報・機密がない
+- [ ] `node_modules/` がステージされていない(`git status` で確認)
+- [ ] ソース(`src/<顧客名>/`)と成果物(`<顧客名>/`)の両方をコミットに含めた
+- [ ] ルート `index.html` の `DEMOS` に登録した
+- [ ] 他顧客のディレクトリに差分がない(`git status` で確認)
+
+---
+
+## 9. Git 運用
+
+- コミットメッセージは日本語可。何をしたか明確に(例: `add: acme-corp 予約管理システムのモック(React)`)
+- `main` へのマージ = 即公開。中途半端な状態を main に入れない
+- 機密がコミット履歴に入ると履歴書き換えが必要になる。**そもそも入れない**
+
+---
+
+## 10. パスワードゲートの仕様(ルート index.html)
+
+- 入力値を Web Crypto(`crypto.subtle.digest("SHA-256", ...)`)でハッシュ化し、定数 `PASSWORD_HASH` と照合。認証状態は `sessionStorage` 保持
+- **顧客の各デモページにはゲートを付けない**(一覧ページのみ。顧客は URL 直アクセス)
+- パスワード変更: `printf '新パスワード' | shasum -a 256` で生成したハッシュに `PASSWORD_HASH` を差し替える
+- これはクライアントサイドの簡易ゲートであり真のアクセス制御ではない。だからこそルール 5(機密禁止)が絶対
+
+---
+
+## 11. よくある失敗と対処(ハマったらここを見る)
+
+| 症状 | 原因 | 対処 |
+|---|---|---|
+| Pages で CSS/JS が 404、画面が真っ白 | 絶対パス参照 | `vite.config.ts` に `base: "./"` を設定して再ビルド |
+| ページ遷移後にリロードすると 404 | BrowserRouter を使っている | HashRouter に変更 |
+| 一覧ページにデモが出ない | `DEMOS` 未登録 | §7 の通り追加 |
+| ビルドしたのに Pages 上が古いまま | 成果物をコミットし忘れ | `<顧客名>/` を `git add` してコミット |
+| リポジトリが巨大化 | `node_modules` をコミットした | `.gitignore` 追加 + `git rm -r --cached` |
+| Google Fonts が読めずフォントが変 | オフライン環境での確認時のみの現象 | Pages 上では問題ない。気になる場合のみ woff2 をセルフホスト |
+| デモのデータがおかしくなった(顧客報告) | localStorage に古いデータ | デモ内の「リセット」ボタンを案内(§4.2 で必ず設置) |
