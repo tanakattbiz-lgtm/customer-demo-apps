@@ -1,0 +1,47 @@
+name: Deploy to GitHub Pages
+
+# main にプッシュされたら、リポジトリ内容(コミット済みのビルド成果物)を
+# そのまま GitHub Pages に配信する。
+# このリポジトリは各デモを事前ビルドして <顧客名>/ にコミットしているため、
+# ワークフロー側でのビルドは不要(静的ファイルをアップロードするだけ)。
+
+on:
+  push:
+    branches: [main]
+  # Actions タブから手動実行も可能にする
+  workflow_dispatch:
+
+# GitHub Pages へのデプロイに必要な権限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時実行を1本に制限(実行中のデプロイはキャンセルせず完走させる)
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # リポジトリルートをそのまま公開ディレクトリとして扱う
+          # (.nojekyll があるため Jekyll 変換はスキップされる)
+          path: "."
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
