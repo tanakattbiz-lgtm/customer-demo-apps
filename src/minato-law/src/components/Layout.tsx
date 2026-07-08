@@ -46,11 +46,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const Sidebar = (
     <nav className="flex h-full flex-col">
       <div className="flex items-center gap-2.5 px-5 pt-5 pb-6">
-        <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white">
+        <div className="grid h-9 w-9 place-items-center rounded-md bg-white/10 text-white ring-1 ring-white/15">
           <Scale size={18} />
         </div>
         <div className="leading-tight">
-          <div className="text-[15px] font-bold text-white">LegalFlow</div>
+          <div className="font-serif text-[15px] font-semibold text-white">LegalFlow</div>
           <div className="text-[11px] text-brand-200">みなと総合法律事務所</div>
         </div>
       </div>

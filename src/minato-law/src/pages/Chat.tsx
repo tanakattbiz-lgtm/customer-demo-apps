@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
+import { toast } from "sonner";
 import {
   Send,
   Search,
@@ -9,12 +10,15 @@ import {
   Check,
   CheckCheck,
   Phone,
-  Mail,
+  Download,
+  FileText,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useStore, staffById } from "../store/useStore";
 import { useLoad } from "../lib/useLoad";
 import { Avatar, EmptyState, Skeleton } from "../components/ui";
 import { chatTime } from "../lib/format";
+import { exportChatText, exportChatCsv } from "../lib/exportChat";
 
 const AUTO_REPLIES = [
   "ありがとうございます。確認いたします。",
@@ -37,6 +41,7 @@ export default function Chat() {
   const [q, setQ] = useState("");
   const [text, setText] = useState("");
   const [typing, setTyping] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // スレッド一覧(最終メッセージ順)
@@ -219,19 +224,68 @@ export default function Chat() {
                   <span>{activeClient.contact}</span>
                 </div>
               </div>
-              <div className="hidden items-center gap-1 sm:flex">
+              <div className="flex items-center gap-1">
                 <button
-                  className="grid h-9 w-9 place-items-center rounded-lg text-ink-400 hover:bg-ink-100 hover:text-ink-700"
+                  className="hidden h-9 w-9 place-items-center rounded-lg text-ink-400 hover:bg-ink-100 hover:text-ink-700 sm:grid"
                   aria-label="電話"
                 >
                   <Phone size={17} />
                 </button>
-                <button
-                  className="grid h-9 w-9 place-items-center rounded-lg text-ink-400 hover:bg-ink-100 hover:text-ink-700"
-                  aria-label="メール"
-                >
-                  <Mail size={17} />
-                </button>
+                {/* チャット履歴の出力 */}
+                <div className="relative">
+                  <button
+                    onClick={() => setExportOpen((v) => !v)}
+                    disabled={thread.length === 0}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 px-2.5 py-1.5 text-xs font-medium text-ink-600 transition hover:bg-ink-50 disabled:opacity-40"
+                    aria-label="履歴を出力"
+                  >
+                    <Download size={15} />
+                    <span className="hidden sm:inline">履歴出力</span>
+                  </button>
+                  <AnimatePresence>
+                    {exportOpen && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setExportOpen(false)}
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                          transition={{ duration: 0.14 }}
+                          className="absolute right-0 z-20 mt-1 w-52 overflow-hidden rounded-xl border border-ink-100 bg-white py-1 shadow-lg"
+                        >
+                          <div className="px-3 py-1.5 text-[11px] text-ink-400">
+                            {activeClient.name} の全 {thread.length} 件
+                          </div>
+                          <button
+                            onClick={() => {
+                              exportChatText(activeClient, thread, staff);
+                              setExportOpen(false);
+                              toast.success("テキストで出力しました");
+                            }}
+                            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-ink-700 transition hover:bg-ink-50"
+                          >
+                            <FileText size={16} className="text-ink-400" />
+                            テキスト(.txt)
+                          </button>
+                          <button
+                            onClick={() => {
+                              exportChatCsv(activeClient, thread, staff);
+                              setExportOpen(false);
+                              toast.success("CSV で出力しました");
+                            }}
+                            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-ink-700 transition hover:bg-ink-50"
+                          >
+                            <FileSpreadsheet size={16} className="text-ink-400" />
+                            CSV(.csv / Excel対応)
+                          </button>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
 

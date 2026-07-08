@@ -30,9 +30,11 @@
   --color-ink-900: oklch(21% 0.012 268);
 
   --font-sans: "Inter", "Noto Sans JP", system-ui, sans-serif;
+  /* 士業の品格・信頼感を出すための明朝(見出し用) */
+  --font-serif: "Shippori Mincho", "Noto Serif JP", serif;
 
-  --radius-lg: 14px;
-  --radius-xl: 18px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
 }
 
 * {

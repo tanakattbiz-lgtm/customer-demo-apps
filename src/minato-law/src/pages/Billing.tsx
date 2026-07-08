@@ -9,10 +9,8 @@ import {
   AlertTriangle,
   FileText,
   Lock,
-  ShieldCheck,
 } from "lucide-react";
 import { useStore } from "../store/useStore";
-import { fakeApiMaybeFail } from "../lib/fakeApi";
 import { useLoad } from "../lib/useLoad";
 import { PageHeader } from "../components/PageHeader";
 import {
@@ -20,13 +18,13 @@ import {
   Pill,
   Button,
   Modal,
-  Field,
   inputCls,
   EmptyState,
   Skeleton,
 } from "../components/ui";
 import { yen, shortDate } from "../lib/format";
 import { invoiceTone } from "../lib/status";
+import { tokenizeCard, createPayment, cardBrand } from "../lib/fakeSquare";
 import type { Invoice, InvoiceStatus } from "../data/seed";
 
 const TABS: Array<InvoiceStatus | "すべて"> = [
@@ -37,13 +35,23 @@ const TABS: Array<InvoiceStatus | "すべて"> = [
   "未請求",
 ];
 
-function brandFromNumber(num: string): string {
-  const n = num.replace(/\s/g, "");
-  if (n.startsWith("4")) return "Visa";
-  if (/^5[1-5]/.test(n)) return "Mastercard";
-  if (/^3[47]/.test(n)) return "Amex";
-  if (n.startsWith("35")) return "JCB";
-  return "カード";
+/** Square ブランドマーク */
+function SquareMark({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <rect
+        x="3"
+        y="3"
+        width="18"
+        height="18"
+        rx="5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.3"
+      />
+      <rect x="8.5" y="8.5" width="7" height="7" rx="1.6" fill="currentColor" />
+    </svg>
+  );
 }
 
 export default function Billing() {
@@ -86,7 +94,13 @@ export default function Billing() {
     <div>
       <PageHeader
         title="請求・決済"
-        subtitle="請求書の発行状況とクレジットカード決済を管理"
+        subtitle="請求書の発行と、Square によるクレジットカード決済を管理"
+        actions={
+          <span className="hidden items-center gap-1.5 rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-500 sm:inline-flex">
+            <SquareMark size={14} />
+            Square 連携
+          </span>
+        }
       />
 
       {/* サマリ */}
@@ -190,7 +204,7 @@ export default function Billing() {
                       {iv.status === "送付済" || iv.status === "延滞" ? (
                         <Button variant="outline" onClick={() => setPay(iv)} className="!px-3 !py-1.5 !text-xs">
                           <CreditCard size={14} />
-                          カード決済
+                          Square で決済
                         </Button>
                       ) : iv.status === "支払済" ? (
                         <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
@@ -228,7 +242,7 @@ export default function Billing() {
                 {(iv.status === "送付済" || iv.status === "延滞") && (
                   <Button variant="outline" onClick={() => setPay(iv)} className="mt-3 w-full !py-2 !text-sm">
                     <CreditCard size={15} />
-                    カードで決済
+                    Square で決済
                   </Button>
                 )}
               </div>
@@ -277,23 +291,26 @@ function PaymentModal({
   onPaid: (id: string, card: { brand: string; last4: string }) => void;
   clientName: (id: string) => string;
 }) {
-  const [number, setNumber] = useState("4242 4242 4242 4242");
-  const [name, setName] = useState("MINATO LAW OFFICE");
+  const [number, setNumber] = useState("4111 1111 1111 1111");
   const [exp, setExp] = useState("12/28");
   const [cvc, setCvc] = useState("123");
-  const [processing, setProcessing] = useState(false);
-  const [done, setDone] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [step, setStep] = useState<"form" | "processing" | "done">("form");
+  const [statusLabel, setStatusLabel] = useState("");
+  const [receipt, setReceipt] = useState("");
   const [err, setErr] = useState<Record<string, string>>({});
 
   // モーダルを開くたびに state リセット
   const key = invoice?.id;
   useMemo(() => {
-    setDone(false);
-    setProcessing(false);
+    setStep("form");
     setErr({});
+    setReceipt("");
   }, [key]);
 
   if (!invoice) return null;
+
+  const brand = cardBrand(number);
 
   function fmtNumber(v: string) {
     return v
@@ -308,7 +325,6 @@ function PaymentModal({
     if (number.replace(/\s/g, "").length < 14) e.number = "カード番号が正しくありません";
     if (!/^\d{2}\/\d{2}$/.test(exp)) e.exp = "MM/YY 形式で入力してください";
     if (!/^\d{3,4}$/.test(cvc)) e.cvc = "3〜4桁で入力してください";
-    if (!name.trim()) e.name = "名義を入力してください";
     setErr(e);
     return Object.keys(e).length === 0;
   }
@@ -316,26 +332,43 @@ function PaymentModal({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate() || !invoice) return;
-    setProcessing(true);
-    try {
-      await fakeApiMaybeFail(true, 0, 1200);
-      const last4 = number.replace(/\s/g, "").slice(-4);
-      onPaid(invoice.id, { brand: brandFromNumber(number), last4 });
-      setProcessing(false);
-      setDone(true);
-      toast.success("決済が完了しました", {
-        description: `${invoice.no} / ${yen(invoice.amount)} を受領しました`,
-      });
-      setTimeout(onClose, 1400);
-    } catch (error) {
-      setProcessing(false);
-      toast.error((error as Error).message);
+    setStep("processing");
+
+    // 1) card.tokenize() 相当:カードを nonce 化
+    setStatusLabel("カード情報を安全に処理しています…");
+    const tk = await tokenizeCard({ number, exp, cvc });
+    if (tk.status !== "OK" || !tk.token || !tk.details) {
+      setStep("form");
+      const msg = tk.errors?.[0]?.message ?? "カード情報の処理に失敗しました";
+      setErr({ number: msg });
+      toast.error(msg);
+      return;
     }
+
+    // 2) Payments API の CreatePayment 相当
+    setStatusLabel("Square で決済を確定しています…");
+    const { card } = tk.details;
+    const res = await createPayment(tk.token, invoice.amount, card.brand, card.last4);
+    if (!res.payment) {
+      setStep("form");
+      const msg = res.errors?.[0]?.detail ?? "決済に失敗しました";
+      toast.error(msg);
+      return;
+    }
+
+    // 成功
+    onPaid(invoice.id, { brand: card.brand, last4: card.last4 });
+    setReceipt(res.payment.receiptNumber);
+    setStep("done");
+    toast.success("決済が完了しました", {
+      description: `${invoice.no} / ${yen(invoice.amount)} を Square で受領しました`,
+    });
+    setTimeout(onClose, 1800);
   }
 
   return (
-    <Modal open={!!invoice} onClose={onClose} title="クレジットカード決済" width={460}>
-      {done ? (
+    <Modal open={!!invoice} onClose={onClose} title="Square でお支払い" width={470}>
+      {step === "done" ? (
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -348,7 +381,10 @@ function PaymentModal({
           <div className="mt-1 text-sm text-ink-500">
             {invoice.no} / {yen(invoice.amount)}
           </div>
-          <div className="mt-1 text-xs text-ink-400">入金確認メールを送信しました</div>
+          <div className="mt-3 rounded-lg bg-ink-50 px-3 py-2 font-mono text-xs text-ink-500">
+            Square レシート番号: {receipt}
+          </div>
+          <div className="mt-2 text-xs text-ink-400">入金確認メールを送信しました</div>
         </motion.div>
       ) : (
         <form onSubmit={submit} className="space-y-4">
@@ -364,77 +400,102 @@ function PaymentModal({
             </div>
           </div>
 
-          {/* カードプレビュー */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-700 to-brand-900 p-5 text-white">
-            <div className="absolute -top-8 -right-8 h-28 w-28 rounded-full bg-white/10" />
-            <div className="flex items-center justify-between">
-              <div className="h-7 w-10 rounded-md bg-gold-400/80" />
-              <span className="text-sm font-semibold">{brandFromNumber(number)}</span>
+          {/* Square Web Payments SDK 風の埋め込みカードフォーム */}
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-sm font-medium text-ink-700">カード情報</span>
+              <span className="inline-flex items-center gap-1 rounded-md bg-ink-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                <SquareMark size={11} />
+                SANDBOX
+              </span>
             </div>
-            <div className="mt-5 font-mono text-lg tracking-widest tnum">
-              {number || "•••• •••• •••• ••••"}
+
+            <div
+              className={
+                "rounded-xl border bg-white p-3 transition " +
+                (focused
+                  ? "border-brand-400 ring-2 ring-brand-400/25"
+                  : Object.keys(err).length
+                    ? "border-rose-300"
+                    : "border-ink-200")
+              }
+            >
+              {/* カード番号行 */}
+              <div className="flex items-center gap-2">
+                <CreditCard size={16} className="shrink-0 text-ink-400" />
+                <input
+                  className="w-full bg-transparent font-mono text-sm tracking-wider text-ink-900 outline-none placeholder:text-ink-300"
+                  inputMode="numeric"
+                  value={number}
+                  onFocus={() => setFocused(true)}
+                  onBlur={() => setFocused(false)}
+                  onChange={(e) => setNumber(fmtNumber(e.target.value))}
+                  placeholder="4111 1111 1111 1111"
+                  aria-label="カード番号"
+                />
+                <span className="shrink-0 text-[11px] font-semibold text-ink-400">{brand}</span>
+              </div>
+              <div className="my-2.5 h-px bg-ink-100" />
+              {/* 有効期限 / CVC 行 */}
+              <div className="flex items-center gap-3">
+                <input
+                  className="w-20 bg-transparent font-mono text-sm text-ink-900 outline-none placeholder:text-ink-300"
+                  value={exp}
+                  onFocus={() => setFocused(true)}
+                  onBlur={() => setFocused(false)}
+                  onChange={(e) => {
+                    let v = e.target.value.replace(/\D/g, "").slice(0, 4);
+                    if (v.length >= 3) v = v.slice(0, 2) + "/" + v.slice(2);
+                    setExp(v);
+                  }}
+                  placeholder="MM/YY"
+                  aria-label="有効期限"
+                />
+                <div className="h-4 w-px bg-ink-100" />
+                <div className="flex items-center gap-1.5">
+                  <Lock size={13} className="text-ink-400" />
+                  <input
+                    className="w-16 bg-transparent font-mono text-sm text-ink-900 outline-none placeholder:text-ink-300"
+                    inputMode="numeric"
+                    value={cvc}
+                    onFocus={() => setFocused(true)}
+                    onBlur={() => setFocused(false)}
+                    onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="CVC"
+                    aria-label="セキュリティコード"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="mt-3 flex justify-between text-xs">
-              <span className="truncate">{name || "CARDHOLDER"}</span>
-              <span>{exp || "MM/YY"}</span>
-            </div>
+            {(err.number || err.exp || err.cvc) && (
+              <p className="mt-1.5 text-xs text-rose-600">
+                {err.number || err.exp || err.cvc}
+              </p>
+            )}
+            <p className="mt-1.5 text-[11px] text-ink-400">
+              テストカード:4111 1111 1111 1111(成功) / 末尾 0002(拒否)
+            </p>
           </div>
 
-          <Field label="カード番号" required error={err.number}>
-            <input
-              className={inputCls + " font-mono tracking-wider"}
-              inputMode="numeric"
-              value={number}
-              onChange={(e) => setNumber(fmtNumber(e.target.value))}
-              placeholder="1234 5678 9012 3456"
-            />
-          </Field>
-          <Field label="カード名義" required error={err.name}>
-            <input
-              className={inputCls + " uppercase"}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="有効期限" required error={err.exp}>
-              <input
-                className={inputCls}
-                value={exp}
-                onChange={(e) => {
-                  let v = e.target.value.replace(/\D/g, "").slice(0, 4);
-                  if (v.length >= 3) v = v.slice(0, 2) + "/" + v.slice(2);
-                  setExp(v);
-                }}
-                placeholder="MM/YY"
-              />
-            </Field>
-            <Field label="セキュリティコード" required error={err.cvc}>
-              <input
-                className={inputCls}
-                inputMode="numeric"
-                value={cvc}
-                onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="CVC"
-              />
-            </Field>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs text-ink-400">
-            <Lock size={12} />
-            SSL通信で保護されています(デモのため実際の決済は行われません)
-          </div>
-
-          <Button type="submit" loading={processing} className="w-full">
-            {processing ? (
-              "決済処理中…"
+          <Button type="submit" loading={step === "processing"} className="w-full">
+            {step === "processing" ? (
+              statusLabel || "処理中…"
             ) : (
               <>
-                <ShieldCheck size={16} />
+                <Lock size={15} />
                 {yen(invoice.amount)} を支払う
               </>
             )}
           </Button>
+
+          <div className="flex items-center justify-center gap-1.5 text-xs text-ink-400">
+            <span>決済は</span>
+            <span className="inline-flex items-center gap-1 font-semibold text-ink-600">
+              <SquareMark size={13} />
+              Square
+            </span>
+            <span>で安全に処理されます(デモのため実際の課金は行われません)</span>
+          </div>
         </form>
       )}
     </Modal>

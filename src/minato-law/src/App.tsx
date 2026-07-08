@@ -6,6 +6,7 @@ import { useStore } from "./store/useStore";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
 
+const Landing = lazy(() => import("./pages/Landing"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Matters = lazy(() => import("./pages/Matters"));
 const Clients = lazy(() => import("./pages/Clients"));
@@ -27,11 +28,17 @@ function PageLoader() {
 
 function Protected({ children }: { children: React.ReactNode }) {
   const authed = useStore((s) => s.authed);
-  if (!authed) return <Navigate to="/login" replace />;
+  if (!authed) return <Navigate to="/lp" replace />;
   return (
     <Layout>
       <Suspense fallback={<PageLoader />}>{children}</Suspense>
     </Layout>
+  );
+}
+
+function Public({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<PageLoader />}>{children}</Suspense>
   );
 }
 
@@ -41,6 +48,7 @@ export default function App() {
     <HashRouter>
       <Toaster position="top-center" richColors closeButton />
       <Routes>
+        <Route path="/lp" element={<Public><Landing /></Public>} />
         <Route
           path="/login"
           element={authed ? <Navigate to="/" replace /> : <Login />}
