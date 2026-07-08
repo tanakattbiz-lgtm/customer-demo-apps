@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+@theme {
+  /* --- 士業・信頼の紺 + 落ち着いたゴールドのアクセント --- */
+  --color-brand-50: oklch(97% 0.015 260);
+  --color-brand-100: oklch(93% 0.03 260);
+  --color-brand-200: oklch(87% 0.05 260);
+  --color-brand-300: oklch(78% 0.08 260);
+  --color-brand-400: oklch(66% 0.12 262);
+  --color-brand-500: oklch(56% 0.15 263);
+  --color-brand-600: oklch(48% 0.15 264);
+  --color-brand-700: oklch(40% 0.13 265);
+  --color-brand-800: oklch(32% 0.1 266);
+  --color-brand-900: oklch(26% 0.08 267);
+  --color-brand-950: oklch(20% 0.06 268);
+
+  --color-gold-400: oklch(80% 0.11 85);
+  --color-gold-500: oklch(72% 0.13 82);
+  --color-gold-600: oklch(64% 0.13 78);
+
+  --color-ink-50: oklch(98% 0.003 265);
+  --color-ink-100: oklch(96% 0.005 265);
+  --color-ink-200: oklch(92% 0.007 265);
+  --color-ink-300: oklch(86% 0.009 265);
+  --color-ink-400: oklch(70% 0.012 265);
+  --color-ink-500: oklch(58% 0.014 265);
+  --color-ink-600: oklch(48% 0.016 266);
+  --color-ink-700: oklch(38% 0.016 267);
+  --color-ink-800: oklch(28% 0.014 268);
+  --color-ink-900: oklch(21% 0.012 268);
+
+  --font-sans: "Inter", "Noto Sans JP", system-ui, sans-serif;
+
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-ink-100);
+  color: var(--color-ink-900);
+}
+
+/* 数字を等幅に(金額・件数の整列用) */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* スケルトン */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-ink-200);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    oklch(100% 0 0 / 0.55),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+
+/* スクロールバー(細く) */
+.thin-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-ink-300);
+  border-radius: 999px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

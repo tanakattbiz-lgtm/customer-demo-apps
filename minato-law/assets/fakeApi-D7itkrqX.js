@@ -1,0 +1,1 @@
+async function e(e,t=420){return await new Promise(e=>setTimeout(e,t+Math.random()*320)),e}async function t(e,t=0,n=900){if(await new Promise(e=>setTimeout(e,n+Math.random()*500)),Math.random()<t)throw Error(`処理に失敗しました。時間をおいて再度お試しください。`);return e}export{t as n,e as t};
