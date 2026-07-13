@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+@theme {
+  /* --- 内航海運・信頼の紺 × 深海のティール(引き算のデザイン) --- */
+  --color-brand-50: oklch(97% 0.02 230);
+  --color-brand-100: oklch(93% 0.04 230);
+  --color-brand-200: oklch(87% 0.07 228);
+  --color-brand-300: oklch(78% 0.1 226);
+  --color-brand-400: oklch(67% 0.12 224);
+  --color-brand-500: oklch(58% 0.13 222);
+  --color-brand-600: oklch(50% 0.13 224);
+  --color-brand-700: oklch(42% 0.11 226);
+  --color-brand-800: oklch(34% 0.09 228);
+  --color-brand-900: oklch(28% 0.07 230);
+  --color-brand-950: oklch(22% 0.05 232);
+
+  /* セマンティック(状態表示) */
+  --color-ok-500: oklch(62% 0.14 155);
+  --color-ok-600: oklch(54% 0.13 155);
+
+  --color-ink-50: oklch(98% 0.003 240);
+  --color-ink-100: oklch(96% 0.005 240);
+  --color-ink-200: oklch(92% 0.007 240);
+  --color-ink-300: oklch(86% 0.009 240);
+  --color-ink-400: oklch(70% 0.012 240);
+  --color-ink-500: oklch(58% 0.014 240);
+  --color-ink-600: oklch(48% 0.016 242);
+  --color-ink-700: oklch(38% 0.016 244);
+  --color-ink-800: oklch(28% 0.014 246);
+  --color-ink-900: oklch(21% 0.012 248);
+
+  --font-sans: "Inter", "Noto Sans JP", system-ui, sans-serif;
+
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-ink-100);
+  color: var(--color-ink-900);
+}
+
+/* 数字を等幅に(件数・金額・時刻の整列用) */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* スケルトン */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-ink-200);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    oklch(100% 0 0 / 0.55),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+
+/* ライブ監視のパルス */
+@keyframes livepulse {
+  0% {
+    box-shadow: 0 0 0 0 oklch(62% 0.14 155 / 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 7px oklch(62% 0.14 155 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 oklch(62% 0.14 155 / 0);
+  }
+}
+.live-dot {
+  animation: livepulse 2s infinite;
+}
+
+/* スクロールバー(細く) */
+.thin-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-ink-300);
+  border-radius: 999px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

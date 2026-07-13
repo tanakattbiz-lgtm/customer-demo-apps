@@ -1,0 +1,1 @@
+import{M as e,O as t,k as n}from"./ui-Du-feDC1.js";import{t as r}from"./index-ntuTlxHj.js";var i=t(`chevron-right`,[[`path`,{d:`m9 18 6-6-6-6`,key:`mthhwq`}]]),a=e(n(),1);function o(e=520){let[t,n]=(0,a.useState)(!0);return(0,a.useEffect)(()=>{let t=!0;return r(!0,e).then(()=>t&&n(!1)),()=>{t=!1}},[e]),t}export{i as n,o as t};
