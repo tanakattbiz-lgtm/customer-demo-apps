@@ -1,0 +1,17 @@
+node_modules/
+playwright-profile/
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+logs/
+screenshots/
+mock-repo/
+.DS_Store
+
+# 認証情報は一切保存しない方針。念のため .env 類は全面除外する。
+.env
+.env.*
+data/mocks/
+data/prepublish-reviews/
+data/proposals/
