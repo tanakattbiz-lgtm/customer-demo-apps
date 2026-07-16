@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+@theme {
+  /* --- 知的な藍(インディゴ)× ニュートラルスレート:業務システムの「引き算」--- */
+  --color-brand-50: oklch(97% 0.014 275);
+  --color-brand-100: oklch(94% 0.03 275);
+  --color-brand-200: oklch(88% 0.06 275);
+  --color-brand-300: oklch(80% 0.1 275);
+  --color-brand-400: oklch(70% 0.14 275);
+  --color-brand-500: oklch(60% 0.17 275);
+  --color-brand-600: oklch(53% 0.19 275);
+  --color-brand-700: oklch(46% 0.17 276);
+  --color-brand-800: oklch(38% 0.13 277);
+  --color-brand-900: oklch(31% 0.1 278);
+  --color-brand-950: oklch(24% 0.07 279);
+
+  --color-ink-50: oklch(98.5% 0.002 270);
+  --color-ink-100: oklch(97% 0.004 270);
+  --color-ink-200: oklch(93% 0.006 270);
+  --color-ink-300: oklch(87% 0.008 270);
+  --color-ink-400: oklch(71% 0.012 270);
+  --color-ink-500: oklch(59% 0.014 270);
+  --color-ink-600: oklch(49% 0.015 272);
+  --color-ink-700: oklch(39% 0.014 274);
+  --color-ink-800: oklch(29% 0.012 276);
+  --color-ink-900: oklch(22% 0.01 278);
+
+  --font-sans: "Noto Sans JP", system-ui, sans-serif;
+
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-ink-100);
+  color: var(--color-ink-900);
+}
+
+/* 件数・時刻・金額を等幅で整列 */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* スケルトン */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-ink-200);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    oklch(100% 0 0 / 0.6),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+
+/* AI 処理中のパルス */
+@keyframes aipulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.ai-pulse {
+  animation: aipulse 1.3s ease-in-out infinite;
+}
+
+/* 細いスクロールバー */
+.thin-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-ink-300);
+  border-radius: 999px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
