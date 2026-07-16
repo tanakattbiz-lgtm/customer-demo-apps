@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/store.ts","./src/components/layout.tsx","./src/components/pageheader.tsx","./src/components/ui.tsx","./src/data/seed.ts","./src/lib/fakeapi.ts","./src/lib/format.ts","./src/lib/pipeline.ts","./src/lib/useload.ts","./src/pages/automation.tsx","./src/pages/dashboard.tsx","./src/pages/members.tsx"],"version":"5.9.3"}
