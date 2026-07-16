@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+@theme {
+  /* --- アルバイトシフト・親しみやすい藍色(引き算のデザイン) --- */
+  --color-brand-50: oklch(97% 0.018 262);
+  --color-brand-100: oklch(94% 0.038 262);
+  --color-brand-200: oklch(88% 0.07 262);
+  --color-brand-300: oklch(80% 0.105 262);
+  --color-brand-400: oklch(70% 0.14 263);
+  --color-brand-500: oklch(62% 0.16 264);
+  --color-brand-600: oklch(55% 0.165 265);
+  --color-brand-700: oklch(47% 0.15 266);
+  --color-brand-800: oklch(40% 0.12 268);
+  --color-brand-900: oklch(34% 0.095 270);
+  --color-brand-950: oklch(27% 0.07 272);
+
+  --color-ink-50: oklch(98% 0.003 250);
+  --color-ink-100: oklch(96% 0.005 250);
+  --color-ink-200: oklch(92% 0.007 250);
+  --color-ink-300: oklch(86% 0.009 250);
+  --color-ink-400: oklch(70% 0.012 250);
+  --color-ink-500: oklch(58% 0.014 252);
+  --color-ink-600: oklch(48% 0.016 254);
+  --color-ink-700: oklch(38% 0.016 256);
+  --color-ink-800: oklch(28% 0.014 258);
+  --color-ink-900: oklch(21% 0.012 260);
+
+  --font-sans: "Noto Sans JP", system-ui, sans-serif;
+
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-ink-100);
+  color: var(--color-ink-900);
+}
+
+/* 数字を等幅に(件数・時刻の整列用) */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* スケルトン */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-ink-200);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    oklch(100% 0 0 / 0.55),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+
+/* 締切パルス */
+@keyframes softpulse {
+  0% {
+    box-shadow: 0 0 0 0 oklch(70% 0.17 40 / 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px oklch(70% 0.17 40 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 oklch(70% 0.17 40 / 0);
+  }
+}
+.pulse-dot {
+  animation: softpulse 2s infinite;
+}
+
+/* スクロールバー(細く) */
+.thin-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-ink-300);
+  border-radius: 999px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
