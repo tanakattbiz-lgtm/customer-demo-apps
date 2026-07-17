@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: oklch(97% 0.015 255);
+  --color-primary-100: oklch(93.5% 0.03 255);
+  --color-primary-200: oklch(87% 0.055 255);
+  --color-primary-300: oklch(78% 0.09 255);
+  --color-primary-400: oklch(66% 0.13 255);
+  --color-primary-500: oklch(56% 0.16 255);
+  --color-primary-600: oklch(48% 0.17 258);
+  --color-primary-700: oklch(41% 0.15 258);
+  --color-primary-800: oklch(34% 0.12 258);
+  --color-primary-900: oklch(27% 0.09 258);
+  --color-navy: oklch(24% 0.055 262);
+  --color-gold: oklch(75% 0.12 85);
+  --color-ink: oklch(25% 0.02 262);
+  --font-sans: "Noto Sans JP", "Inter", system-ui, sans-serif;
+  --font-en: "Inter", "Noto Sans JP", sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: oklch(98.5% 0.004 255);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "palt";
+}
+
+.font-en {
+  font-family: var(--font-en);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 数値入力のスピンボタンを消す */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.skeleton {
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+  background: oklch(92% 0.008 255);
+  border-radius: 8px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.ai-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--color-primary-500);
+  vertical-align: -0.15em;
+  margin-left: 2px;
+  animation: blink 0.9s step-end infinite;
+}
