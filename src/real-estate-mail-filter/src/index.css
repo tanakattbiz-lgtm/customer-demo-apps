@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@theme {
+  /* --- 不動産・業務システム: 信頼の藍 × ニュートラル階調(引き算のデザイン) --- */
+  --color-brand-50: oklch(97% 0.015 265);
+  --color-brand-100: oklch(94% 0.03 265);
+  --color-brand-200: oklch(88% 0.055 265);
+  --color-brand-300: oklch(79% 0.085 265);
+  --color-brand-400: oklch(68% 0.11 265);
+  --color-brand-500: oklch(58% 0.13 265);
+  --color-brand-600: oklch(50% 0.13 266);
+  --color-brand-700: oklch(42% 0.11 268);
+  --color-brand-800: oklch(33% 0.085 270);
+  --color-brand-900: oklch(26% 0.06 272);
+
+  /* セマンティック */
+  --color-ok-50: oklch(96% 0.03 155);
+  --color-ok-500: oklch(62% 0.14 155);
+  --color-ok-600: oklch(52% 0.13 155);
+  --color-ok-700: oklch(44% 0.11 155);
+
+  --color-warn-50: oklch(97% 0.035 85);
+  --color-warn-500: oklch(75% 0.15 75);
+  --color-warn-600: oklch(64% 0.15 65);
+  --color-warn-700: oklch(52% 0.13 60);
+
+  --color-line-500: oklch(70% 0.17 148);
+  --color-line-600: oklch(60% 0.16 148);
+
+  /* ニュートラル(本文・罫線) */
+  --color-ink-50: oklch(98.5% 0.002 265);
+  --color-ink-100: oklch(96.5% 0.004 265);
+  --color-ink-200: oklch(92.5% 0.006 265);
+  --color-ink-300: oklch(86% 0.008 265);
+  --color-ink-400: oklch(70% 0.012 265);
+  --color-ink-500: oklch(58% 0.014 265);
+  --color-ink-600: oklch(48% 0.015 267);
+  --color-ink-700: oklch(38% 0.015 269);
+  --color-ink-800: oklch(28% 0.013 271);
+  --color-ink-900: oklch(21% 0.011 273);
+
+  --font-sans: "Noto Sans JP", system-ui, sans-serif;
+
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-ink-100);
+  color: var(--color-ink-900);
+}
+
+/* 件数・金額・日時の桁を揃える */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
