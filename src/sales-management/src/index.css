@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@theme {
+  /* --- SaaS・営業管理:知的な青紫(業務システムなので引き算基調) --- */
+  --color-brand-50: oklch(97% 0.018 275);
+  --color-brand-100: oklch(94% 0.035 275);
+  --color-brand-200: oklch(89% 0.06 274);
+  --color-brand-300: oklch(81% 0.1 273);
+  --color-brand-400: oklch(70% 0.14 272);
+  --color-brand-500: oklch(61% 0.17 271);
+  --color-brand-600: oklch(54% 0.19 270);
+  --color-brand-700: oklch(47% 0.18 270);
+  --color-brand-800: oklch(39% 0.15 271);
+  --color-brand-900: oklch(32% 0.12 272);
+  --color-brand-950: oklch(25% 0.09 273);
+
+  /* ニュートラル階調(インク) */
+  --color-ink-50: oklch(98% 0.003 275);
+  --color-ink-100: oklch(96% 0.005 275);
+  --color-ink-200: oklch(92% 0.007 275);
+  --color-ink-300: oklch(86% 0.009 275);
+  --color-ink-400: oklch(70% 0.012 275);
+  --color-ink-500: oklch(58% 0.014 275);
+  --color-ink-600: oklch(48% 0.016 277);
+  --color-ink-700: oklch(38% 0.016 279);
+  --color-ink-800: oklch(28% 0.014 281);
+  --color-ink-900: oklch(21% 0.012 283);
+
+  --font-sans: "Noto Sans JP", "Inter", system-ui, sans-serif;
+
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-ink-100);
+  color: var(--color-ink-900);
+}
+
+/* 数字を等幅に(件数・金額・時刻の整列用) */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* スケルトン */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-ink-200);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    oklch(100% 0 0 / 0.55),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+
+/* スクロールバー(細く) */
+.thin-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-ink-300);
+  border-radius: 999px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
