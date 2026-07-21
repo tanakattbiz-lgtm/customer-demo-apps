@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@theme {
+  /* --- 未経験層向け求人ポータル / 温かく前向きなコーラルオレンジ(POP × シンプル) --- */
+  --color-brand-50: oklch(97% 0.02 45);
+  --color-brand-100: oklch(94% 0.04 44);
+  --color-brand-200: oklch(89% 0.07 42);
+  --color-brand-300: oklch(83% 0.11 40);
+  --color-brand-400: oklch(76% 0.15 38);
+  --color-brand-500: oklch(71% 0.17 36);
+  --color-brand-600: oklch(65% 0.185 34);
+  --color-brand-700: oklch(57% 0.17 33);
+  --color-brand-800: oklch(48% 0.14 33);
+  --color-brand-900: oklch(41% 0.11 33);
+
+  /* サブアクセント: 安心感のあるミントグリーン(未経験歓迎・応援トーン) */
+  --color-mint-50: oklch(97% 0.02 165);
+  --color-mint-100: oklch(93% 0.05 165);
+  --color-mint-500: oklch(68% 0.13 165);
+  --color-mint-600: oklch(60% 0.13 165);
+  --color-mint-700: oklch(52% 0.12 166);
+
+  /* ニュートラル(ほんのり暖色) */
+  --color-ink-50: oklch(98% 0.004 60);
+  --color-ink-100: oklch(96% 0.006 60);
+  --color-ink-200: oklch(92% 0.008 60);
+  --color-ink-300: oklch(86% 0.01 58);
+  --color-ink-400: oklch(70% 0.012 56);
+  --color-ink-500: oklch(58% 0.014 54);
+  --color-ink-600: oklch(48% 0.015 52);
+  --color-ink-700: oklch(39% 0.015 50);
+  --color-ink-800: oklch(29% 0.013 48);
+  --color-ink-900: oklch(22% 0.011 46);
+
+  --font-sans: "Noto Sans JP", system-ui, sans-serif;
+
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-ink-100);
+  color: var(--color-ink-900);
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* スケルトン */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-ink-200);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    oklch(100% 0 0 / 0.6),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+
+/* ヒーローの柔らかいグラデーション */
+.hero-glow {
+  background:
+    radial-gradient(60% 60% at 12% 0%, oklch(94% 0.06 44 / 0.9), transparent 70%),
+    radial-gradient(50% 60% at 100% 10%, oklch(93% 0.05 165 / 0.7), transparent 70%),
+    var(--color-brand-50);
+}
+
+.thin-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-ink-300);
+  border-radius: 999px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
