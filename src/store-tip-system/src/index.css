@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+@theme {
+  /* --- 店舗チップ・感謝の暖色(コーラル/ゴールド) × 引き算のデザイン --- */
+  --color-brand-50: oklch(97% 0.02 45);
+  --color-brand-100: oklch(94% 0.045 45);
+  --color-brand-200: oklch(89% 0.08 43);
+  --color-brand-300: oklch(82% 0.115 41);
+  --color-brand-400: oklch(74% 0.15 39);
+  --color-brand-500: oklch(68% 0.17 37);
+  --color-brand-600: oklch(61% 0.17 35);
+  --color-brand-700: oklch(52% 0.15 34);
+  --color-brand-800: oklch(43% 0.12 33);
+  --color-brand-900: oklch(36% 0.09 33);
+  --color-brand-950: oklch(28% 0.06 33);
+
+  /* ハート/応援(ローズ) */
+  --color-heart-400: oklch(70% 0.16 15);
+  --color-heart-500: oklch(63% 0.19 13);
+  --color-heart-600: oklch(56% 0.19 12);
+
+  --color-ink-50: oklch(98% 0.003 60);
+  --color-ink-100: oklch(96% 0.005 60);
+  --color-ink-200: oklch(92% 0.007 60);
+  --color-ink-300: oklch(86% 0.009 60);
+  --color-ink-400: oklch(70% 0.012 55);
+  --color-ink-500: oklch(58% 0.014 50);
+  --color-ink-600: oklch(48% 0.016 48);
+  --color-ink-700: oklch(38% 0.016 46);
+  --color-ink-800: oklch(28% 0.014 44);
+  --color-ink-900: oklch(21% 0.012 42);
+
+  --font-sans: "Inter", "Noto Sans JP", system-ui, sans-serif;
+
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-ink-100);
+  color: var(--color-ink-900);
+}
+
+/* 数字を等幅に(金額・件数・時刻の整列用) */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* スケルトン */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-ink-200);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    oklch(100% 0 0 / 0.55),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+
+/* 受取のライブ・パルス */
+@keyframes livepulse {
+  0% {
+    box-shadow: 0 0 0 0 oklch(63% 0.19 13 / 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 7px oklch(63% 0.19 13 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 oklch(63% 0.19 13 / 0);
+  }
+}
+.live-dot {
+  animation: livepulse 2s infinite;
+}
+
+/* ハートが浮かぶ演出 */
+@keyframes floatup {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-90px) scale(1.15);
+    opacity: 0;
+  }
+}
+.heart-float {
+  animation: floatup 1.5s ease-out forwards;
+}
+
+/* スクロールバー(細く) */
+.thin-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-ink-300);
+  border-radius: 999px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
