@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Noto Sans JP", system-ui, sans-serif;
+
+  /* 近未来 × 信頼感：深い紺の背景にシアン〜バイオレットのアクセント */
+  --color-ink: oklch(16% 0.03 265);
+  --color-ink-2: oklch(21% 0.035 265);
+  --color-ink-3: oklch(27% 0.04 265);
+  --color-line: oklch(38% 0.03 265);
+
+  --color-brand: oklch(72% 0.16 200);
+  --color-brand-2: oklch(68% 0.19 285);
+
+  --color-rank-a: oklch(72% 0.17 155);
+  --color-rank-b: oklch(70% 0.15 235);
+  --color-rank-c: oklch(80% 0.15 90);
+  --color-rank-d: oklch(66% 0.2 20);
+
+  --radius-lg: 16px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-ink);
+  color: oklch(96% 0.01 265);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 近未来感のあるグリッド背景 + グロー */
+.bg-grid {
+  background-image:
+    radial-gradient(
+      ellipse 80% 60% at 50% -10%,
+      oklch(72% 0.16 200 / 0.18),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 70% 50% at 90% 10%,
+      oklch(68% 0.19 285 / 0.16),
+      transparent 55%
+    ),
+    linear-gradient(
+      to right,
+      oklch(60% 0.03 265 / 0.08) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      oklch(60% 0.03 265 / 0.08) 1px,
+      transparent 1px
+    );
+  background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+}
+
+.text-gradient {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-brand),
+    var(--color-brand-2)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* スケルトンのシマー */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-ink-3);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    oklch(100% 0 0 / 0.06),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
