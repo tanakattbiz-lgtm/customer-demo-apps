@@ -1,0 +1,1 @@
+import{r}from"./index-BX_OXsPD.js";import{a as s}from"./fakeApi-RQ6UWbjV.js";function n(e=520){const[a,o]=r.useState(!0);return r.useEffect(()=>{let t=!0;return s(!0,e).then(()=>t&&o(!1)),()=>{t=!1}},[e]),a}export{n as u};
