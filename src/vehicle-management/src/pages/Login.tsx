@@ -46,13 +46,13 @@ export default function Login() {
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/15">
               <Car size={20} />
             </div>
-            <span className="text-lg font-bold">○○運輸株式会社 車両管理</span>
+            <span className="text-lg font-bold">社会福祉法人○○会 車両管理</span>
           </div>
           <div>
             <h1 className="text-3xl font-bold leading-snug">
-              日常点検から車検・保険まで、
+              送迎・訪問車両の日常点検から
               <br />
-              白ナンバー管理をひとつに。
+              車検・保険まで、ひとつに。
             </h1>
             <p className="mt-4 max-w-md text-sm leading-relaxed text-white/75">
               写真2枚を送るだけでアルコール・体温・走行距離を自動入力。管理者は確認するだけ。
@@ -78,7 +78,7 @@ export default function Login() {
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand-600 text-white">
                 <Car size={20} />
               </div>
-              <span className="text-lg font-bold text-ink-900">○○運輸株式会社 車両管理</span>
+              <span className="text-lg font-bold text-ink-900">社会福祉法人○○会 車両管理</span>
             </div>
           </div>
 

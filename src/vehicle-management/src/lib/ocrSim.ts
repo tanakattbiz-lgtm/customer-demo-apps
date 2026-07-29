@@ -40,12 +40,12 @@ export type VehicleRegistrationOcrResult = {
 };
 
 const SAMPLE_MODELS = [
-  "トヨタ ハイエース バン",
-  "日産 NV350 キャラバン",
-  "いすゞ エルフ",
-  "日野 デュトロ",
+  "トヨタ ハイエース(福祉車両・車いす仕様)",
+  "日産 セレナ(福祉車両)",
+  "トヨタ ノア(福祉車両)",
+  "ホンダ N-BOX(訪問介護用)",
 ];
-const SAMPLE_AREAS = ["品川", "練馬", "大阪", "福岡"];
+const SAMPLE_AREAS = ["杉並", "練馬", "世田谷", "中野"];
 const SAMPLE_KANA = ["あ", "い", "う", "か", "さ"];
 
 export async function ocrVehicleRegistration(): Promise<VehicleRegistrationOcrResult> {
@@ -54,7 +54,7 @@ export async function ocrVehicleRegistration(): Promise<VehicleRegistrationOcrRe
   const num1 = Math.floor(10 + Math.random() * 89);
   const num2 = Math.floor(10 + Math.random() * 89);
   const model = SAMPLE_MODELS[Math.floor(Math.random() * SAMPLE_MODELS.length)];
-  const chassisNumber = `XZU${Math.floor(100000 + Math.random() * 899999)}`;
+  const chassisNumber = `KDH${Math.floor(100000 + Math.random() * 899999)}`;
   const expiry = new Date();
   expiry.setMonth(expiry.getMonth() + 3 + Math.floor(Math.random() * 24));
 

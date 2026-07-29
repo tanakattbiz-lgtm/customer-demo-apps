@@ -1,4 +1,4 @@
-import{y as e}from"./index-CwYwhzPC.js";var t=e(`circle-check`,[[`circle`,{cx:`12`,cy:`12`,r:`10`,key:`1mglay`}],[`path`,{d:`m9 12 2 2 4-4`,key:`dzmm74`}]]);function n(e){return`data:image/svg+xml;utf8,${encodeURIComponent(e)}`}function r(e){return n(`
+import{y as e}from"./index-WLK4Up9S.js";var t=e(`circle-check`,[[`circle`,{cx:`12`,cy:`12`,r:`10`,key:`1mglay`}],[`path`,{d:`m9 12 2 2 4-4`,key:`dzmm74`}]]);function n(e){return`data:image/svg+xml;utf8,${encodeURIComponent(e)}`}function r(e){return n(`
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
   <defs>
     <radialGradient id="bg" cx="50%" cy="35%" r="80%">
@@ -38,11 +38,11 @@ import{y as e}from"./index-CwYwhzPC.js";var t=e(`circle-check`,[[`circle`,{cx:`1
   <text x="320" y="60" font-family="Noto Sans JP, Arial" font-size="22" fill="#4a4530" text-anchor="middle">自動車検査証(サンプル)</text>
   <line x1="60" y1="80" x2="580" y2="80" stroke="#c9c0a0" stroke-width="1"/>
   <text x="60" y="120" font-family="Arial" font-size="15" fill="#6b6448">登録番号</text>
-  <text x="60" y="146" font-family="Arial" font-size="20" fill="#2b2717">品川 300 あ 12-34</text>
+  <text x="60" y="146" font-family="Arial" font-size="20" fill="#2b2717">杉並 300 あ 12-34</text>
   <text x="60" y="190" font-family="Arial" font-size="15" fill="#6b6448">車名・型式</text>
-  <text x="60" y="216" font-family="Arial" font-size="20" fill="#2b2717">トヨタ ハイエース バン</text>
+  <text x="60" y="216" font-family="Arial" font-size="20" fill="#2b2717">トヨタ ハイエース(福祉車両)</text>
   <text x="60" y="260" font-family="Arial" font-size="15" fill="#6b6448">車台番号</text>
-  <text x="60" y="286" font-family="Arial" font-size="20" fill="#2b2717">XZU710-1234567</text>
+  <text x="60" y="286" font-family="Arial" font-size="20" fill="#2b2717">KDH710-1234567</text>
   <text x="60" y="330" font-family="Arial" font-size="15" fill="#6b6448">有効期間の満了する日</text>
   <text x="60" y="356" font-family="Arial" font-size="20" fill="#a83232">2026年10月14日</text>
   <rect x="470" y="260" width="90" height="90" fill="#efece0" stroke="#b9ad86"/>
