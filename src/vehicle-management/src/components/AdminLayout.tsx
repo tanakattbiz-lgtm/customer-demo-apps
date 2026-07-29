@@ -118,7 +118,7 @@ function Brand() {
         <Car size={19} />
       </div>
       <div className="leading-tight">
-        <div className="text-sm font-bold text-ink-900">○○運輸株式会社</div>
+        <div className="text-sm font-bold text-ink-900">社会福祉法人○○会</div>
         <div className="text-[11px] text-ink-400">車両管理システム</div>
       </div>
     </div>

@@ -1,1 +1,0 @@
-import{a as e}from"./date-HQH4RxBN.js";import{M as t,j as n}from"./index-CwYwhzPC.js";var r=t(n(),1);function i(t=520){let[n,i]=(0,r.useState)(!0);return(0,r.useEffect)(()=>{let n=!0;return e(!0,t).then(()=>n&&i(!1)),()=>{n=!1}},[t]),n}export{i as t};

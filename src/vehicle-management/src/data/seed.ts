@@ -113,9 +113,9 @@ export const genId = (p: string) =>
 
 // ---------------- 固定マスタ ----------------
 export const OFFICES: Office[] = [
-  { id: "off_tokyo", name: "東京本社営業所" },
-  { id: "off_osaka", name: "大阪支店" },
-  { id: "off_fukuoka", name: "福岡営業所" },
+  { id: "off_tokuyo", name: "特別養護老人ホーム" },
+  { id: "off_day", name: "デイサービスセンター" },
+  { id: "off_home", name: "訪問介護ステーション" },
 ];
 
 export const ADMINS: Admin[] = [
@@ -130,15 +130,15 @@ const STAFF_NAMES = [
 ];
 
 const VEHICLE_MODELS = [
-  { model: "トヨタ ハイエース バン", prefix: "XZU" },
-  { model: "日産 NV350 キャラバン", prefix: "VR2E" },
-  { model: "いすゞ エルフ", prefix: "NHR85" },
-  { model: "日野 デュトロ", prefix: "XZU710" },
-  { model: "三菱ふそう キャンター", prefix: "FEB50" },
-  { model: "トヨタ ダイナ", prefix: "XZU600" },
+  { model: "トヨタ ハイエース(福祉車両・車いす仕様)", prefix: "KDH" },
+  { model: "日産 セレナ(福祉車両)", prefix: "GFC27" },
+  { model: "トヨタ ノア(福祉車両)", prefix: "ZRR" },
+  { model: "ホンダ N-BOX(訪問介護用)", prefix: "JF3" },
+  { model: "スズキ エブリイ(福祉車両)", prefix: "DA17" },
+  { model: "トヨタ シエンタ(福祉車両)", prefix: "NHP" },
 ];
 
-const PLATE_AREAS = ["品川", "練馬", "大阪", "なにわ", "福岡", "北九州"];
+const PLATE_AREAS = ["杉並", "練馬", "世田谷", "中野"];
 const PLATE_KANA = ["あ", "い", "う", "か", "さ", "は"];
 
 function seededRand(seed: number) {
@@ -329,15 +329,15 @@ function buildAccidents(vehicles: Vehicle[], staffList: Staff[]): AccidentRecord
   const today = new Date();
   const statuses: AccidentStatus[] = ["受付", "交渉中", "修理中", "完了"];
   const summaries = [
-    "駐車場内で後退時に隣接車両と接触",
-    "交差点での右折時に対向直進車と接触",
-    "信号待ち停車中に後方から追突された",
+    "施設駐車場内で後退時に隣接車両と接触",
+    "送迎中、交差点での右折時に対向直進車と接触",
+    "利用者宅前で信号待ち停車中に後方から追突された",
     "狭路ですれ違い時に左側ミラーが接触",
-    "配送先敷地内で構造物に接触し車両後部を損傷",
+    "利用者宅前の私道で塀に接触し車両後部を損傷",
   ];
   const locations = [
-    "東京都品川区 配送先駐車場", "大阪府大阪市 交差点(市道)",
-    "福岡県福岡市 幹線道路上", "東京都大田区 路地",
+    "東京都杉並区 施設駐車場", "東京都練馬区 交差点(区道)",
+    "東京都世田谷区 幹線道路上", "東京都中野区 利用者宅前の路地",
   ];
   return Array.from({ length: 5 }).map((_, i) => {
     const vehicle = vehicles[(i * 3) % vehicles.length];
@@ -357,7 +357,7 @@ function buildAccidents(vehicles: Vehicle[], staffList: Staff[]): AccidentRecord
       counterpartyInfo:
         i % 2 === 0
           ? "相手方: 個人(乗用車) / 連絡先: 090-XXXX-XXXX / 相手側保険: つばさ自動車保険"
-          : "相手方: 法人配送車 / 連絡先: 配送先管理会社経由 / 相手側保険: 未加入(自社対応)",
+          : "相手方: 法人車両(宅配業者) / 連絡先: 相手方勤務先経由 / 相手側保険: 未加入(自社対応)",
       faultRatioSelf: faultSelf,
       faultRatioOther: 100 - faultSelf,
       repairCost,
