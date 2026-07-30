@@ -7,6 +7,7 @@ import {
   ScrollText,
   Truck,
   ShieldCheck,
+  Users,
   Menu,
   X,
   Car,
@@ -23,6 +24,7 @@ const NAV = [
   { to: "/audit-log", label: "確認者ログ", icon: ScrollText },
   { to: "/vehicles", label: "車両・車検", icon: Truck },
   { to: "/insurance", label: "保険・事故", icon: ShieldCheck },
+  { to: "/staff-management", label: "スタッフ管理", icon: Users },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
