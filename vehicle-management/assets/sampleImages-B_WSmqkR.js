@@ -1,4 +1,4 @@
-import{y as e}from"./index-WLK4Up9S.js";var t=e(`circle-check`,[[`circle`,{cx:`12`,cy:`12`,r:`10`,key:`1mglay`}],[`path`,{d:`m9 12 2 2 4-4`,key:`dzmm74`}]]);function n(e){return`data:image/svg+xml;utf8,${encodeURIComponent(e)}`}function r(e){return n(`
+import{x as e}from"./index-Bdfdnfxs.js";var t=e(`circle-check`,[[`circle`,{cx:`12`,cy:`12`,r:`10`,key:`1mglay`}],[`path`,{d:`m9 12 2 2 4-4`,key:`dzmm74`}]]);function n(e){return`data:image/svg+xml;utf8,${encodeURIComponent(e)}`}function r(e){return n(`
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
   <defs>
     <radialGradient id="bg" cx="50%" cy="35%" r="80%">
