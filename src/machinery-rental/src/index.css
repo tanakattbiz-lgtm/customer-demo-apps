@@ -1,0 +1,206 @@
+@import "tailwindcss";
+
+/* =========================================================
+   ○○レンタル コーポレートサイト刷新モック
+   デザイン方針: 明るい・軽い・抜けのある「光」のトーン
+   建機のシグナルイエロー × 山陰の海と空のブルー
+   ========================================================= */
+@theme {
+  /* --- Primary: 建機のシグナルイエロー(明るさの主役) --- */
+  --color-sun-50: oklch(98% 0.02 88);
+  --color-sun-100: oklch(96% 0.05 88);
+  --color-sun-200: oklch(93% 0.1 88);
+  --color-sun-300: oklch(90% 0.14 87);
+  --color-sun-400: oklch(86% 0.17 85);
+  --color-sun-500: oklch(82% 0.18 82);
+  --color-sun-600: oklch(74% 0.17 74);
+  --color-sun-700: oklch(63% 0.15 66);
+  --color-sun-800: oklch(50% 0.12 60);
+  --color-sun-900: oklch(40% 0.09 58);
+
+  /* --- Secondary: 日本海のスカイブルー --- */
+  --color-sea-50: oklch(97% 0.017 230);
+  --color-sea-100: oklch(94% 0.035 230);
+  --color-sea-200: oklch(88% 0.06 230);
+  --color-sea-300: oklch(80% 0.09 232);
+  --color-sea-400: oklch(72% 0.13 234);
+  --color-sea-500: oklch(64% 0.15 236);
+  --color-sea-600: oklch(56% 0.15 240);
+  --color-sea-700: oklch(47% 0.13 242);
+  --color-sea-800: oklch(38% 0.1 244);
+  --color-sea-900: oklch(30% 0.07 246);
+
+  /* --- Neutral: わずかに暖かいインク --- */
+  --color-ink-0: oklch(100% 0 0);
+  --color-ink-50: oklch(98.6% 0.003 90);
+  --color-ink-100: oklch(97% 0.005 90);
+  --color-ink-200: oklch(93% 0.006 90);
+  --color-ink-300: oklch(87% 0.007 90);
+  --color-ink-400: oklch(72% 0.009 90);
+  --color-ink-500: oklch(60% 0.01 92);
+  --color-ink-600: oklch(50% 0.011 94);
+  --color-ink-700: oklch(39% 0.012 96);
+  --color-ink-800: oklch(28% 0.011 98);
+  --color-ink-900: oklch(20% 0.009 100);
+
+  /* --- Semantic --- */
+  --color-ok-100: oklch(94% 0.05 152);
+  --color-ok-500: oklch(66% 0.15 152);
+  --color-ok-700: oklch(48% 0.13 154);
+  --color-warn-100: oklch(95% 0.05 70);
+  --color-warn-500: oklch(76% 0.15 62);
+  --color-warn-700: oklch(55% 0.14 52);
+  --color-ng-100: oklch(95% 0.035 22);
+  --color-ng-500: oklch(64% 0.19 24);
+  --color-ng-700: oklch(50% 0.18 25);
+
+  --font-sans: "Noto Sans JP", "Inter", system-ui, sans-serif;
+  --font-display: "Inter", "Noto Sans JP", system-ui, sans-serif;
+
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
+
+  --shadow-soft: 0 1px 2px oklch(20% 0.01 100 / 0.04), 0 6px 16px oklch(20% 0.01 100 / 0.06);
+  --shadow-lift: 0 2px 4px oklch(20% 0.01 100 / 0.05), 0 14px 34px oklch(20% 0.01 100 / 0.1);
+  --shadow-pop: 0 4px 8px oklch(20% 0.01 100 / 0.06), 0 24px 60px oklch(20% 0.01 100 / 0.14);
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-ink-0);
+  color: var(--color-ink-900);
+  line-height: 1.75;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100dvh;
+  isolation: isolate;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 明るい光のメッシュ背景 */
+.mesh-light {
+  background-image:
+    radial-gradient(48rem 34rem at 78% -12%, oklch(93% 0.12 88 / 0.85), transparent 62%),
+    radial-gradient(40rem 30rem at 4% 8%, oklch(93% 0.06 230 / 0.8), transparent 60%),
+    radial-gradient(36rem 28rem at 62% 96%, oklch(95% 0.05 160 / 0.7), transparent 62%);
+}
+
+.mesh-soft {
+  background-image:
+    radial-gradient(34rem 24rem at 96% 0%, oklch(94% 0.08 88 / 0.7), transparent 60%),
+    radial-gradient(30rem 22rem at 0% 100%, oklch(95% 0.045 230 / 0.75), transparent 60%);
+}
+
+/* うっすらグリッド(建設現場の図面感) */
+.grid-paper {
+  background-image:
+    linear-gradient(oklch(50% 0.01 100 / 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(50% 0.01 100 / 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(70% 60% at 50% 30%, #000 30%, transparent 100%);
+}
+
+/* ガラス調ヘッダー */
+.glass {
+  background: oklch(100% 0 0 / 0.72);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+}
+
+/* スケルトンのシマー */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-ink-200);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, oklch(100% 0 0 / 0.75), transparent);
+  animation: shimmer 1.4s infinite;
+}
+
+/* ヒーローの光の帯 */
+@keyframes sheen {
+  0% {
+    transform: translateX(-120%) skewX(-12deg);
+  }
+  100% {
+    transform: translateX(320%) skewX(-12deg);
+  }
+}
+
+/* 稼働ドット */
+@keyframes ping-soft {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+.ping-soft::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: ping-soft 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* スクロールバー(横スクロール領域) */
+.thin-scroll::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-ink-300);
+  border-radius: 99px;
+}
+
+/* フォーカスリング統一 */
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-sea-500);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
