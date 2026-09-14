@@ -8,6 +8,7 @@ import {
   type AppData,
   type DailyReport,
   type Vehicle,
+  type Staff,
   type InsurancePolicy,
   type AccidentRecord,
   type AccidentStatus,
@@ -45,6 +46,12 @@ interface State extends AppData {
   ) => void;
 
   upsertInsurancePolicy: (policy: InsurancePolicy) => void;
+
+  addStaff: (input: { name: string; officeId: string; vehicleId: string }) => void;
+  updateStaffAssignment: (
+    staffId: string,
+    patch: { officeId?: string; vehicleId?: string },
+  ) => void;
 
   addAccidentRecord: (
     record: Omit<AccidentRecord, "id" | "createdAt">,
@@ -148,6 +155,23 @@ export const useStore = create<State>()(
               : [...s.insurancePolicies, policy],
           };
         }),
+
+      addStaff: ({ name, officeId, vehicleId }) =>
+        set((s) => {
+          const newStaff: Staff = {
+            id: genId("stf"),
+            name,
+            officeId,
+            vehicleId,
+            username: `staff${s.staffList.length + 1}`,
+          };
+          return { staffList: [...s.staffList, newStaff] };
+        }),
+
+      updateStaffAssignment: (staffId, patch) =>
+        set((s) => ({
+          staffList: s.staffList.map((st) => (st.id === staffId ? { ...st, ...patch } : st)),
+        })),
 
       addAccidentRecord: (record) =>
         set((s) => ({

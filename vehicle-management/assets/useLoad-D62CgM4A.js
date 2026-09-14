@@ -1,0 +1,1 @@
+import{N as e,P as t}from"./index-Bdfdnfxs.js";import{t as n}from"./fakeApi-Bjq-0Phf.js";var r=t(e(),1);function i(e=520){let[t,i]=(0,r.useState)(!0);return(0,r.useEffect)(()=>{let t=!0;return n(!0,e).then(()=>t&&i(!1)),()=>{t=!1}},[e]),t}export{i as t};

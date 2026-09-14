@@ -1,0 +1,1 @@
+async function e(e,t=420){return await new Promise(e=>setTimeout(e,t+Math.random()*320)),e}export{e as t};

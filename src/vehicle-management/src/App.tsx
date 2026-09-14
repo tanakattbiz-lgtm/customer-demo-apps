@@ -11,6 +11,7 @@ const DailyChecks = lazy(() => import("./pages/admin/DailyChecks"));
 const AuditLog = lazy(() => import("./pages/admin/AuditLog"));
 const Vehicles = lazy(() => import("./pages/admin/Vehicles"));
 const Insurance = lazy(() => import("./pages/admin/Insurance"));
+const StaffManagement = lazy(() => import("./pages/admin/StaffManagement"));
 
 function RequireRole({
   role,
@@ -91,6 +92,16 @@ export default function App() {
             <RequireRole role="admin">
               <AdminLayout>
                 <Insurance />
+              </AdminLayout>
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/staff-management"
+          element={
+            <RequireRole role="admin">
+              <AdminLayout>
+                <StaffManagement />
               </AdminLayout>
             </RequireRole>
           }
