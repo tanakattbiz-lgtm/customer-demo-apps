@@ -61,8 +61,13 @@ export default function Contracts() {
     <>
       <PageHeader
         eyebrow="Contracts"
-        title="契約管理"
-        description="広告契約(広告主)と土地契約(地権者)を、看板・広告面に紐づけて管理します。"
+        title="契約の一覧"
+        description="広告主との「広告契約」と、看板を置く土地の持ち主との「土地契約」を確認できます。どちらも看板にひもづいています。"
+        guide={[
+          "上のタブで「広告契約」と「土地契約」を切り替えます。",
+          "行を押すと、契約の詳しい内容と、どの看板の契約かが表示されます。",
+          "解約の連絡を受けたら、契約を開いて「解約を登録」を押します。",
+        ]}
       />
       <div className="mb-4 border-b border-ink-200">
         <Tabs<Tab>
@@ -126,7 +131,7 @@ function AdTab() {
         <div className="relative">
           <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-400" />
           <input
-            className={inputCls + " w-full pl-8 md:w-64"}
+            className={inputCls + " w-full! pl-8! md:w-64!"}
             placeholder="契約番号・広告主・看板名"
             value={q}
             onChange={(e) => {
@@ -136,14 +141,14 @@ function AdTab() {
           />
         </div>
         <select
-          className={inputCls + " md:w-44"}
+          className={inputCls + " md:w-44!"}
           value={state}
           onChange={(e) => {
             setState(e.target.value as ContractState);
             reset();
           }}
         >
-          <option value="active">有効な契約(満了・解約済を除く)</option>
+          <option value="active">有効な契約のみ</option>
           <option value="">すべて</option>
           {(["掲載予定", "掲載中", "満了間近", "解約予定", "満了", "解約済"] as ContractState[]).map((s) => (
             <option key={s}>{s}</option>
@@ -169,14 +174,13 @@ function AdTab() {
         ) : (
           <>
             <div className="thin-scroll overflow-x-auto">
-              <table className="w-full min-w-[980px] text-[13px]">
+              <table className="w-full min-w-[980px] text-[15px] [&_td]:whitespace-nowrap">
                 <thead className={tableHeadCls}>
                   <tr>
                     <th className={thCls}>契約番号</th>
                     <SortTh label="広告主" k="customer" sort={sort} onSort={onSort} />
                     <th className={thCls}>看板・広告面</th>
-                    <SortTh label="開始" k="start" sort={sort} onSort={onSort} />
-                    <SortTh label="終了" k="end" sort={sort} onSort={onSort} />
+                    <SortTh label="掲載期間" k="start" sort={sort} onSort={onSort} />
                     <SortTh label="月額" k="fee" sort={sort} onSort={onSort} className="text-right" />
                     <th className={thCls}>状態</th>
                     <th className={thCls}>担当</th>
@@ -196,13 +200,14 @@ function AdTab() {
                         <td className="px-4 py-3 font-medium text-navy-900">{cmap.get(c.customerId)?.company}</td>
                         <td className="px-4 py-3">
                           <div className="text-ink-900">{f0?.board.name}</div>
-                          <div className="text-[11.5px] text-ink-500">
+                          <div className="text-[12.5px] text-ink-500">
                             {c.faceIds.map((f) => lookup.get(f)?.face.label).join("・")}
                             {c.faceIds.length > 1 && ` (${c.faceIds.length}面)`}
                           </div>
                         </td>
-                        <td className="tnum px-4 py-3 text-ink-600">{fmtMonth(c.startMonth)}</td>
-                        <td className="tnum px-4 py-3 text-ink-600">{fmtMonth(c.cancelMonth ?? c.endMonth)}</td>
+                        <td className="tnum px-4 py-3 text-ink-600">
+                          {c.startMonth.replace("-", "/")} 〜 {(c.cancelMonth ?? c.endMonth).replace("-", "/")}
+                        </td>
                         <td className="tnum px-4 py-3 text-right">{yen(c.monthlyFee)}</td>
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap gap-1">
@@ -279,12 +284,12 @@ function AdDrawer({ contract, onClose }: { contract?: AdContract; onClose: () =>
               ]}
             />
             {c.cancelMonth && (
-              <div className="rounded-md border border-bad-100 bg-bad-50 px-4 py-3 text-[12.5px] text-bad-700">
+              <div className="rounded-md border border-bad-100 bg-bad-50 px-4 py-3 text-[14px] text-bad-700">
                 解約: {fmtMonth(c.cancelMonth)}末で掲載終了(理由: {c.cancelReason}/登録 {c.cancelledAt && fmtDate(c.cancelledAt)})
               </div>
             )}
             <div>
-              <div className="mb-2 text-[12px] font-medium text-ink-500">掲載する看板・広告面</div>
+              <div className="mb-2 text-[13px] font-medium text-ink-500">掲載する看板・広告面</div>
               <div className="overflow-hidden rounded-md border border-ink-200">
                 {c.faceIds.map((f) => {
                   const l = lookup.get(f);
@@ -296,14 +301,14 @@ function AdDrawer({ contract, onClose }: { contract?: AdContract; onClose: () =>
                       className="flex items-center justify-between gap-3 border-b border-ink-100 px-4 py-3 transition last:border-0 hover:bg-navy-50/50"
                     >
                       <div className="min-w-0">
-                        <div className="text-[13px] font-medium text-navy-900">
+                        <div className="text-[15px] font-medium text-navy-900">
                           {l.board.name} {l.face.label}
                         </div>
-                        <div className="text-[11.5px] text-ink-500">
+                        <div className="text-[12.5px] text-ink-500">
                           {l.board.code} ・ {l.board.area} ・ {l.board.type}
                         </div>
                       </div>
-                      <span className="text-[11.5px] text-navy-600">看板を見る</span>
+                      <span className="text-[12.5px] text-navy-600">看板を見る</span>
                     </Link>
                   );
                 })}
@@ -312,12 +317,12 @@ function AdDrawer({ contract, onClose }: { contract?: AdContract; onClose: () =>
             {ho && (
               <div>
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-[12px] font-medium text-ink-500">管理部への引継ぎ</span>
-                  <Link to={`/handover?id=${ho.id}`} className="text-[12px] text-navy-700 hover:underline">
+                  <span className="text-[13px] font-medium text-ink-500">管理部への引継ぎ</span>
+                  <Link to={`/handover?id=${ho.id}`} className="text-[13px] text-navy-700 hover:underline">
                     引継ぎを開く
                   </Link>
                 </div>
-                <div className="rounded-md border border-ink-200 px-4 py-3 text-[12.5px] text-ink-700">
+                <div className="rounded-md border border-ink-200 px-4 py-3 text-[14px] text-ink-700">
                   <span className="tnum">{ho.no}</span>・最終更新 <span className="tnum">{fmtDateTime(ho.updatedAt)}</span>
                 </div>
               </div>
@@ -419,30 +424,30 @@ function LandTab() {
     <>
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <Card className="px-5 py-4">
-          <div className="text-[12px] text-ink-500">有効な土地契約</div>
-          <div className="tnum mt-1 text-[22px] font-semibold text-navy-900">{lands.filter((l) => !l.terminated).length}<span className="ml-1 text-[12px] font-normal text-ink-500">件</span></div>
+          <div className="text-[13px] text-ink-500">有効な土地契約</div>
+          <div className="tnum mt-1 text-[24px] font-semibold text-navy-900">{lands.filter((l) => !l.terminated).length}<span className="ml-1 text-[13px] font-normal text-ink-500">件</span></div>
         </Card>
         <Card className="px-5 py-4">
-          <div className="text-[12px] text-ink-500">更新期限90日以内</div>
-          <div className={"tnum mt-1 text-[22px] font-semibold " + (soon ? "text-warn-700" : "text-navy-900")}>{soon}<span className="ml-1 text-[12px] font-normal text-ink-500">件</span></div>
+          <div className="text-[13px] text-ink-500">更新期限90日以内</div>
+          <div className={"tnum mt-1 text-[24px] font-semibold " + (soon ? "text-warn-700" : "text-navy-900")}>{soon}<span className="ml-1 text-[13px] font-normal text-ink-500">件</span></div>
         </Card>
         <Card className="px-5 py-4">
-          <div className="text-[12px] text-ink-500">今月の新規締結</div>
-          <div className="tnum mt-1 text-[22px] font-semibold text-navy-900">{newThisMonth}<span className="ml-1 text-[12px] font-normal text-ink-500">件</span></div>
+          <div className="text-[13px] text-ink-500">今月の新規締結</div>
+          <div className="tnum mt-1 text-[24px] font-semibold text-navy-900">{newThisMonth}<span className="ml-1 text-[13px] font-normal text-ink-500">件</span></div>
         </Card>
       </div>
       <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center">
         <div className="relative">
           <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-400" />
-          <input className={inputCls + " w-full pl-8 md:w-64"} placeholder="契約番号・地権者・看板名" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
+          <input className={inputCls + " w-full! pl-8! md:w-64!"} placeholder="契約番号・地権者・看板名" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
         </div>
-        <select className={inputCls + " md:w-32"} value={area} onChange={(e) => { setArea(e.target.value); setPage(1); }}>
+        <select className={inputCls + " md:w-32!"} value={area} onChange={(e) => { setArea(e.target.value); setPage(1); }}>
           <option value="">全エリア</option>
           {AREAS.map((a) => (
             <option key={a}>{a}</option>
           ))}
         </select>
-        <select className={inputCls + " md:w-40"} value={st} onChange={(e) => { setSt(e.target.value as LandState); setPage(1); }}>
+        <select className={inputCls + " md:w-40!"} value={st} onChange={(e) => { setSt(e.target.value as LandState); setPage(1); }}>
           <option value="">全状態</option>
           {["契約中", "更新期限間近", "解約済"].map((a) => (
             <option key={a}>{a}</option>
@@ -467,7 +472,7 @@ function LandTab() {
         ) : (
           <>
             <div className="thin-scroll overflow-x-auto">
-              <table className="w-full min-w-[900px] text-[13px]">
+              <table className="w-full min-w-[1040px] text-[15px] [&_td]:whitespace-nowrap">
                 <thead className={tableHeadCls}>
                   <tr>
                     <th className={thCls}>契約番号</th>
@@ -488,14 +493,14 @@ function LandTab() {
                         <td className="tnum px-4 py-3 text-ink-600">{l.no}</td>
                         <td className="px-4 py-3">
                           <div className="text-ink-900">{b?.name}</div>
-                          <div className="text-[11.5px] text-ink-500">
+                          <div className="text-[12.5px] text-ink-500">
                             {b?.code} ・ {b?.area}
                             {b && b.installMonth > thisMonth() && " ・ 設置予定"}
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="font-medium text-navy-900">{l.ownerName}</div>
-                          <div className="text-[11.5px] text-ink-500">{l.ownerKind}</div>
+                          <div className="text-[12.5px] text-ink-500">{l.ownerKind}</div>
                         </td>
                         <td className="tnum px-4 py-3 text-right">{yen(l.rent)}</td>
                         <td className="tnum px-4 py-3 text-ink-600">{fmtDate(l.startDate)}</td>
@@ -568,13 +573,13 @@ function LandDrawer({ land, onClose, onEdit }: { land?: LandContract; onClose: (
                 ["担当", staffName(land.repId)],
               ]}
             />
-            {land.terminated && <div className="rounded-md bg-ink-100 px-4 py-3 text-[12.5px] text-ink-600">この土地契約は解約済みです。</div>}
+            {land.terminated && <div className="rounded-md bg-ink-100 px-4 py-3 text-[14px] text-ink-600">この土地契約は解約済みです。</div>}
             {board && (
               <div>
-                <div className="mb-2 text-[12px] font-medium text-ink-500">この土地に設置している看板</div>
+                <div className="mb-2 text-[13px] font-medium text-ink-500">この土地に設置している看板</div>
                 <Link to={`/boards/${board.id}`} className="block rounded-md border border-ink-200 px-4 py-3 transition hover:bg-navy-50/50">
-                  <div className="text-[13px] font-medium text-navy-900">{board.name}</div>
-                  <div className="text-[11.5px] text-ink-500">
+                  <div className="text-[15px] font-medium text-navy-900">{board.name}</div>
+                  <div className="text-[12.5px] text-ink-500">
                     {board.code} ・ {board.type} ・ {board.faces.length}面
                     {board.installMonth > cur && ` ・ ${fmtMonth(board.installMonth)}設置予定`}
                   </div>
@@ -582,13 +587,13 @@ function LandDrawer({ land, onClose, onEdit }: { land?: LandContract; onClose: (
               </div>
             )}
             <div>
-              <div className="mb-2 text-[12px] font-medium text-ink-500">この看板の有効な広告契約({active.length}件)</div>
+              <div className="mb-2 text-[13px] font-medium text-ink-500">この看板の有効な広告契約({active.length}件)</div>
               {active.length === 0 ? (
-                <div className="text-[12.5px] text-ink-400">なし</div>
+                <div className="text-[14px] text-ink-400">なし</div>
               ) : (
                 <div className="overflow-hidden rounded-md border border-ink-200">
                   {active.map((c) => (
-                    <Link key={c.id} to={`/contracts?id=${c.id}`} className="flex items-center justify-between gap-2 border-b border-ink-100 px-4 py-2.5 text-[12.5px] last:border-0 hover:bg-navy-50/50">
+                    <Link key={c.id} to={`/contracts?id=${c.id}`} className="flex items-center justify-between gap-2 border-b border-ink-100 px-4 py-2.5 text-[14px] last:border-0 hover:bg-navy-50/50">
                       <span className="truncate text-ink-900">{customers.find((x) => x.id === c.customerId)?.company}</span>
                       <ContractPill state={contractState(c, cur)} />
                     </Link>
@@ -766,7 +771,7 @@ function LandFormModal({ open, onClose, land }: { open: boolean; onClose: () => 
           </Field>
         ) : (
           <div className="grid gap-4 rounded-md border border-ink-200 p-4 sm:grid-cols-2">
-            <div className="text-[12px] text-ink-500 sm:col-span-2">土地契約と同時に、看板を「設置予定」として登録します。</div>
+            <div className="text-[13px] text-ink-500 sm:col-span-2">土地契約と同時に、看板を「設置予定」として登録します。</div>
             <Field label="設置場所名" required error={err("siteName")}>
               <input className={inputCls + (err("siteName") ? errCls : "")} placeholder="例: 国道2号 須磨 板宿" value={f.siteName} onChange={set("siteName")} />
             </Field>
@@ -844,7 +849,7 @@ function LandFormModal({ open, onClose, land }: { open: boolean; onClose: () => 
               ))}
             </select>
           </Field>
-          <label className="flex items-center gap-2 text-[13px] text-ink-800 sm:col-span-2">
+          <label className="flex items-center gap-2 text-[15px] text-ink-800 sm:col-span-2">
             <input type="checkbox" className="h-4 w-4 accent-[oklch(29.5%_0.047_262)]" checked={f.autoRenew} onChange={(e) => setF({ ...f, autoRenew: e.target.checked })} />
             満了時に自動更新する
           </label>

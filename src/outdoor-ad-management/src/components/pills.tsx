@@ -40,7 +40,7 @@ export const HandoverPill = ({ status }: { status: HandoverStatus }) => <Pill to
 export const RankPill = ({ rank }: { rank: Rank }) => (
   <span
     className={
-      "inline-grid h-5 w-5 place-items-center rounded text-[11px] font-semibold " +
+      "inline-grid h-5 w-5 place-items-center rounded text-[12px] font-semibold " +
       (rank === "A" ? "bg-navy-900 text-white" : rank === "B" ? "bg-navy-100 text-navy-800" : "bg-ink-100 text-ink-500")
     }
   >

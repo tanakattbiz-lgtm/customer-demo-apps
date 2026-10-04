@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
+import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import FollowUps from "./pages/FollowUps";
 import Deals from "./pages/Deals";
@@ -14,7 +15,8 @@ export default function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/follow-ups" element={<FollowUps />} />
         <Route path="/deals" element={<Deals />} />
         <Route path="/deals/:id" element={<DealDetail />} />

@@ -43,7 +43,7 @@ export default function Customers() {
   const [scope, setScope] = useState<"me" | "all">("me");
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 }>({ key: "last", dir: -1 });
   const [page, setPage] = useState(1);
-  const [form, setForm] = useState<{ open: boolean; customer?: Customer }>({ open: false });
+  const [form, setForm] = useState<{ open: boolean; customer?: Customer }>({ open: params.get("new") === "1" });
   const selected = customers.find((c) => c.id === params.get("id"));
 
   const lastAct = useMemo(() => {
@@ -78,8 +78,13 @@ export default function Customers() {
     <>
       <PageHeader
         eyebrow="Customers"
-        title="顧客・見込み客"
-        description="見込み客から取引中の広告主までを一元管理します。行を開くと商談・活動履歴・契約を確認できます。"
+        title="お客様"
+        description="これから営業するお客様(見込み客)から、すでに広告を出しているお客様(広告主)までをまとめて確認できます。"
+        guide={[
+          "新しいお客様は、右上の「見込み客を登録」から入力します。",
+          "行を押すと、そのお客様の商談・これまでの対応・契約が見られます。",
+          "お客様と話したら「対応を記録」で内容を残しておきましょう。",
+        ]}
         actions={
           <Button onClick={() => setForm({ open: true })}>
             <Plus size={15} />
@@ -87,7 +92,7 @@ export default function Customers() {
           </Button>
         }
       />
-      <div className="mb-4 flex flex-col gap-3 border-b border-ink-200 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mb-4 flex flex-col gap-1 border-b border-ink-200">
         <Tabs<Tab>
           value={tab}
           onChange={(v) => {
@@ -105,9 +110,9 @@ export default function Customers() {
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <div className="relative">
             <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-400" />
-            <input className={inputCls + " w-56 pl-8"} placeholder="会社名・担当者・業種" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
+            <input className={inputCls + " w-56! pl-8!"} placeholder="会社名・担当者・業種" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
           </div>
-          <select className={inputCls + " w-28"} value={rank} onChange={(e) => { setRank(e.target.value as Rank); setPage(1); }}>
+          <select className={inputCls + " w-28!"} value={rank} onChange={(e) => { setRank(e.target.value as Rank); setPage(1); }}>
             <option value="">全ランク</option>
             <option value="A">ランクA</option>
             <option value="B">ランクB</option>
@@ -138,7 +143,7 @@ export default function Customers() {
         ) : (
           <>
             <div className="thin-scroll overflow-x-auto">
-              <table className="w-full min-w-[860px] text-[13px]">
+              <table className="w-full min-w-[860px] text-[15px]">
                 <thead className={tableHeadCls}>
                   <tr>
                     <SortTh label="ランク" k="rank" sort={sort} onSort={onSort} className="w-20" />
@@ -160,13 +165,13 @@ export default function Customers() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="font-medium text-navy-900">{c.company}</div>
-                          <div className="text-[11.5px] text-ink-500">
+                          <div className="text-[12.5px] text-ink-500">
                             {c.industry} ・ {c.area}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-ink-700">
                           {c.contact}
-                          <div className="text-[11.5px] text-ink-500">{c.contactTitle}</div>
+                          <div className="text-[12.5px] text-ink-500">{c.contactTitle}</div>
                         </td>
                         <td className="px-4 py-3">
                           <CustomerStatusPill status={c.status} />
@@ -176,7 +181,7 @@ export default function Customers() {
                           {last ? (
                             <>
                               {fmtDate(last.slice(0, 10))}
-                              <span className="ml-1.5 text-[11px] text-ink-400">{-daysFromToday(last.slice(0, 10))}日前</span>
+                              <span className="ml-1.5 text-[12px] text-ink-400">{-daysFromToday(last.slice(0, 10))}日前</span>
                             </>
                           ) : (
                             <span className="text-ink-400">—</span>
@@ -194,7 +199,7 @@ export default function Customers() {
         )}
       </Card>
       <CustomerDrawer customer={selected} onClose={() => setParams({})} onEdit={(c) => setForm({ open: true, customer: c })} />
-      <CustomerFormModal open={form.open} customer={form.customer} onClose={() => setForm({ open: false })} />
+      <CustomerFormModal open={form.open} customer={form.customer} onClose={() => { setForm({ open: false }); if (params.get("new")) setParams({}); }} />
     </>
   );
 }
@@ -252,14 +257,14 @@ function CustomerDrawer({ customer, onClose, onEdit }: { customer?: Customer; on
               ]}
             />
             <section>
-              <div className="mb-2 text-[12px] font-medium text-ink-500">商談({deals.length})</div>
+              <div className="mb-2 text-[13px] font-medium text-ink-500">商談({deals.length})</div>
               {deals.length === 0 ? (
-                <div className="rounded-md border border-dashed border-ink-300 px-4 py-4 text-center text-[12.5px] text-ink-500">商談はまだありません</div>
+                <div className="rounded-md border border-dashed border-ink-300 px-4 py-4 text-center text-[14px] text-ink-500">商談はまだありません</div>
               ) : (
                 <div className="overflow-hidden rounded-md border border-ink-200">
                   {deals.map((d) => (
                     <Link key={d.id} to={`/deals/${d.id}`} className="flex items-center justify-between gap-2 border-b border-ink-100 px-4 py-2.5 last:border-0 hover:bg-navy-50/50">
-                      <span className="truncate text-[13px] text-ink-900">{d.title}</span>
+                      <span className="truncate text-[15px] text-ink-900">{d.title}</span>
                       <StagePill stage={d.stage} />
                     </Link>
                   ))}
@@ -268,21 +273,21 @@ function CustomerDrawer({ customer, onClose, onEdit }: { customer?: Customer; on
             </section>
             <section>
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-[12px] font-medium text-ink-500">最近の営業活動</span>
-                <button onClick={() => setActOpen(true)} className="text-[12px] text-navy-700 hover:underline">
+                <span className="text-[13px] font-medium text-ink-500">最近の営業活動</span>
+                <button onClick={() => setActOpen(true)} className="text-[13px] text-navy-700 hover:underline">
                   活動を記録
                 </button>
               </div>
               {acts.length === 0 ? (
-                <div className="text-[12.5px] text-ink-400">記録はありません</div>
+                <div className="text-[14px] text-ink-400">記録はありません</div>
               ) : (
                 <ul className="space-y-3">
                   {acts.map((a) => (
                     <li key={a.id} className="border-l-2 border-navy-200 pl-3">
-                      <div className="text-[11.5px] text-ink-500">
+                      <div className="text-[12.5px] text-ink-500">
                         <span className="font-medium text-navy-900">{a.type}</span> ・ <span className="tnum">{fmtDateTime(a.date)}</span> ・ {staffName(a.repId)}
                       </div>
-                      <div className="mt-0.5 text-[12.5px] leading-relaxed text-ink-800">{a.memo}</div>
+                      <div className="mt-0.5 text-[14px] leading-relaxed text-ink-800">{a.memo}</div>
                     </li>
                   ))}
                 </ul>
@@ -290,10 +295,10 @@ function CustomerDrawer({ customer, onClose, onEdit }: { customer?: Customer; on
             </section>
             {contracts.length > 0 && (
               <section>
-                <div className="mb-2 text-[12px] font-medium text-ink-500">広告契約({contracts.length})</div>
+                <div className="mb-2 text-[13px] font-medium text-ink-500">広告契約({contracts.length})</div>
                 <div className="overflow-hidden rounded-md border border-ink-200">
                   {contracts.slice(0, 6).map((k) => (
-                    <Link key={k.id} to={`/contracts?id=${k.id}`} className="flex items-center justify-between gap-2 border-b border-ink-100 px-4 py-2.5 text-[12.5px] last:border-0 hover:bg-navy-50/50">
+                    <Link key={k.id} to={`/contracts?id=${k.id}`} className="flex items-center justify-between gap-2 border-b border-ink-100 px-4 py-2.5 text-[14px] last:border-0 hover:bg-navy-50/50">
                       <span className="tnum text-ink-700">
                         {fmtMonth(k.startMonth)} 〜 {fmtMonth(k.cancelMonth ?? k.endMonth)}
                       </span>

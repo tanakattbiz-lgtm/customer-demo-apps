@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
 import { Columns3, Handshake, List, Plus, Search, SearchX } from "lucide-react";
 import { useStore, staffName } from "../store";
@@ -12,6 +12,7 @@ import {
   Button,
   Card,
   EmptyState,
+  Help,
   PageHeader,
   Pagination,
   Segmented,
@@ -37,7 +38,8 @@ export default function Deals() {
   const [stage, setStage] = useState<"" | Stage>("");
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 }>({ key: "next", dir: 1 });
   const [page, setPage] = useState(1);
-  const [creating, setCreating] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const [creating, setCreating] = useState(params.get("new") === "1");
 
   const cmap = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
   const filtered = useMemo(() => {
@@ -81,7 +83,12 @@ export default function Deals() {
       <PageHeader
         eyebrow="Deals"
         title="商談"
-        description="見込み客との商談をステージごとに管理します。カードを開くと活動履歴・次回対応・仮押さえ・成約登録ができます。"
+        description="お客様との商談を、進み具合ごとに並べています。カードを押すと、商談の詳しい画面が開きます。"
+        guide={[
+          "新しい商談は、右上の「商談を登録」から始めます。",
+          "カードを押して商談を開き、話した内容を「対応を記録」で残します。",
+          "看板が決まったら仮押さえし、契約がまとまったら「成約を登録する」を押します。",
+        ]}
         actions={
           <Button onClick={() => setCreating(true)}>
             <Plus size={15} />
@@ -95,7 +102,7 @@ export default function Deals() {
           <div className="relative">
             <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-400" />
             <input
-              className={inputCls + " w-60 pl-8"}
+              className={inputCls + " w-60! pl-8!"}
               placeholder="顧客名・案件名で検索"
               value={q}
               onChange={(e) => {
@@ -106,7 +113,7 @@ export default function Deals() {
           </div>
           {view === "list" && (
             <select
-              className={inputCls + " w-36"}
+              className={inputCls + " w-36!"}
               value={stage}
               onChange={(e) => {
                 setStage(e.target.value as Stage);
@@ -132,16 +139,17 @@ export default function Deals() {
           />
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-[12px] text-ink-500">
-            進行中 <span className="tnum font-semibold text-navy-900">{open.length}</span>件 / 加重見込{" "}
+          <div className="text-[13px] text-ink-500">
+            進行中 <span className="tnum font-semibold text-navy-900">{open.length}</span>件 / 受注見込み額{" "}
             <span className="tnum font-semibold text-navy-900">{man(weighted)}</span>
+            <Help label="受注見込み額" text="進行中の商談の金額に、それぞれの確度(契約になる見込みの%)を掛けて合計した金額です。" />
           </div>
           <Segmented
             value={view}
             onChange={setView}
             items={[
-              { value: "board", label: "ボード", icon: <Columns3 size={13} /> },
-              { value: "list", label: "一覧", icon: <List size={13} /> },
+              { value: "board", label: "段階ごと", icon: <Columns3 size={13} /> },
+              { value: "list", label: "表で見る", icon: <List size={13} /> },
             ]}
           />
         </div>
@@ -159,10 +167,10 @@ export default function Deals() {
                 <div key={st} className="flex flex-col rounded-lg border border-ink-200 bg-ink-100/60">
                   <div className="border-b border-ink-200 px-3.5 py-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[13px] font-semibold text-navy-900">{st}</span>
-                      <span className="tnum text-[11px] text-ink-400">確度 {STAGE_PROB[st]}%</span>
+                      <span className="text-[15px] font-semibold text-navy-900">{st}</span>
+                      <span className="tnum text-[12px] text-ink-400">確度 {STAGE_PROB[st]}%</span>
                     </div>
-                    <div className="tnum mt-1 text-[11.5px] text-ink-500">
+                    <div className="tnum mt-1 text-[12.5px] text-ink-500">
                       {items.length}件 ・ {man(sum)}
                     </div>
                   </div>
@@ -179,13 +187,13 @@ export default function Deals() {
                               onClick={() => nav(`/deals/${d.id}`)}
                               className="rounded-md border border-ink-200 bg-white p-3 text-left shadow-[0_1px_2px_oklch(25%_0.04_262/0.04)] transition duration-200 hover:-translate-y-px hover:border-navy-300 hover:shadow-[0_6px_16px_-8px_oklch(25%_0.04_262/0.25)]"
                             >
-                              <div className="truncate text-[12.5px] font-semibold text-navy-900">{c?.company}</div>
-                              <div className="mt-0.5 truncate text-[12px] text-ink-600">{d.title}</div>
-                              <div className="tnum mt-2 text-[13px] font-semibold text-ink-900">{man(d.monthlyBudget * d.months)}</div>
+                              <div className="truncate text-[14px] font-semibold text-navy-900">{c?.company}</div>
+                              <div className="mt-0.5 truncate text-[13px] text-ink-600">{d.title}</div>
+                              <div className="tnum mt-2 text-[15px] font-semibold text-ink-900">{man(d.monthlyBudget * d.months)}</div>
                               <div className="mt-2 flex items-center justify-between border-t border-ink-100 pt-2">
                                 <span
                                   className={
-                                    "tnum text-[11px] " +
+                                    "tnum text-[12px] " +
                                     (n === null ? "text-warn-700" : n < 0 ? "font-medium text-bad-600" : n === 0 ? "font-medium text-navy-900" : "text-ink-500")
                                   }
                                 >
@@ -197,7 +205,7 @@ export default function Deals() {
                           );
                         })}
                     {!loading && items.length === 0 && (
-                      <div className="grid flex-1 place-items-center py-6 text-[11.5px] text-ink-400">該当なし</div>
+                      <div className="grid flex-1 place-items-center py-6 text-[12.5px] text-ink-400">該当なし</div>
                     )}
                   </div>
                 </div>
@@ -222,7 +230,7 @@ export default function Deals() {
           ) : (
             <>
               <div className="thin-scroll overflow-x-auto">
-                <table className="w-full min-w-[860px] text-[13px]">
+                <table className="w-full min-w-[860px] text-[15px]">
                   <thead className={tableHeadCls}>
                     <tr>
                       <SortTh label="顧客 / 案件" k="company" sort={sort} onSort={onSort} />
@@ -242,7 +250,7 @@ export default function Deals() {
                       >
                         <td className="px-4 py-3">
                           <div className="font-medium text-navy-900">{cmap.get(d.customerId)?.company}</div>
-                          <div className="text-[12px] text-ink-500">{d.title}</div>
+                          <div className="text-[13px] text-ink-500">{d.title}</div>
                         </td>
                         <td className="px-4 py-3">
                           <StagePill stage={d.stage} />
@@ -252,10 +260,10 @@ export default function Deals() {
                         <td className="px-4 py-3">
                           {d.nextAction ? (
                             <>
-                              <div className={"tnum text-[12.5px] " + (daysFromToday(d.nextAction.date) < 0 ? "text-bad-600" : "text-ink-800")}>
+                              <div className={"tnum text-[14px] " + (daysFromToday(d.nextAction.date) < 0 ? "text-bad-600" : "text-ink-800")}>
                                 {fmtDate(d.nextAction.date)}
                               </div>
-                              <div className="max-w-56 truncate text-[11.5px] text-ink-500">{d.nextAction.content}</div>
+                              <div className="max-w-56 truncate text-[12.5px] text-ink-500">{d.nextAction.content}</div>
                             </>
                           ) : (
                             <span className="text-ink-400">—</span>
@@ -273,7 +281,7 @@ export default function Deals() {
         </Card>
       )}
 
-      <DealFormModal open={creating} onClose={() => setCreating(false)} onSaved={(id) => nav(`/deals/${id}`)} />
+      <DealFormModal open={creating} onClose={() => { setCreating(false); if (params.get("new")) setParams({}); }} onSaved={(id) => nav(`/deals/${id}`)} />
     </>
   );
 }

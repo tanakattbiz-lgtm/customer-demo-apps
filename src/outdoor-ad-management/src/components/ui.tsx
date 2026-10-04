@@ -1,28 +1,115 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsUpDown, Loader2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, HelpCircle, Lightbulb, Loader2, X } from "lucide-react";
 
 // ---------------- Page header ----------------
+/** 画面タイトル + 「この画面でできること」の手順ガイド(初めての人向け。閉じた状態は記憶する) */
 export function PageHeader({
-  eyebrow,
   title,
   description,
   actions,
+  guide,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   description?: string;
   actions?: ReactNode;
+  guide?: string[];
 }) {
+  const key = "guide-closed:" + title;
+  const [open, setOpen] = useState(() => {
+    try {
+      return localStorage.getItem(key) !== "1";
+    } catch {
+      return true;
+    }
+  });
+  const toggle = () => {
+    setOpen((o) => {
+      try {
+        localStorage.setItem(key, o ? "1" : "0");
+      } catch {
+        /* noop */
+      }
+      return !o;
+    });
+  };
   return (
-    <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <div className="eyebrow text-navy-400">{eyebrow}</div>
-        <h1 className="mt-1.5 font-serif text-[26px] font-semibold tracking-wide text-navy-900">{title}</h1>
-        {description && <p className="mt-1.5 text-[13px] leading-relaxed text-ink-500">{description}</p>}
+    <div className="mb-7">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-serif text-[28px] font-semibold tracking-wide text-navy-900">{title}</h1>
+          {description && <p className="mt-1.5 text-[15px] leading-relaxed text-ink-600">{description}</p>}
+        </div>
+        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {guide && (
+        <div className="mt-4 rounded-lg border border-navy-100 bg-navy-50/70">
+          <button
+            onClick={toggle}
+            aria-expanded={open}
+            className="flex w-full items-center gap-2 px-5 py-3 text-left text-[15px] font-semibold text-navy-900"
+          >
+            <Lightbulb size={17} className="text-navy-600" />
+            この画面の使い方
+            <ChevronDown size={17} className={"ml-auto text-navy-500 transition " + (open ? "rotate-180" : "")} />
+          </button>
+          <AnimatePresence initial={false}>
+            {open && (
+              <motion.ol
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="grid gap-2.5 overflow-hidden px-5 pb-4 sm:grid-cols-2 lg:grid-cols-3"
+              >
+                {guide.map((g, i) => (
+                  <li key={i} className="flex gap-3 rounded-md bg-white px-3.5 py-3 text-[14px] leading-relaxed text-ink-800">
+                    <span className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-full bg-navy-900 text-[13px] font-semibold text-white">
+                      {i + 1}
+                    </span>
+                    <span>{g}</span>
+                  </li>
+                ))}
+              </motion.ol>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
     </div>
+  );
+}
+
+// ---------------- Help(用語の説明) ----------------
+export function Help({ text, label }: { text: string; label?: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex align-middle">
+      <button
+        type="button"
+        aria-label={(label ?? "") + "の説明"}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onBlur={() => setOpen(false)}
+        className="grid h-5 w-5 place-items-center rounded-full text-ink-400 transition hover:text-navy-700"
+      >
+        <HelpCircle size={15} />
+      </button>
+      {open && (
+        <span
+          role="tooltip"
+          className="absolute top-6 left-1/2 z-50 w-64 -translate-x-1/2 rounded-md bg-navy-950 px-3.5 py-2.5 text-left text-[13px] leading-relaxed font-normal tracking-normal whitespace-normal text-white shadow-lg"
+        >
+          {label && <span className="mb-0.5 block font-semibold">{label}</span>}
+          {text}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -61,7 +148,7 @@ export function Pill({ tone = "gray", children, className = "" }: { tone?: Tone;
   return (
     <span
       className={
-        "inline-flex items-center gap-1 rounded-[5px] px-2 py-[3px] text-[11.5px] leading-none font-medium whitespace-nowrap ring-1 ring-inset " +
+        "inline-flex items-center gap-1 rounded-[5px] px-2 py-[3px] text-[12.5px] leading-none font-medium whitespace-nowrap ring-1 ring-inset " +
         TONE[tone] +
         " " +
         className
@@ -85,8 +172,8 @@ export function CardHeader({ title, sub, right }: { title: string; sub?: string;
   return (
     <div className="flex items-center justify-between gap-3 border-b border-ink-200 px-5 py-3.5">
       <div className="min-w-0">
-        <div className="text-[13.5px] font-semibold text-navy-900">{title}</div>
-        {sub && <div className="mt-0.5 text-[11.5px] text-ink-500">{sub}</div>}
+        <div className="text-[15px] font-semibold text-navy-900">{title}</div>
+        {sub && <div className="mt-0.5 text-[12.5px] text-ink-500">{sub}</div>}
       </div>
       {right}
     </div>
@@ -128,7 +215,7 @@ export function EmptyState({
     <div className="flex flex-col items-center justify-center gap-2.5 px-6 py-14 text-center">
       <div className="grid h-12 w-12 place-items-center rounded-full border border-navy-200 text-navy-500">{icon}</div>
       <div className="mt-1 text-sm font-semibold text-navy-900">{title}</div>
-      {description && <div className="max-w-sm text-[13px] leading-relaxed text-ink-500">{description}</div>}
+      {description && <div className="max-w-sm text-[15px] leading-relaxed text-ink-500">{description}</div>}
       {action && <div className="mt-2">{action}</div>}
     </div>
   );
@@ -150,7 +237,7 @@ export function Button({
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const base =
     "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition duration-200 ease-out active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-400/40 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap";
-  const sizes = { md: "h-9 px-4 text-[13px]", sm: "h-7.5 px-2.5 text-[12px]" };
+  const sizes = { md: "h-11 px-5 text-[15px]", sm: "h-9 px-3.5 text-[14px]" };
   const styles = {
     primary: "bg-navy-900 text-white hover:bg-navy-800 shadow-[0_1px_0_oklch(100%_0_0/0.08)_inset]",
     outline: "border border-ink-300 bg-white text-navy-900 hover:border-navy-300 hover:bg-navy-50",
@@ -187,20 +274,20 @@ export function Field({
 }) {
   return (
     <label className={"block " + className}>
-      <span className="mb-1.5 flex items-center gap-1.5 text-[12px] font-medium text-ink-600">
+      <span className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium text-ink-600">
         {label}
-        {required && <span className="text-[10px] font-normal text-bad-500">必須</span>}
+        {required && <span className="text-[11.5px] font-normal text-bad-500">必須</span>}
       </span>
       {children}
-      {hint && !error && <span className="mt-1 block text-[11.5px] text-ink-400">{hint}</span>}
-      {error && <span className="mt-1 block text-[11.5px] text-bad-600">{error}</span>}
+      {hint && !error && <span className="mt-1 block text-[12.5px] text-ink-400">{hint}</span>}
+      {error && <span className="mt-1 block text-[12.5px] text-bad-600">{error}</span>}
     </label>
   );
 }
 
 export const inputCls =
-  "h-9 w-full rounded-md border border-ink-300 bg-white px-3 text-[13px] text-ink-900 outline-none transition placeholder:text-ink-400 hover:border-ink-400 focus:border-navy-500 focus:ring-2 focus:ring-navy-400/20";
-export const textareaCls = inputCls.replace("h-9", "min-h-20 py-2 leading-relaxed");
+  "h-11 w-full rounded-md border border-ink-300 bg-white px-3 text-[15px] text-ink-900 outline-none transition placeholder:text-ink-400 hover:border-ink-400 focus:border-navy-500 focus:ring-2 focus:ring-navy-400/20";
+export const textareaCls = inputCls.replace("h-11", "min-h-24 py-2.5 leading-relaxed");
 export const errCls = " border-bad-500 focus:border-bad-500 focus:ring-bad-500/15";
 
 // ---------------- Overlay base ----------------
@@ -260,8 +347,8 @@ export function Modal({
           >
             <div className="flex items-start justify-between gap-4 border-b border-ink-200 px-6 py-4">
               <div>
-                <h3 className="text-[15px] font-semibold text-navy-900">{title}</h3>
-                {sub && <p className="mt-0.5 text-[12px] text-ink-500">{sub}</p>}
+                <h3 className="text-[17px] font-semibold text-navy-900">{title}</h3>
+                {sub && <p className="mt-0.5 text-[13px] text-ink-500">{sub}</p>}
               </div>
               <button
                 onClick={onClose}
@@ -325,8 +412,8 @@ export function Drawer({
           >
             <div className="flex items-start justify-between gap-4 border-b border-ink-200 px-6 py-4">
               <div className="min-w-0">
-                <div className="text-[15px] font-semibold text-navy-900">{title}</div>
-                {sub && <div className="mt-0.5 text-[12px] text-ink-500">{sub}</div>}
+                <div className="text-[17px] font-semibold text-navy-900">{title}</div>
+                {sub && <div className="mt-0.5 text-[13px] text-ink-500">{sub}</div>}
               </div>
               <button
                 onClick={onClose}
@@ -393,7 +480,7 @@ export function Confirm({
         </>
       }
     >
-      <div className="text-[13px] leading-relaxed text-ink-700">{message}</div>
+      <div className="text-[15px] leading-relaxed text-ink-700">{message}</div>
     </Modal>
   );
 }
@@ -417,7 +504,7 @@ export function Tabs<T extends string>({
             key={it.value}
             onClick={() => onChange(it.value)}
             className={
-              "relative flex h-9 shrink-0 items-center gap-1.5 px-3 text-[13px] transition " +
+              "relative flex h-11 shrink-0 items-center gap-1.5 px-3.5 text-[15px] transition " +
               (active ? "font-semibold text-navy-900" : "text-ink-500 hover:text-navy-900")
             }
           >
@@ -425,7 +512,7 @@ export function Tabs<T extends string>({
             {it.count !== undefined && (
               <span
                 className={
-                  "tnum rounded px-1.5 py-px text-[11px] " +
+                  "tnum rounded px-1.5 py-px text-[12px] " +
                   (active ? "bg-navy-900 text-white" : "bg-ink-100 text-ink-500")
                 }
               >
@@ -457,7 +544,7 @@ export function Segmented<T extends string>({
           key={it.value}
           onClick={() => onChange(it.value)}
           className={
-            "inline-flex h-7.5 items-center gap-1.5 rounded-[5px] px-3 text-[12.5px] transition " +
+            "inline-flex h-9 items-center gap-1.5 rounded-[5px] px-3.5 text-[14px] transition " +
             (value === it.value ? "bg-navy-900 text-white" : "text-ink-600 hover:text-navy-900")
           }
         >
@@ -484,7 +571,7 @@ export function Pagination({
   const pages = Math.max(1, Math.ceil(total / per));
   if (total === 0) return null;
   return (
-    <div className="flex items-center justify-between gap-3 border-t border-ink-200 px-5 py-3 text-[12px] text-ink-500">
+    <div className="flex items-center justify-between gap-3 border-t border-ink-200 px-5 py-3 text-[13px] text-ink-500">
       <div className="tnum">
         {total}件中 {(page - 1) * per + 1}〜{Math.min(page * per, total)}件
       </div>
@@ -493,7 +580,7 @@ export function Pagination({
           aria-label="前のページ"
           disabled={page <= 1}
           onClick={() => onChange(page - 1)}
-          className="grid h-7 w-7 place-items-center rounded-md border border-ink-200 transition hover:bg-ink-50 disabled:opacity-40"
+          className="grid h-9 w-9 place-items-center rounded-md border border-ink-200 transition hover:bg-ink-50 disabled:opacity-40"
         >
           <ChevronLeft size={14} />
         </button>
@@ -504,7 +591,7 @@ export function Pagination({
           aria-label="次のページ"
           disabled={page >= pages}
           onClick={() => onChange(page + 1)}
-          className="grid h-7 w-7 place-items-center rounded-md border border-ink-200 transition hover:bg-ink-50 disabled:opacity-40"
+          className="grid h-9 w-9 place-items-center rounded-md border border-ink-200 transition hover:bg-ink-50 disabled:opacity-40"
         >
           <ChevronRight size={14} />
         </button>
@@ -516,7 +603,7 @@ export function Pagination({
 // ---------------- Definition list ----------------
 export function DL({ items }: { items: [string, ReactNode][] }) {
   return (
-    <dl className="grid grid-cols-[96px_1fr] gap-x-4 gap-y-2.5 text-[13px]">
+    <dl className="grid grid-cols-[96px_1fr] gap-x-4 gap-y-2.5 text-[15px]">
       {items.map(([k, v]) => (
         <div key={k} className="contents">
           <dt className="text-ink-500">{k}</dt>
@@ -552,4 +639,4 @@ export function SortTh({
 }
 
 export const thCls = "px-4 py-2.5 font-medium";
-export const tableHeadCls = "border-b border-ink-200 bg-ink-50 text-left text-[11.5px] text-ink-500";
+export const tableHeadCls = "whitespace-nowrap border-b border-ink-200 bg-ink-50 text-left text-[12.5px] text-ink-500";

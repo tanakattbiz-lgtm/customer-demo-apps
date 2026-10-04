@@ -553,10 +553,11 @@ export function createSeed(): SeedData {
     b.faces.forEach((f) => {
       let m = addMonthKey(cur, -int(14, 26));
       if (m < b.installMonth) m = b.installMonth;
-      while (m <= addMonthKey(cur, 9)) {
+      const firstIdx = contracts.length;
+      while (m <= addMonthKey(cur, 2)) {
         // 空き期間
-        if (rnd() < 0.3) m = addMonthKey(m, int(1, 4));
-        const len = pick([6, 12, 12, 12, 12, 24, 3, 6]);
+        if (rnd() < 0.35) m = addMonthKey(m, int(1, 5));
+        const len = pick([6, 12, 12, 12, 24, 3, 6]);
         const start = m;
         const end = addMonthKey(start, len - 1);
         const adv = pick(advertisers);
@@ -583,6 +584,16 @@ export function createSeed(): SeedData {
         contracts.push(c);
         m = addMonthKey(c.cancelMonth ?? end, 1);
       }
+      // 約4割の面は、今の契約が近いうちに満了して空きになる(空き枠を現実的に残す)
+      const last = contracts.length > firstIdx ? contracts[contracts.length - 1] : undefined;
+      if (last && !last.cancelMonth && rnd() < 0.42) {
+        const until = addMonthKey(cur, int(-1, 2));
+        if (last.endMonth > until) {
+          // 短すぎる契約になる場合は、その契約自体をなかったことにする
+          if (addMonthKey(last.startMonth, 2) > until) contracts.pop();
+          else last.endMonth = until;
+        }
+      }
     });
   });
   // 解約予定(進行中の契約のうち数件)
@@ -597,13 +608,20 @@ export function createSeed(): SeedData {
 
   // ---- 引継ぎ(直近に作成された契約) ----
   const handovers: Handover[] = [];
-  const recent = contracts
-    .filter((c) => c.createdAt >= iso(subDays(today, 40)))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const recent = [...contracts]
+    .filter((c) => !c.cancelMonth && c.endMonth >= cur)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 12);
   recent.forEach((c, i) => {
     const rep = STAFF.find((s) => s.id === c.repId)!;
     let subDate = new Date(`${c.createdAt}T${String(int(9, 18)).padStart(2, "0")}:${pick(["05", "20", "40"])}:00`);
     if (subDate > today) subDate = new Date(today.getTime() - 2 * 3600000);
+    // 確認待ち・差し戻し中のものは「ここ数日」の提出にする
+    if (i < 6) {
+      subDate = setMinutes(setHours(subDays(today, [0, 1, 2, 3, 2, 4][i]), int(9, 17)), pick([5, 20, 40]));
+      if (subDate > today) subDate = new Date(today.getTime() - 90 * 60000);
+      c.createdAt = iso(subDate);
+    }
     const sub = format(subDate, "yyyy-MM-dd'T'HH:mm:ss");
     const age = -Math.round((new Date(c.createdAt).getTime() - today.getTime()) / 86400000);
     const plan: HandoverStatus[] = ["提出済", "提出済", "差し戻し", "再提出", "提出済", "差し戻し"];

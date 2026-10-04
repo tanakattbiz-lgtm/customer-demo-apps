@@ -39,11 +39,11 @@ export function DocRow({
           {doc.fileName ? <Check size={13} /> : <FileText size={12} />}
         </span>
         <div className="min-w-0">
-          <div className="text-[13px] font-medium text-ink-900">
+          <div className="text-[15px] font-medium text-ink-900">
             {doc.kind}
-            {required ? <span className="ml-1.5 text-[10px] font-normal text-bad-500">必須</span> : <span className="ml-1.5 text-[10px] font-normal text-ink-400">任意</span>}
+            {required ? <span className="ml-1.5 text-[11.5px] font-normal text-bad-500">必須</span> : <span className="ml-1.5 text-[11.5px] font-normal text-ink-400">任意</span>}
           </div>
-          <div className="truncate text-[11.5px] text-ink-500">{doc.fileName ?? "未添付"}</div>
+          <div className="truncate text-[12.5px] text-ink-500">{doc.fileName ?? "未添付"}</div>
         </div>
       </div>
       <div className="flex shrink-0 gap-1.5">
@@ -95,6 +95,7 @@ export default function CloseDealModal({ open, onClose, deal }: { open: boolean;
   const [note, setNote] = useState("");
   const [touched, setTouched] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [step, setStep] = useState(1);
 
   useEffect(() => {
     if (!open) return;
@@ -109,6 +110,7 @@ export default function CloseDealModal({ open, onClose, deal }: { open: boolean;
     setDocs(DOC_KINDS.map((k) => ({ kind: k, fileName: null })));
     setNote("");
     setTouched(false);
+    setStep(1);
   }, [open]);
 
   const listPrice = faceIds.reduce((s, id) => s + (lookup.get(id)?.face.price ?? 0), 0);
@@ -127,6 +129,14 @@ export default function CloseDealModal({ open, onClose, deal }: { open: boolean;
   const months = monthsBetween(start, end);
   const discount = listPrice > 0 ? (1 - feeNum / listPrice) * 100 : 0;
 
+  const next = () => {
+    setTouched(true);
+    if (step === 1 && (errs.faces || errs.period || errs.fee)) return;
+    if (step === 2 && errs.docs) return;
+    setTouched(false);
+    setStep((x) => x + 1);
+  };
+
   const submit = async () => {
     setTouched(true);
     if (Object.values(errs).some(Boolean)) return;
@@ -135,9 +145,9 @@ export default function CloseDealModal({ open, onClose, deal }: { open: boolean;
     closeDeal(deal.id, { faceIds, startMonth: start, endMonth: end, monthlyFee: feeNum, docs, note: note.trim() });
     setBusy(false);
     onClose();
-    toast.success("成約登録し、管理部へ引継ぎました", {
-      description: "管理部が契約書を確認し、受領または差し戻しを行います。",
-      action: { label: "引継ぎ状況", onClick: () => nav("/handover") },
+    toast.success("管理部へ書類を提出しました", {
+      description: "管理部が書類を確認します。結果は「管理部への書類提出」で確認できます。",
+      action: { label: "提出状況を見る", onClick: () => nav("/handover") },
     });
   };
 
@@ -145,18 +155,28 @@ export default function CloseDealModal({ open, onClose, deal }: { open: boolean;
     <Modal
       open={open}
       onClose={onClose}
-      title="成約登録・管理部への引継ぎ"
-      sub="契約内容と契約書類を登録し、管理部へ引き継ぎます"
+      title="成約を登録する"
+      sub="3つの手順で、契約の内容と書類を管理部へ提出します"
       width={680}
       footer={
         myHolds.length ? (
           <>
-            <Button variant="ghost" onClick={onClose}>
-              キャンセル
-            </Button>
-            <Button onClick={submit} loading={busy}>
-              成約登録して管理部へ提出
-            </Button>
+            {step === 1 ? (
+              <Button variant="ghost" onClick={onClose}>
+                キャンセル
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => setStep((x) => x - 1)} disabled={busy}>
+                戻る
+              </Button>
+            )}
+            {step < 3 ? (
+              <Button onClick={next}>次へ進む</Button>
+            ) : (
+              <Button onClick={submit} loading={busy}>
+                この内容で管理部へ提出する
+              </Button>
+            )}
           </>
         ) : undefined
       }
@@ -179,8 +199,11 @@ export default function CloseDealModal({ open, onClose, deal }: { open: boolean;
         />
       ) : (
         <div className="space-y-6">
+          <Stepper step={step} />
+          {step === 1 && (
+          <>
           <section>
-            <SectionTitle n={1} title="掲載する広告面" />
+            <SectionTitle n={1} title="掲載する広告面を確認する" />
             <div className="overflow-hidden rounded-md border border-ink-200">
               {myHolds.map((h) => {
                 const l = lookup.get(h.faceId);
@@ -201,23 +224,23 @@ export default function CloseDealModal({ open, onClose, deal }: { open: boolean;
                       }
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="text-[13px] font-medium text-navy-900">
+                      <div className="text-[15px] font-medium text-navy-900">
                         {l.board.name} {l.face.label}
                       </div>
-                      <div className="text-[11.5px] text-ink-500">
+                      <div className="text-[12.5px] text-ink-500">
                         {l.board.code} ・ {l.board.type} ・ {l.face.direction}
                       </div>
                     </div>
-                    <div className="tnum text-[12.5px] text-ink-700">{yen(l.face.price)}/月</div>
+                    <div className="tnum text-[14px] text-ink-700">{yen(l.face.price)}/月</div>
                   </label>
                 );
               })}
             </div>
-            {touched && errs.faces && <div className="mt-1.5 text-[11.5px] text-bad-600">{errs.faces}</div>}
+            {touched && errs.faces && <div className="mt-1.5 text-[12.5px] text-bad-600">{errs.faces}</div>}
           </section>
 
           <section>
-            <SectionTitle n={2} title="契約条件" />
+            <SectionTitle n={2} title="掲載期間と金額を入力する" />
             <div className="grid gap-3 sm:grid-cols-3">
               <Field label="掲載開始月" required>
                 <select className={inputCls} value={start} onChange={(e) => setStart(e.target.value)}>
@@ -241,16 +264,23 @@ export default function CloseDealModal({ open, onClose, deal }: { open: boolean;
                 <input type="number" className={inputCls + " tnum"} value={fee} onChange={(e) => setFee(e.target.value)} step={1000} />
               </Field>
             </div>
-            {errs.period && <div className="mt-1.5 text-[11.5px] text-bad-600">{errs.period}</div>}
+            {errs.period && <div className="mt-1.5 text-[12.5px] text-bad-600">{errs.period}</div>}
             <div className="mt-3 grid grid-cols-3 divide-x divide-ink-200 rounded-md bg-ink-50 py-3 text-center">
               <Mini label="定価合計(月額)" value={yen(listPrice)} />
               <Mini label="値引率" value={`${discount.toFixed(1)}%`} />
               <Mini label={`契約総額(${end >= start ? months : 0}ヶ月)`} value={yen(end >= start ? feeNum * months : 0)} strong />
             </div>
           </section>
+          </>
+          )}
 
+          {step === 2 && (
+          <>
           <section>
-            <SectionTitle n={3} title="契約書類" />
+            <SectionTitle n={1} title="契約書類を添付する" />
+            <p className="mb-2.5 text-[14px] leading-relaxed text-ink-600">
+              「ファイルを選択」でパソコン内のファイル(PDF・写真など)を選びます。「必須」と書かれた書類は必ず添付してください。
+            </p>
             <div className="overflow-hidden rounded-md border border-ink-200">
               {docs.map((d, i) => (
                 <DocRow
@@ -263,11 +293,11 @@ export default function CloseDealModal({ open, onClose, deal }: { open: boolean;
                 />
               ))}
             </div>
-            {touched && errs.docs && <div className="mt-1.5 text-[11.5px] text-bad-600">{errs.docs}</div>}
+            {touched && errs.docs && <div className="mt-1.5 text-[12.5px] text-bad-600">{errs.docs}</div>}
           </section>
 
           <section>
-            <SectionTitle n={4} title="管理部への申し送り" />
+            <SectionTitle n={2} title="管理部へのメモ(任意)" />
             <textarea
               className={textareaCls}
               placeholder="例: 請求書は本社経理部宛てでお願いします。"
@@ -275,6 +305,31 @@ export default function CloseDealModal({ open, onClose, deal }: { open: boolean;
               onChange={(e) => setNote(e.target.value)}
             />
           </section>
+          </>
+          )}
+
+          {step === 3 && (
+            <section>
+              <p className="mb-3 text-[15px] text-ink-700">内容を確認して、よろしければ「この内容で管理部へ提出する」を押してください。</p>
+              <div className="overflow-hidden rounded-md border border-ink-200">
+                {(
+                  [
+                    ["掲載する面", faceIds.map((id) => { const l = lookup.get(id); return `${l?.board.name} ${l?.face.label}`; }).join("、")],
+                    ["掲載期間", `${fmtMonth(start)} 〜 ${fmtMonth(end)}(${months}ヶ月)`],
+                    ["月額", yen(feeNum)],
+                    ["契約総額", yen(feeNum * months)],
+                    ["添付した書類", docs.filter((d) => d.fileName).map((d) => d.kind).join("、")],
+                    ["管理部へのメモ", note.trim() || "なし"],
+                  ] as [string, string][]
+                ).map(([k, v]) => (
+                  <div key={k} className="grid grid-cols-[120px_1fr] gap-3 border-b border-ink-100 px-4 py-3 text-[15px] last:border-0">
+                    <span className="text-ink-500">{k}</span>
+                    <span className="tnum text-ink-900">{v}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </Modal>
@@ -284,8 +339,8 @@ export default function CloseDealModal({ open, onClose, deal }: { open: boolean;
 function SectionTitle({ n, title }: { n: number; title: string }) {
   return (
     <div className="mb-2.5 flex items-center gap-2">
-      <span className="tnum grid h-5 w-5 place-items-center rounded-full bg-navy-900 text-[10.5px] font-semibold text-white">{n}</span>
-      <span className="text-[13px] font-semibold text-navy-900">{title}</span>
+      <span className="tnum grid h-5 w-5 place-items-center rounded-full bg-navy-900 text-[12px] font-semibold text-white">{n}</span>
+      <span className="text-[15px] font-semibold text-navy-900">{title}</span>
     </div>
   );
 }
@@ -293,8 +348,34 @@ function SectionTitle({ n, title }: { n: number; title: string }) {
 function Mini({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div className="px-2">
-      <div className="text-[11px] text-ink-500">{label}</div>
-      <div className={"tnum mt-0.5 " + (strong ? "text-[15px] font-semibold text-navy-900" : "text-[13px] text-ink-800")}>{value}</div>
+      <div className="text-[12px] text-ink-500">{label}</div>
+      <div className={"tnum mt-0.5 " + (strong ? "text-[17px] font-semibold text-navy-900" : "text-[15px] text-ink-800")}>{value}</div>
     </div>
+  );
+}
+
+function Stepper({ step }: { step: number }) {
+  const items = ["掲載内容", "書類の添付", "確認して提出"];
+  return (
+    <ol className="flex items-center gap-2">
+      {items.map((label, i) => {
+        const n = i + 1;
+        const state = n < step ? "done" : n === step ? "now" : "todo";
+        return (
+          <li key={label} className="flex flex-1 items-center gap-2">
+            <span
+              className={
+                "tnum grid h-7 w-7 shrink-0 place-items-center rounded-full text-[13px] font-semibold " +
+                (state === "todo" ? "border border-ink-300 text-ink-400" : "bg-navy-900 text-white")
+              }
+            >
+              {state === "done" ? <Check size={14} /> : n}
+            </span>
+            <span className={"text-[14px] " + (state === "now" ? "font-semibold text-navy-900" : "text-ink-500")}>{label}</span>
+            {n < items.length && <span className="hidden h-px flex-1 bg-ink-200 sm:block" />}
+          </li>
+        );
+      })}
+    </ol>
   );
 }

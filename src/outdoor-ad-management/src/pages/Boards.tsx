@@ -4,10 +4,10 @@ import { ChevronLeft, ChevronRight, Lightbulb, Plus, Search, SearchX, X } from "
 import { useStore, staffName } from "../store";
 import { AREAS, BOARD_TYPES, type Board, type Face, type Hold } from "../data/seed";
 import { useLoad } from "../lib/useLoad";
-import { buildIndex, cellAt, handoverOf, isFree, type Cell } from "../lib/domain";
+import { buildIndex, cellAt, handoverOf, isFree, type Cell, type FaceIndex } from "../lib/domain";
 import { addMonthKey, fmtDate, fmtMonth, fmtPeriod, monthRange, num, thisMonth, yen } from "../lib/format";
 import { HoldModal } from "../components/forms";
-import { Button, Card, DL, EmptyState, Modal, PageHeader, Skeleton, inputCls } from "../components/ui";
+import { Button, Card, DL, EmptyState, Field, Help, Modal, PageHeader, Skeleton, Tabs, inputCls } from "../components/ui";
 
 const COLS = 12;
 
@@ -34,7 +34,8 @@ export default function Boards() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [onlyFree, setOnlyFree] = useState(false);
-  const [holdTarget, setHoldTarget] = useState<{ board: Board; face: Face; month: string } | null>(null);
+  const [holdTarget, setHoldTarget] = useState<{ board: Board; face: Face; month: string; end?: string } | null>(null);
+  const [mode, setMode] = useState<"find" | "calendar">("find");
   const [holdInfo, setHoldInfo] = useState<Hold | null>(null);
 
   const deal = deals.find((d) => d.id === dealId);
@@ -92,14 +93,19 @@ export default function Boards() {
     <>
       <PageHeader
         eyebrow="Availability"
-        title="空き状況・仮押さえ"
-        description="看板・広告面ごとの掲載期間と空き状況を月単位で表示します。空いている枠をクリックすると仮押さえできます。"
+        title="看板の空きを探す"
+        description="お客様が希望する時期に空いている看板(広告面)を探して、仮押さえ(一時的な確保)ができます。"
+        guide={[
+          "「エリア」「掲載を始めたい月」「掲載する期間」を選びます。",
+          "条件に合う空き面が一覧で表示されます。料金も確認できます。",
+          "「この面を仮押さえする」を押し、商談を選ぶと、他の担当者に取られないよう確保されます。",
+        ]}
       />
 
       {deal && (
         <div className="mb-5 flex flex-col gap-3 rounded-lg border border-navy-200 bg-navy-50 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-[13px] text-navy-900">
-            <span className="mr-2 text-[11px] tracking-[0.15em] text-navy-500">仮押さえ先を選択中</span>
+          <div className="text-[15px] text-navy-900">
+            <span className="mr-2 text-[12px] tracking-[0.15em] text-navy-500">仮押さえ先を選択中</span>
             <span className="font-semibold">{cname(deal.customerId)}</span> / {deal.title}
             <span className="ml-2 text-ink-500">(希望 {deal.months}ヶ月・月額 {yen(deal.monthlyBudget)})</span>
           </div>
@@ -114,12 +120,32 @@ export default function Boards() {
         </div>
       )}
 
+      <div className="mb-5 border-b border-ink-200">
+        <Tabs<"find" | "calendar">
+          value={mode}
+          onChange={setMode}
+          items={[
+            { value: "find", label: "条件を選んで探す" },
+            { value: "calendar", label: "カレンダーで見る" },
+          ]}
+        />
+      </div>
+
+      {mode === "find" ? (
+        <FindVacancy
+          idx={idx}
+          boards={boards}
+          defaultMonths={deal?.months}
+          onHold={(board, face, month, end) => setHoldTarget({ board, face, month, end })}
+        />
+      ) : (
+      <>
       {/* 検索 */}
       <Card className="mb-5 p-4">
         <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_1fr_auto]">
           <div className="relative">
             <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-400" />
-            <input className={inputCls + " pl-8"} placeholder="設置場所・住所・看板コード" value={q} onChange={(e) => setQ(e.target.value)} />
+            <input className={inputCls + " pl-8!"} placeholder="設置場所・住所・看板コード" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <select className={inputCls} value={area} onChange={(e) => setArea(e.target.value)}>
             <option value="">全エリア</option>
@@ -136,9 +162,9 @@ export default function Boards() {
           <div className="hidden md:block" />
         </div>
         <div className="mt-3 flex flex-col gap-3 border-t border-ink-100 pt-3 md:flex-row md:items-center">
-          <span className="text-[12px] font-medium text-ink-600">掲載希望期間</span>
+          <span className="text-[13px] font-medium text-ink-600">掲載希望期間</span>
           <div className="flex items-center gap-2">
-            <select className={inputCls + " w-36"} value={from} onChange={(e) => setFrom(e.target.value)}>
+            <select className={inputCls + " w-36!"} value={from} onChange={(e) => setFrom(e.target.value)}>
               <option value="">開始月</option>
               {monthRange(cur, 24).map((m) => (
                 <option key={m} value={m}>
@@ -147,7 +173,7 @@ export default function Boards() {
               ))}
             </select>
             <span className="text-ink-400">〜</span>
-            <select className={inputCls + " w-36"} value={to} onChange={(e) => setTo(e.target.value)}>
+            <select className={inputCls + " w-36!"} value={to} onChange={(e) => setTo(e.target.value)}>
               <option value="">終了月</option>
               {monthRange(cur, 36).map((m) => (
                 <option key={m} value={m}>
@@ -156,7 +182,7 @@ export default function Boards() {
               ))}
             </select>
           </div>
-          <label className={"flex items-center gap-2 text-[12.5px] " + (periodValid ? "text-navy-900" : "text-ink-400")}>
+          <label className={"flex items-center gap-2 text-[14px] " + (periodValid ? "text-navy-900" : "text-ink-400")}>
             <input
               type="checkbox"
               disabled={!periodValid}
@@ -168,7 +194,7 @@ export default function Boards() {
           </label>
           {(q || area || type || from || to) && (
             <button
-              className="text-[12px] text-ink-500 underline-offset-2 hover:text-navy-900 hover:underline md:ml-auto"
+              className="text-[13px] text-ink-500 underline-offset-2 hover:text-navy-900 hover:underline md:ml-auto"
               onClick={() => {
                 setQ("");
                 setArea("");
@@ -186,9 +212,9 @@ export default function Boards() {
 
       {/* サマリー + 凡例 */}
       <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-[12.5px] text-ink-500">
+        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-[14px] text-ink-500">
           <span>
-            表示 <b className="tnum text-[15px] font-semibold text-navy-900">{num(summary.total)}</b> 面
+            表示 <b className="tnum text-[17px] font-semibold text-navy-900">{num(summary.total)}</b> 面
           </span>
           <span>
             今月 掲載中 <b className="tnum font-semibold text-navy-900">{summary.contract}</b>
@@ -200,7 +226,7 @@ export default function Boards() {
             空き <b className="tnum font-semibold text-navy-900">{summary.free}</b>
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-4 text-[11.5px] text-ink-500">
+        <div className="flex flex-wrap items-center gap-4 text-[12.5px] text-ink-500">
           <Legend className="bg-navy-900" label="契約済" />
           <Legend className="bg-navy-400" label="契約済(管理部確認中)" />
           <Legend className="hatch-hold border border-warn-300" label="仮押さえ" />
@@ -215,7 +241,7 @@ export default function Boards() {
             <ChevronLeft size={14} />
             前へ
           </Button>
-          <div className="tnum text-[12.5px] font-medium text-navy-900">
+          <div className="tnum text-[14px] font-medium text-navy-900">
             {fmtMonth(months[0])} 〜 {fmtMonth(months.at(-1)!)}
           </div>
           <Button variant="ghost" size="sm" disabled={offset >= 18} onClick={() => setOffset((o) => o + 3)}>
@@ -235,18 +261,18 @@ export default function Boards() {
           <div className="thin-scroll max-h-[68vh] overflow-auto">
             <div className="grid min-w-[980px]" style={{ gridTemplateColumns: gridCols }}>
               {/* ヘッダー */}
-              <div className="sticky top-0 left-0 z-30 border-r border-b border-ink-200 bg-ink-50 px-4 py-2 text-[11.5px] text-ink-500">
+              <div className="sticky top-0 left-0 z-30 border-r border-b border-ink-200 bg-ink-50 px-4 py-2 text-[12.5px] text-ink-500">
                 看板 / 広告面
               </div>
               {months.map((m) => (
                 <div
                   key={m}
                   className={
-                    "sticky top-0 z-20 border-b border-l border-ink-200 px-1 py-2 text-center text-[11.5px] " +
+                    "sticky top-0 z-20 border-b border-l border-ink-200 px-1 py-2 text-center text-[12.5px] " +
                     (inPeriod(m) ? "bg-navy-100 font-semibold text-navy-900" : m === cur ? "bg-ink-50 font-semibold text-navy-900" : "bg-ink-50 text-ink-500")
                   }
                 >
-                  {m.endsWith("-01") || m === months[0] ? <span className="block text-[10px] text-ink-400">{m.slice(0, 4)}</span> : <span className="block text-[10px] text-transparent">.</span>}
+                  {m.endsWith("-01") || m === months[0] ? <span className="block text-[11.5px] text-ink-400">{m.slice(0, 4)}</span> : <span className="block text-[11.5px] text-transparent">.</span>}
                   {Number(m.slice(5))}月
                 </div>
               ))}
@@ -255,10 +281,10 @@ export default function Boards() {
                 <Fragment key={b.id}>
                   {/* 看板行 */}
                   <div className="sticky left-0 z-10 border-r border-b border-ink-200 bg-white px-4 pt-3 pb-1.5" style={{ gridColumn: "1 / 2" }}>
-                    <Link to={`/boards/${b.id}`} className="block truncate text-[12.5px] font-semibold text-navy-900 hover:underline">
+                    <Link to={`/boards/${b.id}`} className="block truncate text-[14px] font-semibold text-navy-900 hover:underline">
                       {b.name}
                     </Link>
-                    <div className="flex items-center gap-1.5 truncate text-[10.5px] text-ink-400">
+                    <div className="flex items-center gap-1.5 truncate text-[12px] text-ink-400">
                       <span className="tnum">{b.code}</span>・{b.area}・{b.type}
                       {b.lighting && <Lightbulb size={10} className="shrink-0" />}
                     </div>
@@ -268,11 +294,11 @@ export default function Boards() {
                     <Fragment key={f.id}>
                       <div className="sticky left-0 z-10 flex items-center justify-between gap-2 border-r border-b border-ink-100 bg-white py-1.5 pr-3 pl-6">
                         <div className="min-w-0">
-                          <div className="text-[12px] text-ink-800">
-                            {f.label} <span className="text-[10.5px] text-ink-400">{f.direction}</span>
+                          <div className="text-[13px] text-ink-800">
+                            {f.label} <span className="text-[12px] text-ink-400">{f.direction}</span>
                           </div>
                         </div>
-                        <span className="tnum shrink-0 text-[10.5px] text-ink-400">{(f.price / 10000).toFixed(1)}万</span>
+                        <span className="tnum shrink-0 text-[12px] text-ink-400">{(f.price / 10000).toFixed(1)}万</span>
                       </div>
                       <div className="relative grid border-b border-ink-100" style={{ gridColumn: `2 / span ${COLS}`, gridTemplateColumns: "subgrid" }}>
                         {months.map((m, i) => (
@@ -305,6 +331,8 @@ export default function Boards() {
           </div>
         )}
       </Card>
+      </>
+      )}
 
       <HoldModal
         open={!!holdTarget}
@@ -312,6 +340,7 @@ export default function Boards() {
         board={holdTarget?.board}
         face={holdTarget?.face}
         startMonth={holdTarget?.month}
+        endMonth={holdTarget?.end}
         dealId={dealId}
       />
       <HoldInfoModal hold={holdInfo} onClose={() => setHoldInfo(null)} />
@@ -345,7 +374,7 @@ function SegView({
         style={style}
         onClick={() => onFree(m)}
         title={`${fmtMonth(m)} 空き — クリックで仮押さえ`}
-        className="group relative z-[1] m-[3px] flex h-8 items-center justify-center rounded-[4px] border border-dashed border-transparent text-[11px] text-transparent transition hover:border-navy-400 hover:bg-white hover:text-navy-700"
+        className="group relative z-[1] m-[3px] flex h-8 items-center justify-center rounded-[4px] border border-dashed border-transparent text-[12px] text-transparent transition hover:border-navy-400 hover:bg-white hover:text-navy-700"
       >
         <Plus size={12} />
       </button>
@@ -360,7 +389,7 @@ function SegView({
         style={style}
         onClick={() => onHold(c.hold)}
         title={`仮押さえ: ${label.replace(/^仮 /, "")}(期限 ${fmtDate(c.hold.expiresAt)})`}
-        className="hatch-hold z-[1] m-[3px] h-8 truncate rounded-[4px] border border-warn-300 px-2 text-left text-[11px] font-medium text-warn-700 transition hover:border-warn-500"
+        className="hatch-hold z-[1] m-[3px] h-8 truncate rounded-[4px] border border-warn-300 px-2 text-left text-[12px] font-medium text-warn-700 transition hover:border-warn-500"
       >
         {label}
       </button>
@@ -372,7 +401,7 @@ function SegView({
       onClick={() => onContract(c.contract.id)}
       title={`${label} ${fmtPeriod(c.contract.startMonth, c.contract.endMonth)}${pending ? "(管理部確認中)" : ""}`}
       className={
-        "z-[1] m-[3px] h-8 truncate rounded-[4px] px-2 text-left text-[11px] text-white transition hover:brightness-110 " +
+        "z-[1] m-[3px] h-8 truncate rounded-[4px] px-2 text-left text-[12px] text-white transition hover:brightness-110 " +
         (pending ? "bg-navy-400" : "bg-navy-900")
       }
     >
@@ -425,5 +454,175 @@ function HoldInfoModal({ hold, onClose }: { hold: Hold | null; onClose: () => vo
         />
       )}
     </Modal>
+  );
+}
+
+// ---------------- 条件を選んで探す(かんたん検索) ----------------
+function FindVacancy({
+  idx,
+  boards,
+  defaultMonths,
+  onHold,
+}: {
+  idx: FaceIndex;
+  boards: Board[];
+  defaultMonths?: number;
+  onHold: (b: Board, f: Face, start: string, end: string) => void;
+}) {
+  const cur = thisMonth();
+  const [area, setArea] = useState("");
+  const [type, setType] = useState("");
+  const [start, setStart] = useState(addMonthKey(cur, 1));
+  const [months, setMonths] = useState(String(defaultMonths && [3, 6, 12, 24].includes(defaultMonths) ? defaultMonths : 12));
+  const [order, setOrder] = useState<"price" | "traffic">("price");
+  const [shown, setShown] = useState(10);
+  const end = addMonthKey(start, Number(months) - 1);
+
+  const results = useMemo(() => {
+    const list: { board: Board; face: Face }[] = [];
+    boards.forEach((b) => {
+      if ((area && b.area !== area) || (type && b.type !== type)) return;
+      b.faces.forEach((f) => {
+        if (isFree(idx, b, f, start, end)) list.push({ board: b, face: f });
+      });
+    });
+    return list.sort((a, b) => (order === "price" ? a.face.price - b.face.price : b.board.traffic - a.board.traffic));
+  }, [boards, idx, area, type, start, end, order]);
+
+  // 0件のとき、開始月をずらせば空きがあるかを提案する
+  const suggestion = useMemo(() => {
+    if (results.length > 0) return null;
+    for (let i = 1; i <= 12; i++) {
+      const s2 = addMonthKey(start, i);
+      const e2 = addMonthKey(s2, Number(months) - 1);
+      const n = boards.reduce(
+        (sum, b) =>
+          (area && b.area !== area) || (type && b.type !== type) ? sum : sum + b.faces.filter((f) => isFree(idx, b, f, s2, e2)).length,
+        0,
+      );
+      if (n > 0) return { start: s2, count: n };
+    }
+    return null;
+  }, [results.length, boards, idx, area, type, start, months]);
+
+  return (
+    <>
+      <Card className="mb-5 p-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="1. エリア">
+            <select className={inputCls} value={area} onChange={(e) => { setArea(e.target.value); setShown(10); }}>
+              <option value="">指定しない(すべて)</option>
+              {AREAS.map((a) => (
+                <option key={a}>{a}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="2. 看板の種類">
+            <select className={inputCls} value={type} onChange={(e) => { setType(e.target.value); setShown(10); }}>
+              <option value="">指定しない(すべて)</option>
+              {BOARD_TYPES.map((a) => (
+                <option key={a}>{a}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="3. 掲載を始めたい月">
+            <select className={inputCls} value={start} onChange={(e) => { setStart(e.target.value); setShown(10); }}>
+              {monthRange(cur, 24).map((m) => (
+                <option key={m} value={m}>
+                  {fmtMonth(m)}から
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="4. 掲載する期間">
+            <select className={inputCls} value={months} onChange={(e) => { setMonths(e.target.value); setShown(10); }}>
+              {[3, 6, 12, 24].map((m) => (
+                <option key={m} value={m}>
+                  {m}ヶ月間
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+      </Card>
+
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-[15px] text-ink-700">
+          <span className="tnum">{fmtPeriod(start, end)}</span> に空いている面:{" "}
+          <b className="tnum text-[20px] font-semibold text-navy-900">{results.length}</b> 面
+        </div>
+        <label className="flex items-center gap-2 text-[14px] whitespace-nowrap text-ink-600">
+          並び順
+          <select className={inputCls + " w-44!"} value={order} onChange={(e) => setOrder(e.target.value as "price" | "traffic")}>
+            <option value="price">料金の安い順</option>
+            <option value="traffic">交通量の多い順</option>
+          </select>
+        </label>
+      </div>
+
+      {results.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={<SearchX size={20} />}
+            title="条件に合う空き面がありません"
+            description={
+              suggestion
+                ? `${fmtMonth(suggestion.start)}から始めれば、${suggestion.count}面の空きがあります。`
+                : "エリアを「指定しない」にするか、掲載する期間を短くしてみてください。"
+            }
+            action={
+              suggestion && (
+                <Button onClick={() => setStart(suggestion.start)}>{fmtMonth(suggestion.start)}からで探す</Button>
+              )
+            }
+          />
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {results.slice(0, shown).map(({ board: b, face: f }) => (
+            <Card key={f.id} className="flex flex-col gap-4 p-5 md:flex-row md:items-center">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded bg-ok-50 px-2 py-0.5 text-[13px] font-medium text-ok-700 ring-1 ring-ok-600/25 ring-inset">空いています</span>
+                  <Link to={`/boards/${b.id}`} className="text-[17px] font-semibold text-navy-900 hover:underline">
+                    {b.name} {f.label}
+                  </Link>
+                </div>
+                <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[14px] text-ink-500">
+                  <span>{b.area}</span>
+                  <span>{b.type}</span>
+                  <span>{f.direction}</span>
+                  <span>{b.size}</span>
+                  <span className="tnum">交通量 {num(b.traffic)}/日</span>
+                  {b.lighting && (
+                    <span className="inline-flex items-center gap-1">
+                      <Lightbulb size={13} />
+                      夜間照明あり
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="shrink-0 md:text-right">
+                <div className="tnum text-[17px] font-semibold text-navy-900">{yen(f.price)}<span className="text-[13px] font-normal text-ink-500"> /月</span></div>
+                <div className="tnum text-[13px] text-ink-500">
+                  {months}ヶ月の合計 {yen(f.price * Number(months))}
+                  <Help label="定価" text="値引き前の料金です。契約金額は成約登録のときに入力できます。" />
+                </div>
+              </div>
+              <Button className="shrink-0" onClick={() => onHold(b, f, start, end)}>
+                この面を仮押さえする
+              </Button>
+            </Card>
+          ))}
+          {results.length > shown && (
+            <div className="pt-2 text-center">
+              <Button variant="outline" onClick={() => setShown((n) => n + 10)}>
+                さらに表示する(残り {results.length - shown} 面)
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </>
   );
 }
