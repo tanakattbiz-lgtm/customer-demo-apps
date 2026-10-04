@@ -124,6 +124,22 @@ body {
   background: transparent;
 }
 
+/* ツアー: 押してほしい場所の点滅リング・文字送りカーソル */
+@keyframes tourpulse {
+  0% { opacity: 0.95; transform: scale(1); }
+  70% { opacity: 0; transform: scale(1.06); }
+  100% { opacity: 0; transform: scale(1.06); }
+}
+.tour-ring {
+  animation: tourpulse 1.6s ease-out infinite;
+}
+@keyframes caret {
+  50% { opacity: 0; }
+}
+.tour-caret {
+  animation: caret 0.8s steps(1) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;

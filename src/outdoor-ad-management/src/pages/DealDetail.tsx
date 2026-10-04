@@ -551,13 +551,13 @@ function NextStep({
     action = { label: "提出状況を見る", onClick: onHandover };
   }
   return (
-    <div className={"mb-6 flex flex-col gap-3 rounded-lg border px-5 py-4 sm:flex-row sm:items-center " + tone}>
+    <div data-tour="next-step" className={"mb-6 flex flex-col gap-3 rounded-lg border px-5 py-4 sm:flex-row sm:items-center " + tone}>
       <div className="min-w-0 flex-1">
         <div className="text-[13px] font-semibold tracking-wide text-navy-600">次にやること</div>
         <div className="mt-0.5 text-[16px] leading-relaxed text-ink-900">{msg}</div>
       </div>
       {action && (
-        <Button className="shrink-0" onClick={action.onClick}>
+        <Button data-tour="next-step-btn" className="shrink-0" onClick={action.onClick}>
           {action.label}
           <ArrowRight size={15} />
         </Button>

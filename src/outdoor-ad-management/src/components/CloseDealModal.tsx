@@ -25,6 +25,8 @@ export function DocRow({
   const ref = useRef<HTMLInputElement>(null);
   return (
     <div
+      data-required={required ? "true" : "false"}
+      data-attached={doc.fileName ? "true" : "false"}
       className={
         "flex flex-col gap-2 border-b border-ink-100 px-4 py-3 last:border-0 sm:flex-row sm:items-center " + (error ? "bg-bad-50/60" : "")
       }
@@ -171,9 +173,9 @@ export default function CloseDealModal({ open, onClose, deal }: { open: boolean;
               </Button>
             )}
             {step < 3 ? (
-              <Button onClick={next}>次へ進む</Button>
+              <Button data-tour="wizard-next" onClick={next}>次へ進む</Button>
             ) : (
-              <Button onClick={submit} loading={busy}>
+              <Button data-tour="wizard-submit" onClick={submit} loading={busy}>
                 この内容で管理部へ提出する
               </Button>
             )}
@@ -281,7 +283,7 @@ export default function CloseDealModal({ open, onClose, deal }: { open: boolean;
             <p className="mb-2.5 text-[14px] leading-relaxed text-ink-600">
               「ファイルを選択」でパソコン内のファイル(PDF・写真など)を選びます。「必須」と書かれた書類は必ず添付してください。
             </p>
-            <div className="overflow-hidden rounded-md border border-ink-200">
+            <div data-tour="wizard-docs" className="overflow-hidden rounded-md border border-ink-200">
               {docs.map((d, i) => (
                 <DocRow
                   key={d.kind}
@@ -357,7 +359,7 @@ function Mini({ label, value, strong }: { label: string; value: string; strong?:
 function Stepper({ step }: { step: number }) {
   const items = ["掲載内容", "書類の添付", "確認して提出"];
   return (
-    <ol className="flex items-center gap-2">
+    <ol data-tour="wizard-steps" className="flex items-center gap-2">
       {items.map((label, i) => {
         const n = i + 1;
         const state = n < step ? "done" : n === step ? "now" : "todo";

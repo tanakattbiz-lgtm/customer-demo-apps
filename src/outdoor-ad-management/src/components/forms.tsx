@@ -95,7 +95,7 @@ export function ActivityModal({
           <Button variant="ghost" onClick={onClose}>
             キャンセル
           </Button>
-          <Button onClick={submit} loading={busy}>
+          <Button data-tour="act-submit" onClick={submit} loading={busy}>
             記録する
           </Button>
         </>
@@ -116,6 +116,7 @@ export function ActivityModal({
         </Field>
         <Field label="対応内容" required error={touched ? errs.memo : ""}>
           <textarea
+            data-tour="act-memo"
             className={textareaCls + (touched && errs.memo ? errCls : "")}
             placeholder="例: 決裁者同席で提案。予算は月額20万円前後で調整可能とのこと。"
             value={memo}
@@ -145,6 +146,7 @@ export function ActivityModal({
                 </Field>
                 <Field label="内容" required error={touched ? errs.nextContent : ""}>
                   <input
+                    data-tour="act-next"
                     className={inputCls + (touched && errs.nextContent ? errCls : "")}
                     placeholder="例: 見積書の回答確認"
                     value={nextContent}
@@ -639,7 +641,7 @@ export function HoldModal({
           <Button variant="ghost" onClick={onClose}>
             キャンセル
           </Button>
-          <Button onClick={submit} loading={busy}>
+          <Button data-tour="hold-submit" onClick={submit} loading={busy}>
             仮押さえする
           </Button>
         </>
@@ -656,7 +658,7 @@ export function HoldModal({
           仮押さえをすると、期限までの間、他の担当者がこの面を押さえられなくなります。お客様の返事を待つ間の「一時的な確保」です。
         </p>
         <Field label="どの商談のための仮押さえですか" required error={touched ? errs.dealId : ""}>
-          <select className={inputCls + (touched && errs.dealId ? errCls : "")} value={f.dealId} onChange={(e) => setF({ ...f, dealId: e.target.value })}>
+          <select data-tour="hold-deal" className={inputCls + (touched && errs.dealId ? errCls : "")} value={f.dealId} onChange={(e) => setF({ ...f, dealId: e.target.value })}>
             <option value="">選択してください</option>
             {openDeals.map((d) => (
               <option key={d.id} value={d.id}>

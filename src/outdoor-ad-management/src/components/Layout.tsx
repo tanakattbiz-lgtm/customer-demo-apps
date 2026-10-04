@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { format } from "date-fns";
@@ -16,11 +16,13 @@ import {
   X,
   RotateCcw,
   Home,
+  GraduationCap,
 } from "lucide-react";
 import { useStore } from "../store";
 import { ME_ID, STAFF } from "../data/seed";
 import { todayISO } from "../lib/format";
 import { Avatar, Confirm } from "./ui";
+import Tour, { useTour, useTourSeen } from "./Tour";
 
 type NavItem = { to: string; label: string; desc: string; icon: typeof BarChart3; end?: boolean; badge?: number };
 
@@ -60,6 +62,16 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const loc = useLocation();
   const nav = useNav();
+  const startTour = useTour((s) => s.start);
+  const seen = useTourSeen((s) => s.seen);
+  const active = useTour((s) => s.active);
+  // はじめて開いたときは、自動でツアーの案内を出す
+  useEffect(() => {
+    if (!seen && !active) {
+      const t = setTimeout(startTour, 900);
+      return () => clearTimeout(t);
+    }
+  }, [seen, active, startTour]);
   const current = nav.flatMap((g) => g.items).find((i) => (i.end ? loc.pathname === i.to : loc.pathname.startsWith(i.to)));
 
   return (
@@ -102,6 +114,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-ink-200 bg-white/92 px-4 backdrop-blur sm:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <button
+              data-tour="nav"
               aria-label="メニューを開く"
               className="grid h-9 w-9 place-items-center rounded-md text-navy-900 hover:bg-ink-100 lg:hidden"
               onClick={() => setOpen(true)}
@@ -118,8 +131,17 @@ export default function Layout({ children }: { children: ReactNode }) {
               )}
             </div>
           </div>
-          <div className="tnum hidden text-[13px] text-ink-500 sm:block">
-            {format(new Date(), "yyyy年M月d日(E)", { locale: ja })}
+          <div className="flex items-center gap-4">
+            <div className="tnum hidden text-[13px] text-ink-500 md:block">
+              {format(new Date(), "yyyy年M月d日(E)", { locale: ja })}
+            </div>
+            <button
+              onClick={startTour}
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-navy-200 bg-navy-50 px-3 text-[14px] font-medium text-navy-900 transition hover:border-navy-300 hover:bg-navy-100"
+            >
+              <GraduationCap size={16} />
+              使い方ツアー
+            </button>
           </div>
         </header>
         <main className="min-w-0 px-4 py-7 sm:px-8 lg:py-9">
@@ -134,6 +156,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </motion.div>
         </main>
       </div>
+      <Tour />
     </div>
   );
 }
@@ -151,7 +174,7 @@ function SideContent({ nav, onNavigate }: { nav: ReturnType<typeof useNav>; onNa
           <div className="mt-1 text-[11.5px] tracking-[0.08em] text-white/50">営業・看板管理システム</div>
         </div>
       </div>
-      <nav className="thin-scroll flex-1 overflow-y-auto px-3">
+      <nav data-tour="nav" className="thin-scroll flex-1 overflow-y-auto px-3">
         {nav.map((g) => (
           <div key={g.group || "home"} className="mb-4">
             {g.group && <div className="px-3 pb-1.5 text-[12px] tracking-[0.2em] text-white/40">{g.group}</div>}
@@ -159,6 +182,7 @@ function SideContent({ nav, onNavigate }: { nav: ReturnType<typeof useNav>; onNa
               <NavLink
                 key={it.to}
                 to={it.to}
+                data-tour={"nav-" + (it.to.slice(1) || "home")}
                 end={it.end}
                 onClick={onNavigate}
                 className={({ isActive }) =>
