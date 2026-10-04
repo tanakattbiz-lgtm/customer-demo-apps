@@ -1,14 +1,14 @@
 /**
- * ゲーム風チュートリアル(使い方ツアー)。
- * 実際の画面の上で、操作してほしい場所だけを明るく残し、案内役が手順を説明する。
- * 「光っているボタンを押す」「文字を入力する」などを実際に行うと次へ進む。
+ * 操作ガイド(オンボーディング)。
+ * 実際の画面上で操作対象のみを強調表示し、手順を順に案内する。
+ * 対象のボタンを押す・入力するなど、実際に操作すると次の手順へ進む。
  */
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, type NavigateFunction } from "react-router-dom";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { AnimatePresence, motion } from "motion/react";
-import { Check, ChevronRight, MousePointerClick, PencilLine, RotateCcw, X } from "lucide-react";
+import { BookOpen, Check, ChevronRight, MousePointerClick, PencilLine, RotateCcw, X } from "lucide-react";
 import { useStore } from "../store";
 import { ME_ID } from "../data/seed";
 
@@ -48,88 +48,94 @@ interface Step {
   enter?: (nav: NavigateFunction) => void;
 }
 
-const MISSIONS = [
-  "画面の見方を覚えよう",
-  "お客様への対応を記録しよう",
-  "看板の空きを探して仮押さえしよう",
-  "契約の書類を管理部へ提出しよう",
-  "会社全体の数字を見てみよう",
+const SECTIONS = [
+  "画面構成",
+  "営業活動の記録",
+  "空き枠の検索と仮押さえ",
+  "成約登録と管理部への提出",
+  "経営指標の確認",
 ];
 
 const q = (sel: string) => document.querySelector(sel);
 const valueOf = (t: string) => (q(`[data-tour="${t}"]`) as HTMLInputElement | null)?.value?.trim() ?? "";
 const gone = (t: string) => () => !q(`[data-tour="${t}"]`);
 
+const HINT_CLICK = "強調表示されているボタンを押してください";
+const HINT_MENU = "強調表示されているメニューを押してください";
+
 const STEPS: Step[] = [
-  {
-    mission: -1,
-    kind: "welcome",
-    title: "ようこそ、営業・看板管理システムへ",
-    text: "はじめての方向けに、実際の画面を使って操作を練習できる「使い方ツアー」を用意しました。5つのミッションを順番にクリアしていきましょう。所要時間は5分ほどです。",
-    enter: (nav) => nav("/"),
-  },
-  // ---- ミッション1 ----
-  { mission: 0, kind: "intro", text: "まずは、画面のどこに何があるかを確認しましょう。", enter: (nav) => nav("/") },
+  { mission: -1, kind: "welcome", text: "", enter: (nav) => nav("/") },
+  // ---- 1. 画面構成 ----
+  { mission: 0, kind: "intro", text: "メニューとホーム画面の構成をご説明します。", enter: (nav) => nav("/") },
   {
     mission: 0,
     kind: "info",
     target: "nav",
     title: "メニュー",
-    text: "これがメニューです(スマホでは左上のボタンで開きます)。ここから、いつでも画面を切り替えられます。それぞれの下に、何ができる画面かが書いてあります。",
+    text: "画面左側のメニューから各機能へ移動します。スマートフォンでは、左上のボタンからメニューを開きます。",
   },
   {
     mission: 0,
     kind: "info",
     target: "home-todo",
-    title: "今日、対応が必要なこと",
-    text: "ホームを開くと、今日やるべきことが一番上に出ます。赤い印は期限を過ぎているものです。朝はまずここを見ましょう。",
+    title: "本日の対応事項",
+    text: "期限を過ぎた対応、本日予定の対応、期限が近い仮押さえなど、本日確認すべき事項がまとめて表示されます。",
   },
   {
     mission: 0,
     kind: "info",
     target: "home-tiles",
-    title: "やりたいことを選ぶ",
-    text: "何をすればいいか迷ったら、ここの大きなボタンから選べば大丈夫です。",
+    title: "主な操作",
+    text: "よく使う操作へは、こちらから直接移動できます。",
   },
-  // ---- ミッション2 ----
-  { mission: 1, kind: "intro", text: "お客様に電話や訪問をしたら、その内容をシステムに残します。実際にやってみましょう。", enter: (nav) => nav("/") },
+  // ---- 2. 営業活動の記録 ----
+  {
+    mission: 1,
+    kind: "intro",
+    text: "お客様への訪問・電話などの対応内容を記録し、次回の対応予定を設定する手順です。",
+    enter: (nav) => nav("/"),
+  },
   {
     mission: 1,
     kind: "click",
     target: "home-log",
-    title: "対応を記録する",
-    text: "光っている「対応したら記録する」ボタンを押してください。",
-    hint: "光っているボタンを押してください",
+    title: "対応の記録",
+    text: "「対応したら記録する」を押して、記録画面を開きます。",
+    hint: HINT_CLICK,
   },
   {
     mission: 1,
     kind: "input",
     target: "act-memo",
-    title: "話した内容を書く",
-    text: "お客様と話した内容を書きます。練習なので、たとえば「電話で確認しました」と入力してみましょう。",
-    hint: "入力できたら「次へ」を押してください",
+    title: "対応内容の入力",
+    text: "お客様とのやり取りの内容を入力します。(入力例: 電話にて掲載時期を確認)",
+    hint: "対応内容を入力してください",
     done: () => valueOf("act-memo").length >= 4,
   },
   {
     mission: 1,
     kind: "input",
     target: "act-next",
-    title: "次にやることを決める",
-    text: "次の予定も一緒に決めておくと、忘れずに済みます。たとえば「見積書を送る」と入力しましょう。日付は最初から1週間後になっています。",
-    hint: "入力できたら「次へ」を押してください",
+    title: "次回対応の設定",
+    text: "次回の対応内容を入力します。予定日には初期値として1週間後が設定されています。(入力例: 見積書を送付)",
+    hint: "次回の対応内容を入力してください",
     done: () => valueOf("act-next").length >= 2,
   },
   {
     mission: 1,
     kind: "click",
     target: "act-submit",
-    title: "記録する",
-    text: "最後に「記録する」を押せば完了です。",
-    hint: "光っているボタンを押してください",
+    title: "記録の保存",
+    text: "「記録する」を押すと保存され、次回対応が「やること一覧」に反映されます。",
+    hint: HINT_CLICK,
     waitFor: gone("act-submit"),
   },
-  // ---- ミッション3 ----
-  { mission: 2, kind: "intro", text: "お客様の希望する時期に、空いている看板を探して「仮押さえ(一時的な確保)」をします。" },
+  // ---- 3. 空き枠の検索と仮押さえ ----
+  {
+    mission: 2,
+    kind: "intro",
+    text: "お客様の希望時期に空いている広告面を検索し、仮押さえ(一時確保)を行う手順です。",
+  },
   {
     mission: 2,
     kind: "route",
@@ -137,47 +143,47 @@ const STEPS: Step[] = [
     route: "/boards",
     fallbackNav: "/boards",
     title: "看板の空きを探す",
-    text: "メニューの「看板の空きを探す」を押してください。(スマホでは、先に左上のボタンでメニューを開きます)",
-    hint: "光っているメニューを押してください",
+    text: "メニューの「看板の空きを探す」を押します。スマートフォンでは、先に左上のボタンでメニューを開きます。",
+    hint: HINT_MENU,
   },
   {
     mission: 2,
     kind: "info",
     target: "find-form",
-    title: "条件を選ぶ",
-    text: "エリア・看板の種類・始めたい月・期間を選ぶと、下に空いている面が並びます。今回はこのままでOKです。",
+    title: "検索条件",
+    text: "エリア・看板の種類・掲載開始月・掲載期間を指定すると、条件に合う空き面が一覧表示されます。ここでは初期条件のまま進めます。",
   },
   {
     mission: 2,
     kind: "click",
     target: "hold-btn",
-    title: "仮押さえする",
-    text: "空いている面の「この面を仮押さえする」を押してください。",
-    hint: "光っているボタンを押してください",
+    title: "仮押さえ",
+    text: "一覧から広告面を選び、「この面を仮押さえする」を押します。",
+    hint: HINT_CLICK,
   },
   {
     mission: 2,
     kind: "input",
     target: "hold-deal",
-    title: "どの商談のためか選ぶ",
-    text: "この看板を、どのお客様の商談のために確保するかを選びます。一覧から1つ選んでください。",
-    hint: "選べたら「次へ」を押してください",
+    title: "対象商談の選択",
+    text: "仮押さえの対象となる商談を一覧から選択します。",
+    hint: "商談を選択してください",
     done: () => valueOf("hold-deal") !== "",
   },
   {
     mission: 2,
     kind: "click",
     target: "hold-submit",
-    title: "確保する",
-    text: "「仮押さえする」を押すと、期限までの間、ほかの担当者はこの面を押さえられなくなります。",
-    hint: "光っているボタンを押してください",
+    title: "仮押さえの確定",
+    text: "「仮押さえする」を押すと、設定した期限まで、他の担当者はこの面を確保できなくなります。",
+    hint: HINT_CLICK,
     waitFor: gone("hold-submit"),
   },
-  // ---- ミッション4 ----
+  // ---- 4. 成約登録と管理部への提出 ----
   {
     mission: 3,
     kind: "intro",
-    text: "お客様の了承が取れたら「成約」です。契約の内容と書類を、管理部へ提出しましょう。さきほど仮押さえした商談の画面を開きます。",
+    text: "お客様の合意後、契約内容と契約書類を登録し、管理部へ提出する手順です。先ほど仮押さえを行った商談の画面を開きます。",
     enter: (nav) => {
       const mine = useStore.getState().holds.filter((h) => h.repId === ME_ID);
       const last = mine.at(-1);
@@ -188,39 +194,39 @@ const STEPS: Step[] = [
     mission: 3,
     kind: "info",
     target: "next-step",
-    title: "次にやること",
-    text: "商談の画面には「次にやること」が出ます。迷ったら、ここに書いてある通りに進めれば大丈夫です。",
+    title: "次の対応の表示",
+    text: "商談画面の上部には、商談の状況に応じて次に行う操作が表示されます。",
   },
   {
     mission: 3,
     kind: "click",
     target: "next-step-btn",
-    title: "成約を登録する",
-    text: "「成約を登録する」を押してください。",
-    hint: "光っているボタンを押してください",
+    title: "成約登録",
+    text: "「成約を登録する」を押します。",
+    hint: HINT_CLICK,
   },
   {
     mission: 3,
     kind: "info",
     target: "wizard-steps",
-    title: "3つの手順",
-    text: "成約の登録は「掲載内容 → 書類の添付 → 確認して提出」の3つの手順で進みます。いまは1つ目です。掲載内容は仮押さえから自動で入っています。",
+    title: "登録の手順",
+    text: "成約登録は「掲載内容」「書類の添付」「確認して提出」の3段階で行います。掲載内容には、仮押さえの情報が初期値として入力されています。",
   },
   {
     mission: 3,
     kind: "click",
     target: "wizard-next",
-    title: "次へ進む",
-    text: "内容がよければ「次へ進む」を押します。",
-    hint: "光っているボタンを押してください",
+    title: "掲載内容の確認",
+    text: "内容を確認し、「次へ進む」を押します。",
+    hint: HINT_CLICK,
   },
   {
     mission: 3,
     kind: "input",
     target: "wizard-docs",
-    title: "書類を添付する",
-    text: "「必須」と書かれた2つの書類を添付します。本番ではパソコンのファイルを選びますが、練習なので「サンプルを添付」を2つ押してください。",
-    hint: "2つ添付できたら「次へ」を押してください",
+    title: "書類の添付",
+    text: "「必須」の書類2点を添付します。通常はファイルを選択しますが、このデモでは「サンプルを添付」で代用できます。",
+    hint: "必須書類を2点添付してください",
     done: () => document.querySelectorAll('[data-required="true"][data-attached="true"]').length >= 2,
   },
   {
@@ -228,20 +234,20 @@ const STEPS: Step[] = [
     kind: "click",
     target: "wizard-next",
     title: "確認画面へ",
-    text: "もう一度「次へ進む」を押すと、確認画面になります。",
-    hint: "光っているボタンを押してください",
+    text: "「次へ進む」を押して、確認画面に進みます。",
+    hint: HINT_CLICK,
   },
   {
     mission: 3,
     kind: "click",
     target: "wizard-submit",
-    title: "管理部へ提出",
-    text: "内容を確認して「この内容で管理部へ提出する」を押せば完了です。管理部が書類をチェックしてくれます。",
-    hint: "光っているボタンを押してください",
+    title: "管理部への提出",
+    text: "「この内容で管理部へ提出する」を押すと、管理部へ書類確認を依頼します。確認状況は「管理部への書類提出」で確認できます。",
+    hint: HINT_CLICK,
     waitFor: gone("wizard-submit"),
   },
-  // ---- ミッション5 ----
-  { mission: 4, kind: "intro", text: "最後に、会社全体の契約数や看板の稼働率を見てみましょう。" },
+  // ---- 5. 経営指標の確認 ----
+  { mission: 4, kind: "intro", text: "経営向けの集計画面をご説明します。" },
   {
     mission: 4,
     kind: "route",
@@ -249,15 +255,15 @@ const STEPS: Step[] = [
     route: "/dashboard",
     fallbackNav: "/dashboard",
     title: "会社全体の数字",
-    text: "メニューの「会社全体の数字」を押してください。(スマホでは、先に左上のボタンでメニューを開きます)",
-    hint: "光っているメニューを押してください",
+    text: "メニューの「会社全体の数字」を押します。スマートフォンでは、先に左上のボタンでメニューを開きます。",
+    hint: HINT_MENU,
   },
   {
     mission: 4,
     kind: "info",
     target: "kpi",
-    title: "大事な数字",
-    text: "今月の新規契約・解約・稼働率などが一目でわかります。言葉の意味がわからないときは、横の「?」マークにマウスを乗せると説明が出ます。さきほど提出した契約も、新規契約の数に入っています。",
+    title: "主要指標",
+    text: "当月の新規契約・解約・稼働率・売上見込みなどを表示します。各項目の「?」から指標の定義を確認できます。先ほど提出した契約も、新規契約数に反映されています。",
   },
   { mission: 5, kind: "finish", text: "" },
 ];
@@ -384,7 +390,7 @@ export default function Tour() {
     return () => document.removeEventListener("click", onClick, true);
   }, [active, step, elRef, next]);
 
-  // Escキーなどでモーダルを閉じても止まらないよう、ツアー中はEscを無効化
+  // Escキーなどでモーダルを閉じても止まらないよう、ガイド中はEscを無効化
   useEffect(() => {
     if (!active) return;
     const onKey = (e: KeyboardEvent) => {
@@ -400,13 +406,13 @@ export default function Tour() {
     setSeen(true);
     stop();
   };
-  const restartMission = () => {
+  const restartSection = () => {
     const first = STEPS.findIndex((s) => s.mission === step.mission && s.kind === "intro");
     document.querySelectorAll<HTMLElement>('[role="dialog"] button[aria-label="閉じる"]').forEach((b) => b.click());
     setRetry((r) => r + 1);
     go(first >= 0 ? first : i);
   };
-  const skipMission = () => {
+  const skipSection = () => {
     const nextIntro = STEPS.findIndex((s, k) => k > i && s.mission > step.mission);
     document.querySelectorAll<HTMLElement>('[role="dialog"] button[aria-label="閉じる"]').forEach((b) => b.click());
     go(nextIntro >= 0 ? nextIntro : STEPS.length - 1);
@@ -415,15 +421,15 @@ export default function Tour() {
   // 中央表示のカード
   if (step.kind === "welcome" || step.kind === "intro" || step.kind === "finish") {
     return (
-      <div className="fixed inset-0 z-[80] grid place-items-center bg-navy-950/60 p-4">
+      <div className="fixed inset-0 z-[80] grid place-items-center bg-navy-950/50 p-4">
         <AnimatePresence mode="wait">
           <motion.div
             key={i}
-            initial={{ opacity: 0, y: 14, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.28, ease: "easeOut" }}
-            className="w-full max-w-[520px] overflow-hidden rounded-xl bg-white shadow-[0_30px_80px_-20px_oklch(15%_0.04_262/0.6)]"
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="w-full max-w-[520px] overflow-hidden rounded-lg bg-white shadow-[0_24px_60px_-20px_oklch(15%_0.04_262/0.5)]"
           >
             {step.kind === "welcome" && (
               <Welcome
@@ -434,7 +440,7 @@ export default function Tour() {
                 }}
               />
             )}
-            {step.kind === "intro" && <MissionIntro n={step.mission} text={step.text} onStart={next} onQuit={() => setConfirmSkip(true)} />}
+            {step.kind === "intro" && <SectionIntro n={step.mission} text={step.text} onStart={next} onQuit={() => setConfirmSkip(true)} />}
             {step.kind === "finish" && <Finish onClose={() => { finish(); nav("/"); }} />}
           </motion.div>
         </AnimatePresence>
@@ -468,7 +474,7 @@ export default function Tour() {
             transition={{ type: "spring", stiffness: 380, damping: 36 }}
             style={{ boxShadow: "0 0 0 9999px oklch(18% 0.04 262 / 0.62)" }}
           >
-            {!blocking && <span className="tour-ring absolute -inset-1 rounded-[10px] border-2 border-white" />}
+            {!blocking && <span className="tour-ring absolute -inset-1 rounded-[10px] border-2 border-white/90" />}
             {blocking && <span className="absolute -inset-0.5 rounded-[9px] border-2 border-white/90" />}
           </motion.div>
         </>
@@ -484,8 +490,8 @@ export default function Tour() {
         ready={ready}
         onNext={next}
         onSkip={() => setConfirmSkip(true)}
-        onRestart={restartMission}
-        onSkipMission={skipMission}
+        onRestart={restartSection}
+        onSkipSection={skipSection}
         onFallback={step.fallbackNav ? () => nav(step.fallbackNav!) : undefined}
       />
       {confirmSkip && <QuitConfirm onCancel={() => setConfirmSkip(false)} onQuit={finish} />}
@@ -503,7 +509,7 @@ function Bubble({
   onNext,
   onSkip,
   onRestart,
-  onSkipMission,
+  onSkipSection,
   onFallback,
 }: {
   step: Step;
@@ -514,7 +520,7 @@ function Bubble({
   onNext: () => void;
   onSkip: () => void;
   onRestart: () => void;
-  onSkipMission: () => void;
+  onSkipSection: () => void;
   onFallback?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -575,78 +581,81 @@ function Bubble({
     setPos({ left: Math.min(Math.max(12, hole.x + hole.w / 2 - W / 2), vw - W - 12), top: vh - h - 12, w: W });
   }, [hole?.x, hole?.y, hole?.w, hole?.h, index, missing, vw, vh, mobile, W, bh, expanded]);
 
-  const missionSteps = STEPS.filter((s) => s.mission === step.mission && s.kind !== "intro");
-  const stepNo = missionSteps.indexOf(step) + 1;
+  const sectionSteps = STEPS.filter((s) => s.mission === step.mission && s.kind !== "intro");
+  const stepNo = sectionSteps.indexOf(step) + 1;
   const ActionIcon = step.kind === "input" ? PencilLine : MousePointerClick;
 
   return (
     <motion.div
       ref={ref}
       key={index}
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: pos ? 1 : 0, y: 0 }}
-      transition={{ duration: 0.22, ease: "easeOut" }}
-      className="absolute overflow-hidden rounded-xl bg-white shadow-[0_20px_60px_-15px_oklch(15%_0.04_262/0.55)]"
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      className="absolute overflow-hidden rounded-lg border border-ink-200 bg-white shadow-[0_18px_48px_-14px_oklch(15%_0.04_262/0.45)]"
       style={{ left: pos?.left ?? -9999, top: pos?.top ?? 0, width: pos?.w ?? W, pointerEvents: "auto" }}
       role="dialog"
-      aria-label="使い方ツアー"
+      aria-label="操作ガイド"
     >
-      {/* 進捗 */}
-      <div className="flex items-center gap-3 bg-navy-900 px-4 py-2.5 text-white">
-        <span className="shrink-0 text-[12px] font-semibold tracking-[0.12em] whitespace-nowrap">MISSION {step.mission + 1}</span>
-        <span className="truncate text-[13px] text-white/75">{MISSIONS[step.mission]}</span>
-        <button onClick={onSkip} className="ml-auto grid h-7 w-7 shrink-0 place-items-center rounded text-white/60 hover:bg-white/10 hover:text-white" aria-label="ツアーを終了">
+      {/* 見出し・進捗 */}
+      <div className="flex items-center gap-2 border-b border-ink-200 px-4 py-2.5">
+        <BookOpen size={15} className="shrink-0 text-navy-600" />
+        <span className="truncate text-[13px] text-ink-600">
+          操作ガイド
+          <span className="mx-1.5 text-ink-300">|</span>
+          <span className="tnum">{step.mission + 1}.</span> {SECTIONS[step.mission]}
+        </span>
+        <span className="tnum ml-auto shrink-0 text-[12px] text-ink-400">
+          {stepNo} / {sectionSteps.length}
+        </span>
+        <button onClick={onSkip} className="grid h-7 w-7 shrink-0 place-items-center rounded text-ink-400 hover:bg-ink-100 hover:text-navy-900" aria-label="操作ガイドを終了">
           <X size={15} />
         </button>
       </div>
-      <div className="h-1 bg-navy-100">
-        <motion.div className="h-full bg-navy-500" initial={false} animate={{ width: `${(stepNo / missionSteps.length) * 100}%` }} />
+      <div className="h-[3px] bg-ink-100">
+        <motion.div className="h-full bg-navy-900" initial={false} animate={{ width: `${(stepNo / sectionSteps.length) * 100}%` }} />
       </div>
 
-      <div className="flex gap-3.5 px-4 pt-4 pb-3">
-        <Guide size={mobile ? 40 : 52} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-2">
-            <span className="text-[13px] font-semibold text-navy-600">案内係</span>
-            <span className="tnum text-[12px] text-ink-400">
-              {stepNo} / {missionSteps.length}
-            </span>
-          </div>
-          {missing && onFallback ? (
-            <>
-              <div className="mt-1 text-[16px] font-semibold text-navy-900">{step.title}の画面を開きましょう</div>
-              <p className="mt-1 text-[14px] leading-relaxed text-ink-700">下の「画面を開く」を押すと移動します。</p>
-            </>
-          ) : missing ? (
-            <>
-              <div className="mt-1 text-[16px] font-semibold text-navy-900">操作する場所が見つかりません</div>
-              <p className="mt-1 text-[14px] leading-relaxed text-ink-700">
-                画面が閉じたか、別の画面に移動したようです。このミッションを最初からやり直すか、次のミッションへ進んでください。
-              </p>
-            </>
-          ) : (
-            <>
-              {step.title && <div className="mt-1 text-[16px] font-semibold text-navy-900">{step.title}</div>}
-              {compact ? (
-                <button onClick={() => setExpanded(true)} className="mt-1 text-[13px] text-navy-700 underline underline-offset-2">
-                  くわしい説明を読む
-                </button>
-              ) : (
-                <Typewriter key={index} text={step.text} />
-              )}
-            </>
-          )}
-        </div>
+      <div className="px-4 pt-3.5 pb-3">
+        {missing && onFallback ? (
+          <>
+            <div className="text-[16px] font-semibold text-navy-900">「{step.title}」の画面を開きます</div>
+            <p className="mt-1 text-[14px] leading-relaxed text-ink-700">下の「画面を開く」から移動してください。</p>
+          </>
+        ) : missing ? (
+          <>
+            <div className="text-[16px] font-semibold text-navy-900">対象の項目が表示されていません</div>
+            <p className="mt-1 text-[14px] leading-relaxed text-ink-700">
+              画面が閉じられたか、別の画面に移動した可能性があります。この項目を最初からやり直すか、次の項目へ進んでください。
+            </p>
+          </>
+        ) : (
+          <>
+            {step.title && <div className="text-[16px] font-semibold text-navy-900">{step.title}</div>}
+            {compact ? (
+              <button onClick={() => setExpanded(true)} className="mt-1 text-[13px] text-navy-700 underline underline-offset-2">
+                説明を表示
+              </button>
+            ) : (
+              <p className="mt-1 text-[14.5px] leading-relaxed text-ink-700">{step.text}</p>
+            )}
+          </>
+        )}
       </div>
 
       {!missing && step.hint && (step.kind === "click" || step.kind === "route" || step.kind === "input") && (
-        <div className={"mx-4 mb-3 flex items-center gap-2 rounded-md px-3 py-2 text-[13px] font-medium " + (step.kind === "input" && ready ? "bg-ok-50 text-ok-700" : "bg-navy-50 text-navy-800")}>
+        <div
+          className={
+            "mx-4 mb-3 flex items-center gap-2 rounded-md border px-3 py-2 text-[13px] " +
+            (step.kind === "input" && ready ? "border-ok-600/25 bg-ok-50 text-ok-700" : "border-navy-100 bg-navy-50 text-navy-800")
+          }
+        >
           {step.kind === "input" && ready ? <Check size={15} /> : <ActionIcon size={15} />}
-          {step.kind === "input" && ready ? "できました。「次へ」を押してください" : step.hint}
+          {step.kind === "input" && ready ? "入力を確認しました。「次へ」を押してください" : step.hint}
         </div>
       )}
 
-      <div className="flex items-center justify-end gap-2 border-t border-ink-100 bg-ink-50 px-4 py-3">
+      <div className="flex items-center justify-end gap-2 border-t border-ink-100 bg-ink-50 px-4 py-2.5">
         {missing && onFallback ? (
           <TourBtn onClick={onFallback}>
             画面を開く
@@ -658,7 +667,7 @@ function Bubble({
               <RotateCcw size={14} />
               やり直す
             </TourBtn>
-            <TourBtn onClick={onSkipMission}>次のミッションへ</TourBtn>
+            <TourBtn onClick={onSkipSection}>次の項目へ</TourBtn>
           </>
         ) : step.kind === "info" ? (
           <TourBtn onClick={onNext}>
@@ -671,7 +680,7 @@ function Bubble({
             <ChevronRight size={15} />
           </TourBtn>
         ) : (
-          <span className="text-[12px] text-ink-400">ボタンを押すと自動で次へ進みます</span>
+          <span className="text-[12px] text-ink-500">操作すると、次の手順に進みます</span>
         )}
       </div>
     </motion.div>
@@ -696,73 +705,37 @@ function TourBtn({
   );
 }
 
-function Typewriter({ text }: { text: string }) {
-  const reduce = useMemo(() => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches, []);
-  const [n, setN] = useState(reduce ? text.length : 0);
-  useEffect(() => {
-    if (n >= text.length) return;
-    const t = setTimeout(() => setN((x) => Math.min(text.length, x + 2)), 18);
-    return () => clearTimeout(t);
-  }, [n, text]);
-  return (
-    <p className="mt-1 min-h-[3em] cursor-default text-[15px] leading-relaxed text-ink-800" onClick={() => setN(text.length)}>
-      {text.slice(0, n)}
-      {n < text.length && <span className="tour-caret ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] bg-navy-500" />}
-    </p>
-  );
-}
-
-/** 案内役(看板をモチーフにしたキャラクター) */
-export function Guide({ size = 52 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 56 56" className="shrink-0" aria-hidden="true">
-      <rect x="1" y="1" width="54" height="54" rx="12" className="fill-navy-50" />
-      <rect x="9" y="11" width="38" height="25" rx="4" className="fill-navy-900" />
-      <rect x="12" y="14" width="32" height="19" rx="2.5" className="fill-navy-800" />
-      <circle cx="21.5" cy="23" r="3" className="fill-white" />
-      <circle cx="34.5" cy="23" r="3" className="fill-white" />
-      <circle cx="22.2" cy="23.4" r="1.4" className="fill-navy-900" />
-      <circle cx="35.2" cy="23.4" r="1.4" className="fill-navy-900" />
-      <path d="M24 28.5 Q28 31.5 32 28.5" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" />
-      <rect x="26.5" y="36" width="3" height="11" className="fill-navy-400" />
-      <rect x="19" y="46.5" width="18" height="2.5" rx="1.25" className="fill-navy-300" />
-    </svg>
-  );
-}
-
 // ======================= 中央カード =======================
 function Welcome({ onStart, onLater }: { onStart: () => void; onLater: () => void }) {
   return (
     <>
-      <div className="bg-navy-900 px-7 pt-8 pb-7 text-white">
-        <div className="flex items-center gap-4">
-          <Guide size={64} />
-          <div>
-            <div className="text-[12px] tracking-[0.2em] text-white/60">TUTORIAL</div>
-            <div className="mt-1 font-serif text-[22px] font-semibold leading-snug">使い方ツアー</div>
-          </div>
+      <div className="px-7 pt-7">
+        <div className="flex items-center gap-2 text-[13px] font-medium text-navy-600">
+          <BookOpen size={16} />
+          操作ガイド
         </div>
-      </div>
-      <div className="px-7 py-6">
-        <p className="text-[15px] leading-relaxed text-ink-800">
-          はじめまして、案内係です。実際の画面を使って、操作を一緒に練習しましょう。5つのミッションを順番にクリアすれば、毎日の仕事に必要な操作はひと通り覚えられます。
+        <div className="mt-2 font-serif text-[22px] font-semibold leading-snug text-navy-900">本システムの基本操作をご案内します</div>
+        <p className="mt-3 text-[15px] leading-relaxed text-ink-700">
+          実際の画面上で、日々の業務に必要な操作を順にご案内します。所要時間は約5分です。
         </p>
-        <ol className="mt-5 space-y-2">
-          {MISSIONS.map((m, k) => (
-            <li key={m} className="flex items-center gap-3 text-[14px] text-ink-800">
-              <span className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-full border border-navy-200 text-[12px] font-semibold text-navy-700">{k + 1}</span>
+        <ol className="mt-5 divide-y divide-ink-100 rounded-md border border-ink-200">
+          {SECTIONS.map((m, k) => (
+            <li key={m} className="flex items-center gap-3 px-4 py-2.5 text-[14px] text-ink-800">
+              <span className="tnum w-4 text-right text-[13px] font-semibold text-navy-600">{k + 1}</span>
               {m}
             </li>
           ))}
         </ol>
-        <p className="mt-4 text-[13px] text-ink-500">所要時間は約5分です。練習で入力した内容は、あとで「デモデータを初期状態に戻す」で消せます。</p>
+        <p className="mt-4 text-[13px] leading-relaxed text-ink-500">
+          ガイド中に登録したデータは、サイドバー下部の「デモデータを初期状態に戻す」で元に戻せます。
+        </p>
       </div>
-      <div className="flex flex-col-reverse gap-2 border-t border-ink-100 bg-ink-50 px-7 py-4 sm:flex-row sm:justify-end">
+      <div className="mt-6 flex flex-col-reverse gap-2 border-t border-ink-100 bg-ink-50 px-7 py-4 sm:flex-row sm:justify-end">
         <TourBtn variant="outline" onClick={onLater}>
-          あとで見る
+          後で確認する
         </TourBtn>
         <TourBtn onClick={onStart}>
-          ツアーを始める
+          ガイドを開始する
           <ChevronRight size={15} />
         </TourBtn>
       </div>
@@ -770,32 +743,36 @@ function Welcome({ onStart, onLater }: { onStart: () => void; onLater: () => voi
   );
 }
 
-function MissionIntro({ n, text, onStart, onQuit }: { n: number; text: string; onStart: () => void; onQuit: () => void }) {
+function SectionIntro({ n, text, onStart, onQuit }: { n: number; text: string; onStart: () => void; onQuit: () => void }) {
   return (
     <>
-      <div className="px-7 pt-7">
-        <div className="flex items-center gap-1.5">
-          {MISSIONS.map((_, k) => (
-            <span key={k} className={"h-1.5 flex-1 rounded-full " + (k < n ? "bg-navy-900" : k === n ? "bg-navy-500" : "bg-ink-200")} />
+      <div className="px-7 pt-6">
+        <div className="flex items-center justify-between text-[13px] text-ink-500">
+          <span className="flex items-center gap-2 font-medium text-navy-600">
+            <BookOpen size={15} />
+            操作ガイド
+          </span>
+          <span className="tnum">
+            {n + 1} / {SECTIONS.length}
+          </span>
+        </div>
+        <div className="mt-3 flex gap-1">
+          {SECTIONS.map((_, k) => (
+            <span key={k} className={"h-1 flex-1 rounded-full " + (k <= n ? "bg-navy-900" : "bg-ink-200")} />
           ))}
         </div>
-        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="mt-6 text-[13px] font-semibold tracking-[0.2em] text-navy-500">
-          MISSION {n + 1} / {MISSIONS.length}
-        </motion.div>
-        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.18 }} className="mt-1 font-serif text-[24px] font-semibold text-navy-900">
-          {MISSIONS[n]}
-        </motion.div>
-        <div className="mt-4 flex gap-3.5 rounded-lg bg-navy-50 p-4">
-          <Guide size={44} />
-          <p className="text-[15px] leading-relaxed text-ink-800">{text}</p>
+        <div className="mt-5 text-[22px] font-semibold text-navy-900">
+          <span className="tnum mr-2 text-navy-500">{n + 1}.</span>
+          {SECTIONS[n]}
         </div>
+        <p className="mt-2 text-[15px] leading-relaxed text-ink-700">{text}</p>
       </div>
       <div className="mt-6 flex items-center justify-between gap-2 border-t border-ink-100 bg-ink-50 px-7 py-4">
         <button onClick={onQuit} className="text-[13px] text-ink-500 hover:text-navy-900">
-          ツアーを終了
+          ガイドを終了
         </button>
         <TourBtn onClick={onStart}>
-          ミッション開始
+          開始する
           <ChevronRight size={15} />
         </TourBtn>
       </div>
@@ -806,78 +783,37 @@ function MissionIntro({ n, text, onStart, onQuit }: { n: number; text: string; o
 function Finish({ onClose }: { onClose: () => void }) {
   return (
     <>
-      <div className="relative overflow-hidden bg-navy-900 px-7 pt-9 pb-8 text-center text-white">
-        <Sparks />
-        <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 260, damping: 16 }} className="mx-auto w-fit">
-          <Medal />
-        </motion.div>
-        <div className="mt-4 text-[12px] tracking-[0.25em] text-white/60">ALL MISSIONS CLEAR</div>
-        <div className="mt-1 font-serif text-[24px] font-semibold">ツアー完了です</div>
-      </div>
-      <div className="px-7 py-6">
-        <ul className="space-y-2">
-          {MISSIONS.map((m, k) => (
-            <motion.li
-              key={m}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.25 + k * 0.08 }}
-              className="flex items-center gap-3 text-[14px] text-ink-800"
-            >
-              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-navy-900 text-white">
-                <Check size={13} />
-              </span>
+      <div className="px-7 pt-7">
+        <div className="flex items-center gap-2 text-[13px] font-medium text-navy-600">
+          <BookOpen size={16} />
+          操作ガイド
+        </div>
+        <div className="mt-2 font-serif text-[22px] font-semibold text-navy-900">基本操作のご案内は以上です</div>
+        <ul className="mt-5 divide-y divide-ink-100 rounded-md border border-ink-200">
+          {SECTIONS.map((m) => (
+            <li key={m} className="flex items-center gap-3 px-4 py-2.5 text-[14px] text-ink-800">
+              <Check size={16} className="shrink-0 text-ok-600" />
               {m}
-            </motion.li>
+            </li>
           ))}
         </ul>
-        <p className="mt-5 text-[14px] leading-relaxed text-ink-600">
-          これで毎日の操作はひと通りできます。もう一度見たいときは、画面右上の「使い方ツアー」からいつでも始められます。
+        <p className="mt-4 text-[14px] leading-relaxed text-ink-600">
+          画面右上の「操作ガイド」から、いつでも再度ご確認いただけます。各画面の「この画面の使い方」もあわせてご活用ください。
         </p>
       </div>
-      <div className="flex justify-end border-t border-ink-100 bg-ink-50 px-7 py-4">
-        <TourBtn onClick={onClose}>ホームへ戻る</TourBtn>
+      <div className="mt-6 flex justify-end border-t border-ink-100 bg-ink-50 px-7 py-4">
+        <TourBtn onClick={onClose}>ホームに戻る</TourBtn>
       </div>
     </>
-  );
-}
-
-function Medal() {
-  return (
-    <svg width="84" height="96" viewBox="0 0 84 96" aria-hidden="true">
-      <path d="M26 2 L42 34 L58 2 Z" className="fill-navy-400" />
-      <path d="M30 2 L42 26 L54 2" fill="none" stroke="white" strokeOpacity="0.4" strokeWidth="2" />
-      <circle cx="42" cy="60" r="32" className="fill-white" />
-      <circle cx="42" cy="60" r="25" fill="none" className="stroke-navy-200" strokeWidth="2" />
-      <path d="M30 60 L39 69 L55 51" fill="none" className="stroke-navy-900" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function Sparks() {
-  const dots = Array.from({ length: 14 }, (_, k) => k);
-  return (
-    <div className="pointer-events-none absolute inset-0">
-      {dots.map((k) => (
-        <motion.span
-          key={k}
-          className="absolute h-1.5 w-1.5 rounded-full bg-white/70"
-          style={{ left: "50%", top: "45%" }}
-          initial={{ x: 0, y: 0, opacity: 0 }}
-          animate={{ x: Math.cos((k / 14) * Math.PI * 2) * (90 + (k % 3) * 30), y: Math.sin((k / 14) * Math.PI * 2) * (60 + (k % 2) * 25), opacity: [0, 1, 0] }}
-          transition={{ duration: 1.2, delay: 0.15, ease: "easeOut" }}
-        />
-      ))}
-    </div>
   );
 }
 
 function QuitConfirm({ onCancel, onQuit }: { onCancel: () => void; onQuit: () => void }) {
   return (
     <div className="fixed inset-0 z-[90] grid place-items-center bg-navy-950/40 p-4" style={{ pointerEvents: "auto" }}>
-      <div className="w-full max-w-[380px] rounded-xl bg-white p-6 shadow-2xl">
-        <div className="text-[16px] font-semibold text-navy-900">ツアーを終了しますか?</div>
-        <p className="mt-2 text-[14px] leading-relaxed text-ink-600">画面右上の「使い方ツアー」から、いつでも最初から始められます。</p>
+      <div className="w-full max-w-[400px] rounded-lg bg-white p-6 shadow-2xl">
+        <div className="text-[16px] font-semibold text-navy-900">操作ガイドを終了しますか</div>
+        <p className="mt-2 text-[14px] leading-relaxed text-ink-600">画面右上の「操作ガイド」から、いつでも最初から再開できます。</p>
         <div className="mt-5 flex justify-end gap-2">
           <TourBtn variant="outline" onClick={onCancel}>
             続ける

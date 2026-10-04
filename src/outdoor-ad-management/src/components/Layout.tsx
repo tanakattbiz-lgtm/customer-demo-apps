@@ -16,7 +16,7 @@ import {
   X,
   RotateCcw,
   Home,
-  GraduationCap,
+  BookOpen,
 } from "lucide-react";
 import { useStore } from "../store";
 import { ME_ID, STAFF } from "../data/seed";
@@ -65,7 +65,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const startTour = useTour((s) => s.start);
   const seen = useTourSeen((s) => s.seen);
   const active = useTour((s) => s.active);
-  // はじめて開いたときは、自動でツアーの案内を出す
+  // 初回アクセス時は、操作ガイドの案内を表示する
   useEffect(() => {
     if (!seen && !active) {
       const t = setTimeout(startTour, 900);
@@ -137,10 +137,10 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
             <button
               onClick={startTour}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-navy-200 bg-navy-50 px-3 text-[14px] font-medium text-navy-900 transition hover:border-navy-300 hover:bg-navy-100"
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-ink-300 bg-white px-3 text-[14px] font-medium text-navy-900 transition hover:border-navy-300 hover:bg-navy-50"
             >
-              <GraduationCap size={16} />
-              使い方ツアー
+              <BookOpen size={16} />
+              操作ガイド
             </button>
           </div>
         </header>
