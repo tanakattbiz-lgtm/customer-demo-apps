@@ -15,13 +15,14 @@ import {
   Menu,
   X,
   RotateCcw,
+  Home,
 } from "lucide-react";
 import { useStore } from "../store";
 import { ME_ID, STAFF } from "../data/seed";
 import { todayISO } from "../lib/format";
 import { Avatar, Confirm } from "./ui";
 
-type NavItem = { to: string; label: string; icon: typeof BarChart3; end?: boolean; badge?: number };
+type NavItem = { to: string; label: string; desc: string; icon: typeof BarChart3; end?: boolean; badge?: number };
 
 function useNav(): { group: string; items: NavItem[] }[] {
   const deals = useStore((s) => s.deals);
@@ -33,23 +34,24 @@ function useNav(): { group: string; items: NavItem[] }[] {
     ).length;
     const pending = handovers.filter((h) => h.status !== "受領済").length;
     return [
-      { group: "経営", items: [{ to: "/", label: "経営ダッシュボード", icon: BarChart3, end: true }] },
+      { group: "", items: [{ to: "/", label: "ホーム", desc: "やりたいことを選ぶ", icon: Home, end: true }] },
       {
         group: "営業",
         items: [
-          { to: "/follow-ups", label: "次回対応", icon: CalendarClock, badge: due },
-          { to: "/deals", label: "商談", icon: Handshake },
-          { to: "/customers", label: "顧客・見込み客", icon: Building2 },
+          { to: "/follow-ups", label: "やること一覧", desc: "お客様への次回対応", icon: CalendarClock, badge: due },
+          { to: "/deals", label: "商談", desc: "進めている商談", icon: Handshake },
+          { to: "/customers", label: "お客様", desc: "見込み客・広告主", icon: Building2 },
         ],
       },
-      { group: "看板", items: [{ to: "/boards", label: "空き状況・仮押さえ", icon: LayoutGrid }] },
+      { group: "看板", items: [{ to: "/boards", label: "看板の空きを探す", desc: "空き状況・仮押さえ", icon: LayoutGrid }] },
       {
         group: "契約",
         items: [
-          { to: "/contracts", label: "契約管理", icon: FileSignature },
-          { to: "/handover", label: "管理部への引継ぎ", icon: ArrowRightLeft, badge: pending },
+          { to: "/contracts", label: "契約の一覧", desc: "広告契約・土地契約", icon: FileSignature },
+          { to: "/handover", label: "管理部への書類提出", desc: "確認・差し戻しの状況", icon: ArrowRightLeft, badge: pending },
         ],
       },
+      { group: "経営", items: [{ to: "/dashboard", label: "会社全体の数字", desc: "新規・解約・稼働率", icon: BarChart3 }] },
     ];
   }, [deals, handovers]);
 }
@@ -62,7 +64,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-ink-50">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[232px] flex-col bg-navy-900 text-white lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[256px] flex-col bg-navy-900 text-white lg:flex">
         <SideContent nav={nav} onNavigate={() => {}} />
       </aside>
 
@@ -77,7 +79,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               onClick={() => setOpen(false)}
             />
             <motion.aside
-              className="absolute inset-y-0 left-0 flex w-[260px] flex-col bg-navy-900 text-white"
+              className="absolute inset-y-0 left-0 flex w-[280px] flex-col bg-navy-900 text-white"
               initial={{ x: -24, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -24, opacity: 0 }}
@@ -96,7 +98,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         )}
       </AnimatePresence>
 
-      <div className="flex min-w-0 flex-col lg:ml-[232px]">
+      <div className="flex min-w-0 flex-col lg:ml-[256px]">
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-ink-200 bg-white/92 px-4 backdrop-blur sm:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <button
@@ -106,7 +108,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             >
               <Menu size={19} />
             </button>
-            <div className="truncate text-[13px] text-ink-500">
+            <div className="truncate text-[15px] text-ink-500">
               <span className="hidden sm:inline">営業・看板管理システム</span>
               {current && (
                 <>
@@ -116,7 +118,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               )}
             </div>
           </div>
-          <div className="tnum hidden text-[12px] text-ink-500 sm:block">
+          <div className="tnum hidden text-[13px] text-ink-500 sm:block">
             {format(new Date(), "yyyy年M月d日(E)", { locale: ja })}
           </div>
         </header>
@@ -145,14 +147,14 @@ function SideContent({ nav, onNavigate }: { nav: ReturnType<typeof useNav>; onNa
       <div className="flex items-center gap-3 px-6 pt-6 pb-7">
         <Logo />
         <div className="leading-tight">
-          <div className="font-serif text-[15px] font-semibold tracking-[0.12em]">○○広告社</div>
-          <div className="mt-1 text-[10px] tracking-[0.08em] text-white/50">営業・看板管理システム</div>
+          <div className="font-serif text-[17px] font-semibold tracking-[0.12em]">○○広告社</div>
+          <div className="mt-1 text-[11.5px] tracking-[0.08em] text-white/50">営業・看板管理システム</div>
         </div>
       </div>
       <nav className="thin-scroll flex-1 overflow-y-auto px-3">
         {nav.map((g) => (
-          <div key={g.group} className="mb-5">
-            <div className="px-3 pb-2 text-[10.5px] tracking-[0.2em] text-white/40">{g.group}</div>
+          <div key={g.group || "home"} className="mb-4">
+            {g.group && <div className="px-3 pb-1.5 text-[12px] tracking-[0.2em] text-white/40">{g.group}</div>}
             {g.items.map((it) => (
               <NavLink
                 key={it.to}
@@ -160,7 +162,7 @@ function SideContent({ nav, onNavigate }: { nav: ReturnType<typeof useNav>; onNa
                 end={it.end}
                 onClick={onNavigate}
                 className={({ isActive }) =>
-                  "group relative mb-0.5 flex h-9.5 items-center gap-3 rounded-md px-3 text-[13px] transition duration-200 " +
+                  "group relative mb-1 flex min-h-12 items-center gap-3 rounded-md px-3 py-1.5 text-[15px] transition duration-200 " +
                   (isActive ? "bg-white/10 font-medium text-white" : "text-white/65 hover:bg-white/5 hover:text-white")
                 }
               >
@@ -168,9 +170,12 @@ function SideContent({ nav, onNavigate }: { nav: ReturnType<typeof useNav>; onNa
                   <>
                     {isActive && <span className="absolute top-2 bottom-2 left-0 w-[2px] rounded-full bg-white" />}
                     <it.icon size={16} strokeWidth={1.7} />
-                    <span className="flex-1">{it.label}</span>
+                    <span className="flex-1 leading-tight">
+                      <span className="block">{it.label}</span>
+                      <span className={"mt-0.5 block text-[12px] " + (isActive ? "text-white/70" : "text-white/45")}>{it.desc}</span>
+                    </span>
                     {!!it.badge && (
-                      <span className="tnum min-w-5 rounded bg-white px-1.5 py-px text-center text-[10.5px] font-semibold text-navy-900">
+                      <span className="tnum min-w-5 rounded bg-white px-1.5 py-px text-center text-[12px] font-semibold text-navy-900">
                         {it.badge}
                       </span>
                     )}
@@ -185,15 +190,15 @@ function SideContent({ nav, onNavigate }: { nav: ReturnType<typeof useNav>; onNa
         <div className="flex items-center gap-3">
           <Avatar name={me.name} size={32} tone="light" />
           <div className="min-w-0 leading-tight">
-            <div className="truncate text-[13px] font-medium">{me.name}</div>
-            <div className="mt-0.5 truncate text-[11px] text-white/50">
+            <div className="truncate text-[15px] font-medium">{me.name}</div>
+            <div className="mt-0.5 truncate text-[12px] text-white/50">
               {me.branch} {me.dept}
             </div>
           </div>
         </div>
         <button
           onClick={() => setConfirm(true)}
-          className="mt-3 inline-flex items-center gap-1.5 text-[11px] text-white/45 transition hover:text-white"
+          className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-white/45 transition hover:text-white"
         >
           <RotateCcw size={12} />
           デモデータを初期状態に戻す

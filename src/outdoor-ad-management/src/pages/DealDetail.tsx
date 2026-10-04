@@ -5,6 +5,7 @@ import { addDays, format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  ArrowRight,
   CalendarClock,
   Check,
   FileSignature,
@@ -26,7 +27,7 @@ import { contractState, faceLookup, handoverOf, holdActive } from "../lib/domain
 import { daysFromToday, fmtDate, fmtDateJa, fmtDateTime, fmtPeriod, relDay, todayISO, yen } from "../lib/format";
 import { ActivityModal, DealFormModal, NextActionModal } from "../components/forms";
 import CloseDealModal from "../components/CloseDealModal";
-import { Button, Card, CardHeader, Confirm, DL, EmptyState, Field, Modal, Pill, Skeleton, inputCls } from "../components/ui";
+import { Button, Card, CardHeader, Confirm, DL, EmptyState, Field, Help, Modal, Pill, Skeleton, inputCls } from "../components/ui";
 import { ContractPill, HandoverPill, StagePill } from "../components/pills";
 
 const ACT_ICON: Record<ActivityType, typeof Phone> = {
@@ -98,7 +99,7 @@ export default function DealDetail() {
 
   return (
     <>
-      <Link to="/deals" className="mb-4 inline-flex items-center gap-1.5 text-[12.5px] text-ink-500 transition hover:text-navy-900">
+      <Link to="/deals" className="mb-4 inline-flex items-center gap-1.5 text-[14px] text-ink-500 transition hover:text-navy-900">
         <ArrowLeft size={14} />
         商談一覧
       </Link>
@@ -106,11 +107,11 @@ export default function DealDetail() {
       {/* ヘッダー */}
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
-          <Link to={`/customers?id=${customer.id}`} className="text-[13px] text-navy-600 underline-offset-2 hover:underline">
+          <Link to={`/customers?id=${customer.id}`} className="text-[15px] text-navy-600 underline-offset-2 hover:underline">
             {customer.company}
           </Link>
-          <h1 className="mt-1 font-serif text-[24px] font-semibold tracking-wide text-navy-900">{deal.title}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-ink-500">
+          <h1 className="mt-1 font-serif text-[26px] font-semibold tracking-wide text-navy-900">{deal.title}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[14px] text-ink-500">
             <StagePill stage={deal.stage} />
             <span>
               見込金額 <span className="tnum font-semibold text-navy-900">{yen(amount)}</span>
@@ -124,6 +125,7 @@ export default function DealDetail() {
             <>
               <Button variant="ghost" onClick={() => setDelOpen(true)} aria-label="削除">
                 <Trash2 size={14} />
+                削除
               </Button>
               <Button variant="outline" onClick={() => setLostOpen(true)}>
                 失注にする
@@ -133,16 +135,32 @@ export default function DealDetail() {
               </Button>
               <Button onClick={() => setCloseOpen(true)}>
                 <FileSignature size={14} />
-                成約登録・引継ぎ
+                成約を登録する
               </Button>
             </>
           )}
         </div>
       </div>
 
+      {/* 次にやること */}
+      <NextStep
+        isOpen={isOpen}
+        stage={deal.stage}
+        hasHold={holds.some((h) => holdActive(h))}
+        hoStatus={contract ? (ho?.status ?? "受領済") : undefined}
+        onFind={() => nav(`/boards?deal=${deal.id}`)}
+        onClose={() => setCloseOpen(true)}
+        onLog={() => setLogOpen(true)}
+        onHandover={() => nav(`/handover?id=${ho?.id ?? ""}`)}
+      />
+
       {/* ステージ */}
       {deal.stage !== "失注" ? (
         <Card className="mb-6 px-2 py-2">
+          <div className="flex items-center gap-1 px-3 pt-2 text-[14px] font-semibold text-navy-900">
+            商談の進み具合
+            <Help label="進み具合" text="番号を押すと、商談の段階を変更できます。「確度」は、その段階で契約になる見込みの目安(%)です。" />
+          </div>
           <div className="thin-scroll flex overflow-x-auto">
             {[...OPEN_STAGES, "成約" as Stage].map((s, i, arr) => {
               const pos = arr.indexOf(deal.stage);
@@ -161,7 +179,7 @@ export default function DealDetail() {
                 >
                   <span
                     className={
-                      "tnum grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[11px] font-semibold transition " +
+                      "tnum grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[12px] font-semibold transition " +
                       (active
                         ? "border-navy-900 bg-navy-900 text-white"
                         : done
@@ -172,8 +190,8 @@ export default function DealDetail() {
                     {done ? <Check size={12} /> : i + 1}
                   </span>
                   <span className="leading-tight">
-                    <span className={"block text-[12.5px] " + (active ? "font-semibold text-navy-900" : done ? "text-navy-800" : "text-ink-500")}>{s}</span>
-                    <span className="tnum block text-[10.5px] text-ink-400">確度 {STAGE_PROB[s]}%</span>
+                    <span className={"block text-[14px] " + (active ? "font-semibold text-navy-900" : done ? "text-navy-800" : "text-ink-500")}>{s}</span>
+                    <span className="tnum block text-[12px] text-ink-400">確度 {STAGE_PROB[s]}%</span>
                   </span>
                 </button>
               );
@@ -181,7 +199,7 @@ export default function DealDetail() {
           </div>
         </Card>
       ) : (
-        <div className="mb-6 rounded-lg border border-bad-100 bg-bad-50 px-5 py-3.5 text-[13px] text-bad-700">
+        <div className="mb-6 rounded-lg border border-bad-100 bg-bad-50 px-5 py-3.5 text-[15px] text-bad-700">
           この商談は失注として記録されています。理由: {deal.lostReason ?? "—"}
         </div>
       )}
@@ -204,15 +222,15 @@ export default function DealDetail() {
                 {deal.nextAction ? (
                   <>
                     <div className="w-32 shrink-0">
-                      <div className="tnum text-[15px] font-semibold text-navy-900">{fmtDateJa(deal.nextAction.date)}</div>
-                      <div className={"text-[12px] " + (daysFromToday(deal.nextAction.date) < 0 ? "font-medium text-bad-600" : "text-ink-500")}>
+                      <div className="tnum text-[17px] font-semibold text-navy-900">{fmtDateJa(deal.nextAction.date)}</div>
+                      <div className={"text-[13px] " + (daysFromToday(deal.nextAction.date) < 0 ? "font-medium text-bad-600" : "text-ink-500")}>
                         {relDay(deal.nextAction.date)}
                       </div>
                     </div>
-                    <div className="flex-1 text-[14px] text-ink-900">{deal.nextAction.content}</div>
+                    <div className="flex-1 text-[16px] text-ink-900">{deal.nextAction.content}</div>
                   </>
                 ) : (
-                  <div className="flex-1 text-[13px] text-warn-700">次回対応が設定されていません。次の一手を決めておきましょう。</div>
+                  <div className="flex-1 text-[15px] text-warn-700">次回対応が設定されていません。次の一手を決めておきましょう。</div>
                 )}
                 <Button onClick={() => setLogOpen(true)}>
                   <PencilLine size={14} />
@@ -257,12 +275,12 @@ export default function DealDetail() {
                           <Icon size={14} />
                         </span>
                         <div className="min-w-0 flex-1 pt-0.5">
-                          <div className="flex flex-wrap items-center gap-x-2.5 text-[12px] text-ink-500">
+                          <div className="flex flex-wrap items-center gap-x-2.5 text-[13px] text-ink-500">
                             <span className="font-semibold text-navy-900">{a.type}</span>
                             <span className="tnum">{fmtDateTime(a.date)}</span>
                             <span>{staffName(a.repId)}</span>
                           </div>
-                          <p className="mt-1 text-[13px] leading-relaxed text-ink-800">{a.memo}</p>
+                          <p className="mt-1 text-[15px] leading-relaxed text-ink-800">{a.memo}</p>
                         </div>
                       </motion.li>
                     );
@@ -284,18 +302,18 @@ export default function DealDetail() {
                     ["契約番号", <span className="tnum">{contract.no}</span>],
                     ["掲載期間", fmtPeriod(contract.startMonth, contract.endMonth)],
                     ["月額", <span className="tnum">{yen(contract.monthlyFee)}</span>],
-                    ["引継ぎ", ho ? <HandoverPill status={ho.status} /> : <Pill tone="ok">受領済</Pill>],
+                    ["管理部の確認", ho ? <HandoverPill status={ho.status} /> : <Pill tone="ok">受領済</Pill>],
                   ]}
                 />
                 <div className="flex gap-2 pt-1">
                   <Link to={`/handover?id=${ho?.id ?? ""}`} className="flex-1">
                     <Button variant="outline" size="sm" className="w-full">
-                      引継ぎ状況
+                      提出状況を見る
                     </Button>
                   </Link>
                   <Link to={`/contracts?id=${contract.id}`} className="flex-1">
                     <Button variant="outline" size="sm" className="w-full">
-                      契約詳細
+                      契約を見る
                     </Button>
                   </Link>
                 </div>
@@ -316,7 +334,7 @@ export default function DealDetail() {
                 }
               />
               {holds.length === 0 ? (
-                <div className="px-5 py-6 text-center text-[12.5px] text-ink-500">
+                <div className="px-5 py-6 text-center text-[14px] text-ink-500">
                   仮押さえ中の面はありません。
                   <br />
                   「空きを探す」から看板の空き状況を確認できます。
@@ -330,7 +348,7 @@ export default function DealDetail() {
                     return (
                       <div key={h.id} className="px-5 py-3.5">
                         <div className="flex items-start justify-between gap-2">
-                          <Link to={`/boards/${l?.board.id}`} className="min-w-0 text-[13px] font-medium text-navy-900 hover:underline">
+                          <Link to={`/boards/${l?.board.id}`} className="min-w-0 text-[15px] font-medium text-navy-900 hover:underline">
                             {l?.board.name} {l?.face.label}
                           </Link>
                           {!active ? (
@@ -341,8 +359,8 @@ export default function DealDetail() {
                             <Pill tone="navy">残り{left}日</Pill>
                           )}
                         </div>
-                        <div className="mt-1 text-[11.5px] text-ink-500">{fmtPeriod(h.startMonth, h.endMonth)}</div>
-                        <div className="tnum mt-0.5 text-[11.5px] text-ink-500">期限 {fmtDate(h.expiresAt)}</div>
+                        <div className="mt-1 text-[12.5px] text-ink-500">{fmtPeriod(h.startMonth, h.endMonth)}</div>
+                        <div className="tnum mt-0.5 text-[12.5px] text-ink-500">期限 {fmtDate(h.expiresAt)}</div>
                         <div className="mt-2 flex gap-1.5">
                           <Button
                             variant="outline"
@@ -482,7 +500,68 @@ function LostModal({ open, onClose, onSubmit }: { open: boolean; onClose: () => 
           ))}
         </select>
       </Field>
-      <p className="mt-3 text-[12px] text-ink-500">失注にすると、この商談の仮押さえはすべて解除されます。({todayISO().replaceAll("-", "/")} 記録)</p>
+      <p className="mt-3 text-[13px] text-ink-500">失注にすると、この商談の仮押さえはすべて解除されます。({todayISO().replaceAll("-", "/")} 記録)</p>
     </Modal>
+  );
+}
+
+function NextStep({
+  isOpen,
+  stage,
+  hasHold,
+  hoStatus,
+  onFind,
+  onClose,
+  onLog,
+  onHandover,
+}: {
+  isOpen: boolean;
+  stage: Stage;
+  hasHold: boolean;
+  hoStatus?: string;
+  onFind: () => void;
+  onClose: () => void;
+  onLog: () => void;
+  onHandover: () => void;
+}) {
+  let msg: string;
+  let action: { label: string; onClick: () => void } | null = null;
+  let tone = "border-navy-200 bg-navy-50";
+  if (stage === "失注") return null;
+  if (isOpen) {
+    if (hasHold) {
+      msg = "看板を仮押さえしています。お客様の了承が取れたら、契約の内容と書類を登録して管理部へ提出しましょう。";
+      action = { label: "成約を登録する", onClick: onClose };
+    } else if (stage === "初回接触" || stage === "ヒアリング") {
+      msg = "お客様と話をしたら「対応を記録」で内容を残しましょう。希望のエリアや時期が決まったら、看板の空きを探します。";
+      action = { label: "対応を記録する", onClick: onLog };
+    } else {
+      msg = "お客様の希望に合う看板の空きを探して、仮押さえ(一時的な確保)をしましょう。";
+      action = { label: "看板の空きを探す", onClick: onFind };
+    }
+  } else if (hoStatus === "差し戻し") {
+    msg = "管理部から書類の修正を頼まれています。内容を確認して、修正した書類を再提出してください。";
+    action = { label: "差し戻しの内容を見る", onClick: onHandover };
+    tone = "border-bad-100 bg-bad-50";
+  } else if (hoStatus === "受領済") {
+    msg = "管理部が書類を受け取りました。この契約の手続きは完了です。";
+    tone = "border-ok-600/25 bg-ok-50";
+  } else {
+    msg = "管理部が書類を確認しています。結果が出るまでお待ちください。";
+    action = { label: "提出状況を見る", onClick: onHandover };
+  }
+  return (
+    <div className={"mb-6 flex flex-col gap-3 rounded-lg border px-5 py-4 sm:flex-row sm:items-center " + tone}>
+      <div className="min-w-0 flex-1">
+        <div className="text-[13px] font-semibold tracking-wide text-navy-600">次にやること</div>
+        <div className="mt-0.5 text-[16px] leading-relaxed text-ink-900">{msg}</div>
+      </div>
+      {action && (
+        <Button className="shrink-0" onClick={action.onClick}>
+          {action.label}
+          <ArrowRight size={15} />
+        </Button>
+      )}
+    </div>
   );
 }

@@ -37,7 +37,7 @@ export default function Handover() {
   const handovers = useStore((s) => s.handovers);
   const contracts = useStore((s) => s.contracts);
   const customers = useStore((s) => s.customers);
-  const [tab, setTab] = useState<Tab>("todo");
+  const [tab, setTab] = useState<Tab>(params.get("tab") === "rejected" ? "rejected" : "todo");
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const selected = handovers.find((h) => h.id === params.get("id"));
@@ -73,13 +73,13 @@ export default function Handover() {
     <>
       <PageHeader
         eyebrow="Handover"
-        title="管理部への引継ぎ"
-        description="成約した契約の契約情報・契約書を管理部へ引き継ぎます。管理部は内容を確認し、受領または不備の差し戻しを行います。"
+        title="管理部への書類提出"
+        description="成約した契約の書類が、いまどの段階にあるかを確認できます。"
       />
 
       {/* フロー */}
       <Card className="mb-6 px-5 py-4">
-        <div className="flex flex-col gap-3 text-[12.5px] md:flex-row md:items-center">
+        <div className="flex flex-col gap-3 text-[14px] md:flex-row md:items-center">
           <FlowStep role="営業" label="成約登録・書類提出" />
           <ArrowRight size={15} className="hidden shrink-0 text-ink-300 md:block" />
           <FlowStep role="管理部" label="内容・書類を確認" />
@@ -113,7 +113,7 @@ export default function Handover() {
         />
         <div className="relative mb-2">
           <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-400" />
-          <input className={inputCls + " w-full pl-8 md:w-60"} placeholder="引継ぎ番号・契約番号・広告主" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
+          <input className={inputCls + " w-full! pl-8! md:w-60!"} placeholder="番号・お客様名で検索" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
         </div>
       </div>
 
@@ -133,7 +133,7 @@ export default function Handover() {
         ) : (
           <>
             <div className="thin-scroll overflow-x-auto">
-              <table className="w-full min-w-[920px] text-[13px]">
+              <table className="w-full min-w-[1040px] text-[15px]">
                 <thead className={tableHeadCls}>
                   <tr>
                     <th className={thCls}>引継ぎ番号</th>
@@ -152,21 +152,21 @@ export default function Handover() {
                     const missing = h.docs.filter((d) => !d.fileName).length;
                     return (
                       <tr key={h.id} onClick={() => setParams({ id: h.id })} className="cursor-pointer border-b border-ink-100 transition last:border-0 hover:bg-navy-50/50">
-                        <td className="tnum px-4 py-3 text-ink-600">{h.no}</td>
+                        <td className="tnum px-4 py-3 whitespace-nowrap text-ink-600">{h.no}</td>
                         <td className="px-4 py-3">
                           <div className="font-medium text-navy-900">{c && cmap.get(c.customerId)?.company}</div>
-                          <div className="text-[11.5px] text-ink-500">
+                          <div className="text-[12.5px] text-ink-500">
                             <span className="tnum">{c?.no}</span> ・ {c?.faceIds.length}面{missing > 0 && ` ・ 任意書類 未添付${missing}`}
                           </div>
                         </td>
                         <td className="tnum px-4 py-3 text-right">{c && yen(c.monthlyFee * monthsBetween(c.startMonth, c.endMonth))}</td>
-                        <td className="px-4 py-3 text-ink-700">{c && staffName(c.repId)}</td>
-                        <td className="tnum px-4 py-3 text-ink-600">{fmtDateTime(h.updatedAt)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-ink-700">{c && staffName(c.repId)}</td>
+                        <td className="tnum px-4 py-3 whitespace-nowrap text-ink-600">{fmtDateTime(h.updatedAt)}</td>
                         <td className="px-4 py-3">
                           {h.status === "受領済" ? (
                             <span className="text-ink-400">—</span>
                           ) : (
-                            <span className={"tnum text-[12.5px] " + (age >= 3 ? "font-medium text-warn-700" : "text-ink-600")}>{age === 0 ? "本日" : `${age}日`}</span>
+                            <span className={"tnum text-[14px] whitespace-nowrap " + (age >= 3 ? "font-medium text-warn-700" : "text-ink-600")}>{age === 0 ? "本日" : `${age}日`}</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
@@ -191,7 +191,7 @@ export default function Handover() {
 function FlowStep({ role, label }: { role: string; label: string }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className={"rounded px-2 py-1 text-[11px] font-medium " + (role === "営業" ? "bg-navy-100 text-navy-800" : "bg-navy-900 text-white")}>{role}</span>
+      <span className={"rounded px-2 py-1 text-[12px] font-medium " + (role === "営業" ? "bg-navy-100 text-navy-800" : "bg-navy-900 text-white")}>{role}</span>
       <span className="text-ink-800">{label}</span>
     </div>
   );
@@ -221,7 +221,7 @@ function HandoverDrawer({ ho, onClose }: { ho?: HO; onClose: () => void }) {
           ho &&
           (adminTurn ? (
             <>
-              <span className="mr-auto text-[11.5px] text-ink-500">管理部の操作</span>
+              <span className="mr-auto text-[12.5px] text-ink-500">管理部の操作</span>
               <Button variant="danger" onClick={() => setRejectOpen(true)}>
                 <Undo2 size={14} />
                 差し戻す
@@ -242,7 +242,7 @@ function HandoverDrawer({ ho, onClose }: { ho?: HO; onClose: () => void }) {
             </>
           ) : status === "差し戻し" ? (
             <>
-              <span className="mr-auto text-[11.5px] text-ink-500">営業の操作</span>
+              <span className="mr-auto text-[12.5px] text-ink-500">営業の操作</span>
               <Button onClick={() => setResubmitOpen(true)}>修正して再提出</Button>
             </>
           ) : undefined)
@@ -252,23 +252,23 @@ function HandoverDrawer({ ho, onClose }: { ho?: HO; onClose: () => void }) {
           <div className="space-y-6 px-6 py-5">
             <div className="flex items-center gap-2">
               <HandoverPill status={ho.status} />
-              {ho.receivedAt && <span className="tnum text-[12px] text-ink-500">受領 {fmtDateTime(ho.receivedAt)}</span>}
+              {ho.receivedAt && <span className="tnum text-[13px] text-ink-500">受領 {fmtDateTime(ho.receivedAt)}</span>}
             </div>
 
             {ho.status === "差し戻し" && (
               <div className="rounded-md border border-bad-100 bg-bad-50 px-4 py-3.5">
-                <div className="text-[12.5px] font-semibold text-bad-700">管理部からの差し戻し内容</div>
-                <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-[12.5px] text-bad-700">
+                <div className="text-[14px] font-semibold text-bad-700">管理部からの差し戻し内容</div>
+                <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-[14px] text-bad-700">
                   {ho.issues.map((i) => (
                     <li key={i}>{i}</li>
                   ))}
                 </ul>
-                {ho.issueNote && <p className="mt-2 text-[12.5px] text-ink-700">{ho.issueNote}</p>}
+                {ho.issueNote && <p className="mt-2 text-[14px] text-ink-700">{ho.issueNote}</p>}
               </div>
             )}
 
             <section>
-              <div className="mb-2 text-[12px] font-medium text-ink-500">契約情報</div>
+              <div className="mb-2 text-[13px] font-medium text-ink-500">契約情報</div>
               <div className="rounded-md border border-ink-200">
                 <div className="grid grid-cols-2 gap-px bg-ink-100">
                   {[
@@ -280,17 +280,17 @@ function HandoverDrawer({ ho, onClose }: { ho?: HO; onClose: () => void }) {
                     ["先方担当", customer ? `${customer.contact}` : "—"],
                   ].map(([k, v]) => (
                     <div key={k} className="bg-white px-4 py-2.5">
-                      <div className="text-[11px] text-ink-500">{k}</div>
-                      <div className="tnum mt-0.5 text-[13px] text-ink-900">{v}</div>
+                      <div className="text-[12px] text-ink-500">{k}</div>
+                      <div className="tnum mt-0.5 text-[15px] text-ink-900">{v}</div>
                     </div>
                   ))}
                 </div>
                 <div className="border-t border-ink-100 px-4 py-2.5">
-                  <div className="text-[11px] text-ink-500">掲載面</div>
+                  <div className="text-[12px] text-ink-500">掲載面</div>
                   {contract.faceIds.map((f) => {
                     const l = lookup.get(f);
                     return (
-                      <Link key={f} to={`/boards/${l?.board.id}`} className="mt-0.5 block text-[13px] text-navy-800 hover:underline">
+                      <Link key={f} to={`/boards/${l?.board.id}`} className="mt-0.5 block text-[15px] text-navy-800 hover:underline">
                         {l?.board.name} {l?.face.label}({l?.board.code})
                       </Link>
                     );
@@ -300,22 +300,22 @@ function HandoverDrawer({ ho, onClose }: { ho?: HO; onClose: () => void }) {
             </section>
 
             <section>
-              <div className="mb-2 text-[12px] font-medium text-ink-500">提出書類</div>
+              <div className="mb-2 text-[13px] font-medium text-ink-500">提出書類</div>
               <div className="overflow-hidden rounded-md border border-ink-200">
                 {ho.docs.map((d) => (
                   <div key={d.kind} className="flex items-center gap-3 border-b border-ink-100 px-4 py-2.5 last:border-0">
                     <FileText size={15} className={d.fileName ? "text-navy-600" : "text-ink-300"} />
                     <div className="min-w-0 flex-1">
-                      <div className="text-[12.5px] text-ink-900">
+                      <div className="text-[14px] text-ink-900">
                         {d.kind}
-                        {REQUIRED_DOCS.includes(d.kind) && <span className="ml-1.5 text-[10px] text-bad-500">必須</span>}
+                        {REQUIRED_DOCS.includes(d.kind) && <span className="ml-1.5 text-[11.5px] text-bad-500">必須</span>}
                       </div>
-                      <div className="truncate text-[11.5px] text-ink-500">{d.fileName ?? "未添付"}</div>
+                      <div className="truncate text-[12.5px] text-ink-500">{d.fileName ?? "未添付"}</div>
                     </div>
                     {d.fileName && (
                       <button
                         onClick={() => toast("プレビュー", { description: `${d.fileName}(デモのためファイル内容は表示されません)` })}
-                        className="text-[11.5px] text-navy-700 hover:underline"
+                        className="text-[12.5px] text-navy-700 hover:underline"
                       >
                         表示
                       </button>
@@ -326,26 +326,26 @@ function HandoverDrawer({ ho, onClose }: { ho?: HO; onClose: () => void }) {
             </section>
 
             <section>
-              <div className="mb-3 text-[12px] font-medium text-ink-500">やり取りの履歴</div>
+              <div className="mb-3 text-[13px] font-medium text-ink-500">やり取りの履歴</div>
               <ol className="space-y-0">
                 {[...ho.history].reverse().map((e, i, arr) => (
                   <li key={i} className="relative flex gap-3 pb-4 last:pb-0">
                     {i < arr.length - 1 && <span className="absolute top-6 bottom-0 left-[11px] w-px bg-ink-200" />}
                     <span
                       className={
-                        "z-10 mt-0.5 grid h-[23px] w-[23px] shrink-0 place-items-center rounded-full text-[10px] font-semibold " +
+                        "z-10 mt-0.5 grid h-[23px] w-[23px] shrink-0 place-items-center rounded-full text-[11.5px] font-semibold " +
                         (e.role === "管理部" ? "bg-navy-900 text-white" : "bg-navy-100 text-navy-800")
                       }
                     >
                       {e.role === "管理部" ? "管" : "営"}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline gap-x-2 text-[12.5px]">
+                      <div className="flex flex-wrap items-baseline gap-x-2 text-[14px]">
                         <span className={"font-semibold " + (e.action === "差し戻し" ? "text-bad-600" : e.action === "受領" ? "text-ok-700" : "text-navy-900")}>{e.action}</span>
                         <span className="text-ink-600">{e.actor}</span>
-                        <span className="tnum text-[11.5px] text-ink-400">{fmtDateTime(e.at)}</span>
+                        <span className="tnum text-[12.5px] text-ink-400">{fmtDateTime(e.at)}</span>
                       </div>
-                      {e.note && <p className="mt-0.5 text-[12.5px] leading-relaxed text-ink-700">{e.note}</p>}
+                      {e.note && <p className="mt-0.5 text-[14px] leading-relaxed text-ink-700">{e.note}</p>}
                     </div>
                   </li>
                 ))}
@@ -407,10 +407,10 @@ function RejectModal({ open, onClose, id }: { open: boolean; onClose: () => void
     >
       <div className="space-y-4">
         <div>
-          <div className="mb-2 text-[12px] font-medium text-ink-600">不備の内容</div>
+          <div className="mb-2 text-[13px] font-medium text-ink-600">不備の内容</div>
           <div className="grid gap-1.5 sm:grid-cols-2">
             {ISSUE_OPTIONS.map((o) => (
-              <label key={o} className={"flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-[12.5px] transition " + (issues.includes(o) ? "border-navy-400 bg-navy-50 text-navy-900" : "border-ink-200 text-ink-700 hover:bg-ink-50")}>
+              <label key={o} className={"flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-[14px] transition " + (issues.includes(o) ? "border-navy-400 bg-navy-50 text-navy-900" : "border-ink-200 text-ink-700 hover:bg-ink-50")}>
                 <input
                   type="checkbox"
                   className="h-3.5 w-3.5 accent-[oklch(29.5%_0.047_262)]"
@@ -421,7 +421,7 @@ function RejectModal({ open, onClose, id }: { open: boolean; onClose: () => void
               </label>
             ))}
           </div>
-          {touched && err && <div className="mt-1.5 text-[11.5px] text-bad-600">{err}</div>}
+          {touched && err && <div className="mt-1.5 text-[12.5px] text-bad-600">{err}</div>}
         </div>
         <Field label="営業担当へのコメント">
           <textarea className={textareaCls} placeholder="例: 契約書2ページ目の押印が漏れています。差し替えをお願いします。" value={note} onChange={(e) => setNote(e.target.value)} />
@@ -476,12 +476,12 @@ function ResubmitModal({ open, onClose, ho }: { open: boolean; onClose: () => vo
       }
     >
       <div className="space-y-4">
-        <div className="rounded-md border border-bad-100 bg-bad-50 px-4 py-3 text-[12.5px] text-bad-700">
+        <div className="rounded-md border border-bad-100 bg-bad-50 px-4 py-3 text-[14px] text-bad-700">
           指摘事項: {ho.issues.join("、")}
           {ho.issueNote && <div className="mt-1 text-ink-700">{ho.issueNote}</div>}
         </div>
         <div>
-          <div className="mb-2 text-[12px] font-medium text-ink-600">書類の差し替え</div>
+          <div className="mb-2 text-[13px] font-medium text-ink-600">書類の差し替え</div>
           <div className="overflow-hidden rounded-md border border-ink-200">
             {docs.map((d, i) => (
               <DocRow
@@ -494,7 +494,7 @@ function ResubmitModal({ open, onClose, ho }: { open: boolean; onClose: () => vo
               />
             ))}
           </div>
-          {touched && err.docs && <div className="mt-1.5 text-[11.5px] text-bad-600">{err.docs}</div>}
+          {touched && err.docs && <div className="mt-1.5 text-[12.5px] text-bad-600">{err.docs}</div>}
         </div>
         <Field label="管理部へのコメント" required error={touched ? err.note : ""}>
           <textarea className={textareaCls} placeholder="例: 押印済みの契約書に差し替えました。" value={note} onChange={(e) => setNote(e.target.value)} />

@@ -49,8 +49,13 @@ export default function FollowUps() {
     <>
       <PageHeader
         eyebrow="Follow-ups"
-        title="次回対応"
-        description="担当商談の「次にやること」を期日順に表示します。対応したら記録し、そのまま次の予定を設定できます。"
+        title="やること一覧"
+        description="お客様への次回対応(電話・訪問など)を、期限の近い順に並べています。"
+        guide={[
+          "赤い「期限超過」から順に対応しましょう。",
+          "対応したら「対応を記録」を押し、話した内容を書きます。",
+          "記録の画面で、次の予定日と内容も一緒に決められます。",
+        ]}
         actions={
           <Segmented
             value={scope}
@@ -68,16 +73,16 @@ export default function FollowUps() {
           const b = BUCKETS.find((x) => x.key === k)!;
           return (
             <Card key={k} className="px-5 py-4">
-              <div className="text-[12px] text-ink-500">{b.label}</div>
+              <div className="text-[13px] text-ink-500">{b.label}</div>
               <div className="mt-1.5 flex items-baseline gap-1">
                 {loading ? (
                   <Skeleton className="h-7 w-10" />
                 ) : (
-                  <span className={"tnum text-[26px] font-semibold " + (k === "overdue" && grouped[k].length ? "text-bad-600" : "text-navy-900")}>
+                  <span className={"tnum text-[28px] font-semibold " + (k === "overdue" && grouped[k].length ? "text-bad-600" : "text-navy-900")}>
                     {grouped[k].length}
                   </span>
                 )}
-                <span className="text-[12px] text-ink-500">件</span>
+                <span className="text-[13px] text-ink-500">件</span>
               </div>
             </Card>
           );
@@ -116,11 +121,11 @@ export default function FollowUps() {
             grouped[b.key].length === 0 ? null : (
               <section key={b.key}>
                 <div className="mb-2.5 flex items-baseline gap-3">
-                  <h2 className={"text-[14px] font-semibold " + (b.key === "overdue" ? "text-bad-600" : "text-navy-900")}>
+                  <h2 className={"text-[16px] font-semibold " + (b.key === "overdue" ? "text-bad-600" : "text-navy-900")}>
                     {b.label}
                   </h2>
-                  <span className="tnum text-[12px] text-ink-400">{grouped[b.key].length}件</span>
-                  {b.sub && <span className="hidden text-[12px] text-ink-400 sm:inline">{b.sub}</span>}
+                  <span className="tnum text-[13px] text-ink-400">{grouped[b.key].length}件</span>
+                  {b.sub && <span className="hidden text-[13px] text-ink-400 sm:inline">{b.sub}</span>}
                 </div>
                 <Card className="overflow-hidden">
                   <AnimatePresence initial={false}>
@@ -138,10 +143,10 @@ export default function FollowUps() {
                           <div className="w-full shrink-0 sm:w-28">
                             {d.nextAction ? (
                               <>
-                                <div className="tnum text-[13px] font-semibold text-navy-900">{fmtDateJa(d.nextAction.date)}</div>
+                                <div className="tnum text-[15px] font-semibold text-navy-900">{fmtDateJa(d.nextAction.date)}</div>
                                 <div
                                   className={
-                                    "mt-0.5 text-[11.5px] " +
+                                    "mt-0.5 text-[12.5px] " +
                                     (daysFromToday(d.nextAction.date) < 0 ? "font-medium text-bad-600" : "text-ink-500")
                                   }
                                 >
@@ -153,10 +158,10 @@ export default function FollowUps() {
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="text-[13.5px] font-medium text-ink-900">
+                            <div className="text-[15px] font-medium text-ink-900">
                               {d.nextAction?.content ?? "次回対応を設定してください"}
                             </div>
-                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-500">
+                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-ink-500">
                               <Link to={`/deals/${d.id}`} className="font-medium text-navy-700 underline-offset-2 hover:underline">
                                 {c?.company} / {d.title}
                               </Link>

@@ -103,12 +103,12 @@ export function ActivityModal({
     >
       <div className="space-y-4">
         {deal?.nextAction && (
-          <div className="rounded-md border border-navy-100 bg-navy-50 px-3.5 py-2.5 text-[12.5px] text-navy-800">
+          <div className="rounded-md border border-navy-100 bg-navy-50 px-3.5 py-2.5 text-[14px] text-navy-800">
             予定していた対応: {deal.nextAction.content}
           </div>
         )}
         <div>
-          <div className="mb-1.5 text-[12px] font-medium text-ink-600">種別</div>
+          <div className="mb-1.5 text-[13px] font-medium text-ink-600">種別</div>
           <Segmented value={type} onChange={setType} items={ACTIVITY_TYPES.map((t) => ({ value: t, label: t }))} />
         </div>
         <Field label="日時" required>
@@ -124,7 +124,7 @@ export function ActivityModal({
         </Field>
         {dealId && (
           <div className="rounded-md border border-ink-200 p-4">
-            <label className="flex items-center gap-2 text-[13px] font-medium text-navy-900">
+            <label className="flex items-center gap-2 text-[15px] font-medium text-navy-900">
               <input
                 type="checkbox"
                 className="h-4 w-4 accent-[oklch(29.5%_0.047_262)]"
@@ -162,7 +162,7 @@ export function ActivityModal({
                       key={l}
                       type="button"
                       onClick={() => setNextDate(inDays(n as number))}
-                      className="rounded border border-ink-200 px-2 py-1 text-[11.5px] text-ink-600 transition hover:border-navy-300 hover:text-navy-900"
+                      className="rounded border border-ink-200 px-2 py-1 text-[12.5px] text-ink-600 transition hover:border-navy-300 hover:text-navy-900"
                     >
                       {l}
                     </button>
@@ -399,8 +399,8 @@ export function DealFormModal({
         <Field label="受注予定日" required error={err("expectedClose")}>
           <input type="date" className={inputCls} value={f.expectedClose} onChange={set("expectedClose")} />
         </Field>
-        <div className="flex items-end pb-2 text-[12.5px] text-ink-500">
-          見込金額 <span className="tnum ml-2 text-[14px] font-semibold text-navy-900">{yen((budget || 0) * Number(f.months))}</span>
+        <div className="flex items-end pb-2 text-[14px] text-ink-500">
+          見込金額 <span className="tnum ml-2 text-[16px] font-semibold text-navy-900">{yen((budget || 0) * Number(f.months))}</span>
         </div>
         {!deal && (
           <>
@@ -570,6 +570,7 @@ export function HoldModal({
   board,
   face,
   startMonth,
+  endMonth,
   dealId,
 }: {
   open: boolean;
@@ -577,6 +578,7 @@ export function HoldModal({
   board?: Board;
   face?: Face;
   startMonth?: string;
+  endMonth?: string;
   dealId?: string;
 }) {
   const deals = useStore((s) => s.deals);
@@ -603,9 +605,9 @@ export function HoldModal({
     const s = startMonth ?? cur;
     const d = deals.find((x) => x.id === dealId);
     const len = Math.min(d?.months ?? 12, 12);
-    setF({ dealId: dealId ?? "", start: s, end: addMonthKey(s, len - 1), expires: inDays(14) });
+    setF({ dealId: dealId ?? "", start: s, end: endMonth ?? addMonthKey(s, len - 1), expires: inDays(14) });
     setTouched(false);
-  }, [open, startMonth, dealId]);
+  }, [open, startMonth, endMonth, dealId]);
 
   const conflict = board && face && f.start <= f.end && !isFree(idx, board, face, f.start, f.end);
   const errs = {
@@ -629,7 +631,7 @@ export function HoldModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="広告面を仮押さえ"
+      title="この面を仮押さえする"
       sub={board && face ? `${board.code}  ${board.name} ${face.label}(${face.direction})` : undefined}
       width={540}
       footer={
@@ -645,12 +647,15 @@ export function HoldModal({
     >
       <div className="space-y-4">
         {face && (
-          <div className="flex items-center justify-between rounded-md bg-ink-50 px-4 py-3 text-[12.5px]">
+          <div className="flex items-center justify-between rounded-md bg-ink-50 px-4 py-3 text-[14px]">
             <span className="text-ink-500">月額定価</span>
             <span className="tnum font-semibold text-navy-900">{yen(face.price)}</span>
           </div>
         )}
-        <Field label="商談" required error={touched ? errs.dealId : ""}>
+        <p className="text-[14px] leading-relaxed text-ink-600">
+          仮押さえをすると、期限までの間、他の担当者がこの面を押さえられなくなります。お客様の返事を待つ間の「一時的な確保」です。
+        </p>
+        <Field label="どの商談のための仮押さえですか" required error={touched ? errs.dealId : ""}>
           <select className={inputCls + (touched && errs.dealId ? errCls : "")} value={f.dealId} onChange={(e) => setF({ ...f, dealId: e.target.value })}>
             <option value="">選択してください</option>
             {openDeals.map((d) => (
@@ -680,8 +685,8 @@ export function HoldModal({
             </select>
           </Field>
         </div>
-        {errs.period && <div className="-mt-2 text-[11.5px] text-bad-600">{errs.period}</div>}
-        <Field label="仮押さえ期限" required error={touched ? errs.expires : ""} hint="期限を過ぎると自動的に解除され、他の担当者が押さえられるようになります(最長30日)">
+        {errs.period && <div className="-mt-2 text-[12.5px] text-bad-600">{errs.period}</div>}
+        <Field label="いつまで確保しますか(仮押さえ期限)" required error={touched ? errs.expires : ""} hint="期限を過ぎると自動的に解除され、他の担当者が押さえられるようになります(最長30日)">
           <input type="date" className={inputCls} value={f.expires} max={inDays(30)} onChange={(e) => setF({ ...f, expires: e.target.value })} />
         </Field>
       </div>

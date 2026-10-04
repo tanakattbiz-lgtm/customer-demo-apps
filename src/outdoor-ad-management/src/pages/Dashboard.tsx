@@ -5,7 +5,7 @@ import { useStore } from "../store";
 import { BRANCHES, COMPANY, OPEN_STAGES, STAGE_PROB, companySeries } from "../data/seed";
 import { useLoad } from "../lib/useLoad";
 import { addMonthKey, num, oku, pct, thisMonth } from "../lib/format";
-import { Card, CardHeader, PageHeader, Skeleton, tableHeadCls, thCls } from "../components/ui";
+import { Card, CardHeader, Help, PageHeader, Skeleton, tableHeadCls, thCls } from "../components/ui";
 
 const C_NAVY = "#22314A";
 const C_NAVY_LIGHT = "#A9B5CA";
@@ -103,18 +103,18 @@ export default function Dashboard() {
     <>
       <PageHeader
         eyebrow="Management"
-        title="経営ダッシュボード"
+        title="会社全体の数字"
         description={`全社(営業担当 ${COMPANY.salesReps}名・広告面 約${num(COMPANY.totalFaces)}面)の新規・解約・売上見込み・稼働率を集計しています。当月は本日時点の累計と月末の着地見込みを表示します。`}
       />
 
       {/* KPI */}
-      <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-ink-200 bg-ink-200 lg:grid-cols-6">
-        <Kpi loading={loading} label="広告主 新規契約" value={`${d.newAd.toDate}`} unit="件" sub={`着地見込み ${d.newAd.landing}件`} delta={d.newAd.landing - d.newAd.prev} prevLabel="前月比" />
-        <Kpi loading={loading} label="広告主 解約" value={`${d.cancelAd.toDate}`} unit="件" sub={`着地見込み ${d.cancelAd.landing}件`} delta={d.cancelAd.landing - d.cancelAd.prev} prevLabel="前月比" inverse />
-        <Kpi loading={loading} label="純増(新規 − 解約)" value={`+${net}`} unit="件" sub="当月着地見込み" delta={net - prevNet} prevLabel="前月比" />
-        <Kpi loading={loading} label="土地 新規契約" value={`${d.newLand.toDate}`} unit="件" sub={`着地見込み ${d.newLand.landing}件`} delta={d.newLand.landing - d.newLand.prev} prevLabel="前月比" />
-        <Kpi loading={loading} label="稼働率" value={d.occupancy.toFixed(1)} unit="%" sub={`${num(d.occupied)} / ${num(COMPANY.totalFaces)}面`} delta={Number((d.occupancy - d.prevOcc).toFixed(1))} prevLabel="前月比" deltaUnit="pt" />
-        <Kpi loading={loading} label="売上見込み(今後6ヶ月)" value={(f6 / 1e8).toFixed(1)} unit="億円" sub={`当月 ${oku(d.forecast[0].confirmed + d.forecast[0].expected)}`} />
+      <div className="mb-6 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-ink-200 bg-ink-200 sm:grid-cols-2 lg:grid-cols-3">
+        <Kpi loading={loading} label="広告主 新規契約" help="今月、新しく広告の契約をした件数です。「着地見込み」は、このペースで月末までにいく見込みの件数です。" value={`${d.newAd.toDate}`} unit="件" sub={`着地見込み ${d.newAd.landing}件`} delta={d.newAd.landing - d.newAd.prev} prevLabel="前月比" />
+        <Kpi loading={loading} label="広告主 解約" help="今月、広告の契約をやめた(解約した)件数です。少ないほど良い数字です。" value={`${d.cancelAd.toDate}`} unit="件" sub={`着地見込み ${d.cancelAd.landing}件`} delta={d.cancelAd.landing - d.cancelAd.prev} prevLabel="前月比" inverse />
+        <Kpi loading={loading} label="純増(新規 − 解約)" help="新規契約から解約を引いた数です。プラスなら契約が増えています。" value={`+${net}`} unit="件" sub="当月着地見込み" delta={net - prevNet} prevLabel="前月比" />
+        <Kpi loading={loading} label="土地 新規契約" help="看板を設置するために、新しく土地を借りる契約をした件数です。" value={`${d.newLand.toDate}`} unit="件" sub={`着地見込み ${d.newLand.landing}件`} delta={d.newLand.landing - d.newLand.prev} prevLabel="前月比" />
+        <Kpi loading={loading} label="稼働率" help="全部の広告面のうち、広告が掲載されている面の割合です。高いほど看板が有効に使われています。" value={d.occupancy.toFixed(1)} unit="%" sub={`${num(d.occupied)} / ${num(COMPANY.totalFaces)}面`} delta={Number((d.occupancy - d.prevOcc).toFixed(1))} prevLabel="前月比" deltaUnit="pt" />
+        <Kpi loading={loading} label="売上見込み(今後6ヶ月)" help="契約済みの売上に、進行中の商談が契約になった場合の売上(確度を考慮)を足した、今後6ヶ月の見込みです。" value={(f6 / 1e8).toFixed(1)} unit="億円" sub={`当月 ${oku(d.forecast[0].confirmed + d.forecast[0].expected)}`} />
       </div>
 
       <div className="mb-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
@@ -123,7 +123,7 @@ export default function Dashboard() {
             title="新規契約・解約の推移"
             sub="広告主契約 / 月次件数(直近12ヶ月)"
             right={
-              <div className="flex gap-4 text-[11.5px] text-ink-500">
+              <div className="flex gap-4 text-[12.5px] text-ink-500">
                 <LegendDot color={C_NAVY} label="新規" />
                 <LegendDot color={C_ROSE} label="解約" />
               </div>
@@ -145,7 +145,7 @@ export default function Dashboard() {
               </ResponsiveContainer>
             )}
           </div>
-          <div className="px-5 pb-3 text-[11px] text-ink-400">* 当月は着地見込み</div>
+          <div className="px-5 pb-3 text-[12px] text-ink-400">* 当月は着地見込み</div>
         </Card>
 
         <Card>
@@ -172,9 +172,9 @@ export default function Dashboard() {
         <Card>
           <CardHeader
             title="売上見込み(今後6ヶ月)"
-            sub="契約済の売上 + 進行中商談の加重見込み"
+            sub="契約済みの売上 + 商談が契約になった場合の見込み(確度を考慮)"
             right={
-              <div className="flex gap-4 text-[11.5px] text-ink-500">
+              <div className="flex gap-4 text-[12.5px] text-ink-500">
                 <LegendDot color={C_NAVY} label="契約済" />
                 <LegendDot color={C_NAVY_LIGHT} label="商談見込み" />
               </div>
@@ -199,14 +199,14 @@ export default function Dashboard() {
         </Card>
 
         <Card className="overflow-hidden">
-          <CardHeader title="商談パイプライン" sub="全社・進行中の商談" />
-          <table className="w-full text-[12.5px]">
+          <CardHeader title="進行中の商談" sub="全社・段階ごとの件数と金額" />
+          <table className="w-full text-[14px]">
             <thead className={tableHeadCls}>
               <tr>
                 <th className={thCls}>ステージ</th>
                 <th className={thCls + " text-right"}>件数</th>
                 <th className={thCls + " text-right"}>見込金額</th>
-                <th className={thCls + " text-right"}>加重</th>
+                <th className={thCls + " text-right"}>見込み(確度考慮)</th>
               </tr>
             </thead>
             <tbody>
@@ -214,7 +214,7 @@ export default function Dashboard() {
                 <tr key={p.stage} className="border-b border-ink-100 last:border-0">
                   <td className="px-4 py-2.5">
                     <div className="text-ink-900">{p.stage}</div>
-                    <div className="text-[10.5px] text-ink-400">確度 {STAGE_PROB[p.stage]}%</div>
+                    <div className="text-[12px] text-ink-400">確度 {STAGE_PROB[p.stage]}%</div>
                   </td>
                   <td className="tnum px-4 py-2.5 text-right">{num(p.n)}</td>
                   <td className="tnum px-4 py-2.5 text-right">{oku(p.amount)}</td>
@@ -236,7 +236,7 @@ export default function Dashboard() {
         <Card className="overflow-hidden">
           <CardHeader title="支店別の状況" sub="新規・解約・土地は当月着地見込み" />
           <div className="thin-scroll overflow-x-auto">
-            <table className="w-full min-w-[700px] text-[12.5px]">
+            <table className="w-full min-w-[700px] text-[14px]">
               <thead className={tableHeadCls}>
                 <tr>
                   <th className={thCls}>支店</th>
@@ -274,7 +274,7 @@ export default function Dashboard() {
           </div>
         </Card>
       </div>
-      <p className="mt-6 text-[11px] text-ink-400">
+      <p className="mt-6 text-[12px] text-ink-400">
         集計期間: {cur.replace("-", "年")}月(本日時点)。このデモで登録した成約・解約・土地契約は当月の数値に反映されます。
       </p>
     </>
@@ -283,6 +283,7 @@ export default function Dashboard() {
 
 function Kpi({
   label,
+  help,
   value,
   unit,
   sub,
@@ -293,6 +294,7 @@ function Kpi({
   loading,
 }: {
   label: string;
+  help?: string;
   value: string;
   unit: string;
   sub: string;
@@ -305,18 +307,21 @@ function Kpi({
   const good = delta === undefined ? null : inverse ? delta <= 0 : delta >= 0;
   return (
     <div className="bg-white px-5 py-4">
-      <div className="text-[11.5px] text-ink-500">{label}</div>
+      <div className="flex items-center gap-1 text-[13px] text-ink-600">
+        {label}
+        {help && <Help label={label} text={help} />}
+      </div>
       {loading ? (
         <Skeleton className="mt-2 h-8 w-20" />
       ) : (
         <div className="mt-1.5 flex items-baseline gap-1">
-          <span className="tnum font-serif text-[28px] leading-none font-semibold text-navy-900">{value}</span>
-          <span className="text-[12px] text-ink-500">{unit}</span>
+          <span className="tnum font-serif text-[30px] leading-none font-semibold text-navy-900">{value}</span>
+          <span className="text-[13px] text-ink-500">{unit}</span>
         </div>
       )}
-      <div className="tnum mt-2 text-[11px] text-ink-500">{sub}</div>
+      <div className="tnum mt-2 text-[12px] text-ink-500">{sub}</div>
       {delta !== undefined && (
-        <div className={"tnum mt-0.5 text-[11px] " + (good ? "text-ok-700" : "text-bad-600")}>
+        <div className={"tnum mt-0.5 text-[12px] " + (good ? "text-ok-700" : "text-bad-600")}>
           {prevLabel} {delta >= 0 ? "+" : ""}
           {delta}
           {deltaUnit || unit.replace("億円", "")}
@@ -328,7 +333,7 @@ function Kpi({
 
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
       <span className="inline-block h-2.5 w-2.5 rounded-[2px]" style={{ background: color }} />
       {label}
     </span>
@@ -347,7 +352,7 @@ function ChartTip({ active, label, payload, unit = "", money, names }: TipProps)
   if (!active || !payload?.length) return null;
   const total = payload.reduce((s, p) => s + p.value, 0);
   return (
-    <div className="rounded-md border border-ink-200 bg-white px-3 py-2 text-[12px] shadow-[0_8px_24px_-8px_rgba(34,49,74,0.25)]">
+    <div className="rounded-md border border-ink-200 bg-white px-3 py-2 text-[13px] shadow-[0_8px_24px_-8px_rgba(34,49,74,0.25)]">
       <div className="mb-1 font-medium text-navy-900">{label}</div>
       {payload.map((p) => (
         <div key={p.dataKey} className="flex items-center justify-between gap-6">
