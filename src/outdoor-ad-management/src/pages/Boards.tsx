@@ -507,7 +507,7 @@ function FindVacancy({
 
   return (
     <>
-      <Card className="mb-5 p-5">
+      <Card data-tour="find-form" className="mb-5 p-5">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="1. エリア">
             <select className={inputCls} value={area} onChange={(e) => { setArea(e.target.value); setShown(10); }}>
@@ -609,7 +609,7 @@ function FindVacancy({
                   <Help label="定価" text="値引き前の料金です。契約金額は成約登録のときに入力できます。" />
                 </div>
               </div>
-              <Button className="shrink-0" onClick={() => onHold(b, f, start, end)}>
+              <Button data-tour="hold-btn" className="shrink-0" onClick={() => onHold(b, f, start, end)}>
                 この面を仮押さえする
               </Button>
             </Card>

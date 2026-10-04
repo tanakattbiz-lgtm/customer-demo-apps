@@ -160,9 +160,13 @@ export function Pill({ tone = "gray", children, className = "" }: { tone?: Tone;
 }
 
 // ---------------- Card ----------------
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function Card({
+  children,
+  className = "",
+  ...rest
+}: { children: ReactNode; className?: string } & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={"rounded-lg border border-ink-200 bg-white shadow-[0_1px_2px_oklch(25%_0.04_262/0.04)] " + className}>
+    <div {...rest} className={"rounded-lg border border-ink-200 bg-white shadow-[0_1px_2px_oklch(25%_0.04_262/0.04)] " + className}>
       {children}
     </div>
   );

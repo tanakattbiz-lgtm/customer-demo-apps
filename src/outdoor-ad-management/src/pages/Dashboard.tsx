@@ -108,7 +108,7 @@ export default function Dashboard() {
       />
 
       {/* KPI */}
-      <div className="mb-6 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-ink-200 bg-ink-200 sm:grid-cols-2 lg:grid-cols-3">
+      <div data-tour="kpi" className="mb-6 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-ink-200 bg-ink-200 sm:grid-cols-2 lg:grid-cols-3">
         <Kpi loading={loading} label="広告主 新規契約" help="今月、新しく広告の契約をした件数です。「着地見込み」は、このペースで月末までにいく見込みの件数です。" value={`${d.newAd.toDate}`} unit="件" sub={`着地見込み ${d.newAd.landing}件`} delta={d.newAd.landing - d.newAd.prev} prevLabel="前月比" />
         <Kpi loading={loading} label="広告主 解約" help="今月、広告の契約をやめた(解約した)件数です。少ないほど良い数字です。" value={`${d.cancelAd.toDate}`} unit="件" sub={`着地見込み ${d.cancelAd.landing}件`} delta={d.cancelAd.landing - d.cancelAd.prev} prevLabel="前月比" inverse />
         <Kpi loading={loading} label="純増(新規 − 解約)" help="新規契約から解約を引いた数です。プラスなら契約が増えています。" value={`+${net}`} unit="件" sub="当月着地見込み" delta={net - prevNet} prevLabel="前月比" />

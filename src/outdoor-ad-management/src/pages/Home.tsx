@@ -76,7 +76,7 @@ export default function Home() {
 
       {/* お知らせ */}
       {(todo.length > 0 || myHoldsSoon.length > 0 || myRejected.length > 0) && (
-        <Card className="mb-8 overflow-hidden">
+        <Card data-tour="home-todo" className="mb-8 overflow-hidden">
           <div className="border-b border-ink-200 px-6 py-4">
             <div className="text-[17px] font-semibold text-navy-900">今日、対応が必要なこと</div>
           </div>
@@ -95,7 +95,7 @@ export default function Home() {
                       {cname(d.customerId)} / {d.title}
                     </Link>
                   </div>
-                  <Button onClick={() => setLogFor(d)}>
+                  <Button data-tour="home-log" onClick={() => setLogFor(d)}>
                     <PencilLine size={15} />
                     対応したら記録する
                   </Button>
@@ -155,7 +155,7 @@ export default function Home() {
       )}
 
       <h2 className="mb-3 text-[17px] font-semibold text-navy-900">やりたいことを選んでください</h2>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div data-tour="home-tiles" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {TILES.map((t) => (
           <Link
             key={t.to}
