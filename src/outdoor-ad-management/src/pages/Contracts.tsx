@@ -465,7 +465,7 @@ function LandTab() {
           <TableSkeleton />
         ) : rows.length === 0 ? (
           lands.length === 0 ? (
-            <EmptyState icon={<Landmark size={20} />} title="最初の土地契約を登録しましょう" action={<Button onClick={() => setForm({ open: true })}>土地契約を登録</Button>} />
+            <EmptyState icon={<Landmark size={20} />} title="土地契約が登録されていません" action={<Button onClick={() => setForm({ open: true })}>土地契約を登録</Button>} />
           ) : (
             <EmptyState icon={<SearchX size={20} />} title="該当する土地契約がありません" description="検索条件を変更してください。" />
           )

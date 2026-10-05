@@ -136,7 +136,7 @@ export default function Customers() {
           <TableSkeleton />
         ) : rows.length === 0 ? (
           base.length === 0 ? (
-            <EmptyState icon={<Building2 size={20} />} title="最初の見込み客を登録しましょう" action={<Button onClick={() => setForm({ open: true })}>見込み客を登録</Button>} />
+            <EmptyState icon={<Building2 size={20} />} title="お客様が登録されていません" action={<Button onClick={() => setForm({ open: true })}>見込み客を登録</Button>} />
           ) : (
             <EmptyState icon={<SearchX size={20} />} title="該当する顧客がありません" description="検索条件を変更してください。" />
           )

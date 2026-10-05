@@ -257,7 +257,7 @@ export default function DealDetail() {
                 ))}
               </div>
             ) : activities.length === 0 ? (
-              <EmptyState icon={<MessageSquare size={20} />} title="まだ活動が記録されていません" description="訪問・電話・提案などの内容を記録しましょう。" />
+              <EmptyState icon={<MessageSquare size={20} />} title="まだ活動が記録されていません" description="訪問・電話・提案などの内容を記録してください。" />
             ) : (
               <ol className="relative px-5 py-4">
                 <AnimatePresence initial={false}>
@@ -530,13 +530,13 @@ function NextStep({
   if (stage === "失注") return null;
   if (isOpen) {
     if (hasHold) {
-      msg = "看板を仮押さえしています。お客様の了承が取れたら、契約の内容と書類を登録して管理部へ提出しましょう。";
+      msg = "看板を仮押さえしています。お客様の了承が取れたら、契約内容と書類を登録し、管理部へ提出してください。";
       action = { label: "成約を登録する", onClick: onClose };
     } else if (stage === "初回接触" || stage === "ヒアリング") {
-      msg = "お客様と話をしたら「対応を記録」で内容を残しましょう。希望のエリアや時期が決まったら、看板の空きを探します。";
+      msg = "お客様との対応内容は「対応を記録」から登録してください。希望のエリア・時期が決まりましたら、看板の空きを検索します。";
       action = { label: "対応を記録する", onClick: onLog };
     } else {
-      msg = "お客様の希望に合う看板の空きを探して、仮押さえ(一時的な確保)をしましょう。";
+      msg = "お客様の希望に合う看板の空きを検索し、仮押さえ(一時確保)を行ってください。";
       action = { label: "看板の空きを探す", onClick: onFind };
     }
   } else if (hoStatus === "差し戻し") {

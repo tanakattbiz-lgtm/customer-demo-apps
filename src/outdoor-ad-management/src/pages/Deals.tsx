@@ -221,7 +221,7 @@ export default function Deals() {
             deals.length === 0 ? (
               <EmptyState
                 icon={<Handshake size={20} />}
-                title="最初の商談を登録しましょう"
+                title="商談が登録されていません"
                 action={<Button onClick={() => setCreating(true)}>商談を登録</Button>}
               />
             ) : (
