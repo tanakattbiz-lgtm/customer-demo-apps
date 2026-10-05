@@ -2,7 +2,7 @@
  * ダミーデータ(すべて架空)。
  * 日付は「今日」を基準に相対生成し、乱数は固定シードなのでリセットすると同じ内容に戻る。
  */
-import { addDays, format, setHours, setMinutes, subDays } from "date-fns";
+import { addDays, format, isWeekend, setHours, setMinutes, subDays } from "date-fns";
 import { addMonthKey, monthKey } from "../lib/format";
 
 // ======================= 型 =======================
@@ -476,7 +476,13 @@ export function createSeed(): SeedData {
   const today = new Date();
   const cur = monthKey(today);
   const iso = (d: Date) => format(d, "yyyy-MM-dd");
-  const dt = (d: Date) => format(setMinutes(setHours(d, int(9, 18)), pick([0, 15, 30, 45])), "yyyy-MM-dd'T'HH:mm:ss");
+  /** 土日に当たる日付を営業日に寄せる(dir: 1=翌営業日, -1=前営業日) */
+  const biz = (d: Date, dir: 1 | -1) => {
+    let x = d;
+    while (isWeekend(x)) x = addDays(x, dir);
+    return x;
+  };
+  const dt = (d: Date) => format(setMinutes(setHours(biz(d, -1), int(9, 18)), pick([0, 15, 30, 45])), "yyyy-MM-dd'T'HH:mm:ss");
   const phone = (a: Area) => {
     const p = TEL_PREFIX[a];
     const mid = String(int(10 ** (5 - p.length), 10 ** (6 - p.length) - 1));
@@ -561,7 +567,7 @@ export function createSeed(): SeedData {
         const start = m;
         const end = addMonthKey(start, len - 1);
         const adv = pick(advertisers);
-        const created = subDays(new Date(start + "-01"), int(10, 50));
+        const created = biz(subDays(new Date(start + "-01"), int(10, 50)), -1);
         if (created > today) break; // 未来の契約は作らない
         const c: AdContract = {
           id: `k${String(contracts.length + 1).padStart(4, "0")}`,
@@ -618,7 +624,7 @@ export function createSeed(): SeedData {
     if (subDate > today) subDate = new Date(today.getTime() - 2 * 3600000);
     // 確認待ち・差し戻し中のものは「ここ数日」の提出にする
     if (i < 6) {
-      subDate = setMinutes(setHours(subDays(today, [0, 1, 2, 3, 2, 4][i]), int(9, 17)), pick([5, 20, 40]));
+      subDate = setMinutes(setHours(biz(subDays(today, [0, 1, 2, 3, 2, 4][i]), -1), int(9, 17)), pick([5, 20, 40]));
       if (subDate > today) subDate = new Date(today.getTime() - 90 * 60000);
       c.createdAt = iso(subDate);
     }
@@ -644,7 +650,7 @@ export function createSeed(): SeedData {
       history,
     };
     const later = (d: number) => {
-      let t = new Date(format(addDays(subDate, d), "yyyy-MM-dd'T'") + `${int(10, 17)}:${pick(["10", "30", "50"])}:00`);
+      let t = new Date(format(biz(addDays(subDate, d), 1), "yyyy-MM-dd'T'") + `${int(10, 17)}:${pick(["10", "30", "50"])}:00`);
       if (t > today) t = new Date(Math.min(today.getTime() - 30 * 60000, subDate.getTime() + d * 3600000));
       return format(t, "yyyy-MM-dd'T'HH:mm:ss");
     };
@@ -717,9 +723,12 @@ export function createSeed(): SeedData {
       stage,
       monthlyBudget: budget,
       months,
-      expectedClose: iso(addDays(today, int(5, 70))),
+      expectedClose: iso(biz(addDays(today, int(5, 70)), 1)),
       repId,
-      nextAction: i % 11 === 10 ? null : { date: iso(addDays(today, naOffset)), content: pick(NEXT_CONTENTS) },
+      nextAction:
+        i % 11 === 10
+          ? null
+          : { date: iso(naOffset === 0 ? today : biz(addDays(today, naOffset), naOffset < 0 ? -1 : 1)), content: pick(NEXT_CONTENTS) },
       createdAt: iso(created),
       updatedAt: iso(subDays(today, int(0, 6))),
     });
@@ -748,7 +757,7 @@ export function createSeed(): SeedData {
       stage: "失注",
       monthlyBudget: 80000,
       months: 6,
-      expectedClose: iso(subDays(today, 20)),
+      expectedClose: iso(biz(subDays(today, 20), -1)),
       repId: cu.repId,
       nextAction: null,
       createdAt: iso(subDays(today, 70)),
@@ -779,7 +788,7 @@ export function createSeed(): SeedData {
         dealId: d.id,
         startMonth: s,
         endMonth: e,
-        expiresAt: iso(addDays(today, i === 4 ? -1 : [2, 5, 9, 12, 3, 14, 7, 20, 6, 11][i])),
+        expiresAt: iso(i === 4 ? biz(subDays(today, 1), -1) : biz(addDays(today, [1, 5, 9, 12, 3, 14, 7, 20, 6, 11][i]), 1)),
         repId: d.repId,
         createdAt: iso(subDays(today, int(2, 10))),
       });

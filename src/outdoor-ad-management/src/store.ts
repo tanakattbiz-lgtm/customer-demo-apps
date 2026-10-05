@@ -54,6 +54,10 @@ export interface CloseInput {
 
 interface State extends SeedData {
   live: LiveStats;
+  /** サンプルデータを生成した日(yyyy-MM-dd) */
+  seededOn: string;
+  /** 利用者がデータを変更したか(未変更なら日付が変わったときにサンプルデータを作り直す) */
+  touched: boolean;
   // 顧客
   saveCustomer: (c: Customer) => void;
   removeCustomer: (id: string) => void;
@@ -91,9 +95,15 @@ const bumpLive = (live: LiveStats, patch: Partial<Record<keyof Omit<LiveStats, "
 
 export const useStore = create<State>()(
   persist(
-    (set, get) => ({
+    (rawSet, get) => {
+      // データを変更する操作はすべて「変更あり」として記録する
+      const set: typeof rawSet = (partial) =>
+        rawSet((s) => ({ ...(typeof partial === "function" ? partial(s) : partial), touched: true }));
+      return {
       ...createSeed(),
       live: emptyLive(),
+      seededOn: todayISO(),
+      touched: false,
 
       saveCustomer: (c) =>
         set((s) => ({
@@ -280,9 +290,16 @@ export const useStore = create<State>()(
       terminateLand: (id) =>
         set((s) => ({ lands: s.lands.map((l) => (l.id === id ? { ...l, terminated: true, autoRenew: false } : l)) })),
 
-      reset: () => set({ ...createSeed(), live: emptyLive() }),
-    }),
-    { name: "outdoor-ad-management-v1" },
+      reset: () => rawSet({ ...createSeed(), live: emptyLive(), seededOn: todayISO(), touched: false }),
+      };
+    },
+    {
+      name: "outdoor-ad-management-v2",
+      // 前日以前に生成したサンプルデータが未変更のまま残っていれば、今日の日付で作り直す
+      onRehydrateStorage: () => (state) => {
+        if (state && !state.touched && state.seededOn !== todayISO()) state.reset();
+      },
+    },
   ),
 );
 
