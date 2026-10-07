@@ -9,11 +9,13 @@ import Home from "./pages/Home";
 const Rental = lazy(() => import("./pages/Rental"));
 const MachineDetail = lazy(() => import("./pages/MachineDetail"));
 const Ict = lazy(() => import("./pages/Ict"));
-const Simulator = lazy(() => import("./pages/Simulator"));
-const Cart = lazy(() => import("./pages/Cart"));
-const MyPage = lazy(() => import("./pages/MyPage"));
-const Company = lazy(() => import("./pages/Company"));
+const Catalog = lazy(() => import("./pages/Catalog"));
+const Overview = lazy(() => import("./pages/Overview"));
+const News = lazy(() => import("./pages/News"));
+const NewsDetail = lazy(() => import("./pages/NewsDetail"));
+const Recruit = lazy(() => import("./pages/Recruit"));
 const Contact = lazy(() => import("./pages/Contact"));
+const Terms = lazy(() => import("./pages/Terms"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 /** ページ遷移時にスクロール位置を戻す(#アンカーがある場合はそこへ) */
@@ -34,12 +36,13 @@ function ScrollManager() {
 
 function PageFallback() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <Skeleton className="mb-4 h-8 w-56" />
-      <Skeleton className="mb-10 h-4 w-80" />
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="mx-auto max-w-[1200px] px-6 py-24 sm:px-8 lg:px-12">
+      <Skeleton className="mb-5 h-3 w-24" />
+      <Skeleton className="mb-8 h-9 w-72" />
+      <Skeleton className="mb-16 h-3 w-full max-w-xl" />
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-64 w-full rounded-2xl" />
+          <Skeleton key={i} className="h-72 w-full" />
         ))}
       </div>
     </div>
@@ -58,12 +61,14 @@ export default function App() {
               <Route path="/" element={<Home />} />
               <Route path="/rental" element={<Rental />} />
               <Route path="/rental/:id" element={<MachineDetail />} />
-              <Route path="/ict" element={<Ict />} />
-              <Route path="/simulator" element={<Simulator />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/mypage" element={<MyPage />} />
-              <Route path="/company" element={<Company />} />
+              <Route path="/ictmachine" element={<Ict />} />
+              <Route path="/catalog" element={<Catalog />} />
+              <Route path="/overview" element={<Overview />} />
+              <Route path="/news" element={<News />} />
+              <Route path="/news/:id" element={<NewsDetail />} />
+              <Route path="/recruit" element={<Recruit />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/terms" element={<Terms />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
@@ -72,9 +77,12 @@ export default function App() {
       </div>
       <Toaster
         position="bottom-right"
-        richColors
         toastOptions={{
-          style: { fontFamily: "var(--font-sans)", borderRadius: "14px" },
+          style: {
+            fontFamily: "var(--font-sans)",
+            borderRadius: "2px",
+            fontSize: "13px",
+          },
         }}
       />
     </HashRouter>

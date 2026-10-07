@@ -1,38 +1,38 @@
 import { motion, useInView, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowRight, Loader2 } from "lucide-react";
+
+const EASE = [0.16, 1, 0.3, 1] as const;
 
 /* ---------------- ボタン ---------------- */
 type BtnProps = {
   children: ReactNode;
-  variant?: "primary" | "secondary" | "ghost" | "outline" | "danger";
+  variant?: "solid" | "outline" | "ghost" | "accent";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
   className?: string;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>;
 
 const BTN_BASE =
-  "inline-flex items-center justify-center gap-2 font-bold rounded-full transition-all duration-200 ease-out disabled:opacity-50 disabled:cursor-not-allowed select-none";
+  "group/btn inline-flex items-center justify-center gap-2.5 font-medium rounded-[2px] transition-all duration-300 ease-out disabled:opacity-40 disabled:cursor-not-allowed select-none tracking-wide";
 
 const BTN_VARIANT: Record<string, string> = {
-  primary:
-    "bg-ink-900 text-white hover:bg-ink-800 shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-lift)] hover:-translate-y-0.5 active:translate-y-0",
-  secondary:
-    "bg-sun-500 text-ink-900 hover:bg-sun-400 shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-lift)] hover:-translate-y-0.5 active:translate-y-0",
-  outline: "border border-ink-300 text-ink-800 bg-white hover:bg-ink-50 hover:border-ink-400",
-  ghost: "text-ink-700 hover:bg-ink-100",
-  danger: "bg-ng-500 text-white hover:bg-ng-700",
+  solid: "bg-navy-800 text-white hover:bg-navy-700",
+  accent: "bg-amber-500 text-navy-900 hover:bg-amber-400",
+  outline: "border border-ink-300 text-ink-800 bg-white hover:border-navy-700 hover:text-navy-700",
+  ghost: "text-ink-600 hover:text-navy-700",
 };
 
 const BTN_SIZE: Record<string, string> = {
-  sm: "text-xs px-3.5 py-2",
-  md: "text-sm px-5 py-2.5",
-  lg: "text-[15px] px-7 py-3.5",
+  sm: "text-[12px] px-4 py-2.5",
+  md: "text-[13px] px-6 py-3",
+  lg: "text-[14px] px-9 py-4",
 };
 
 export function Button({
   children,
-  variant = "primary",
+  variant = "solid",
   size = "md",
   loading,
   className = "",
@@ -45,44 +45,75 @@ export function Button({
       disabled={disabled || loading}
       {...rest}
     >
-      {loading && <Loader2 size={15} className="animate-spin" />}
+      {loading && <Loader2 size={14} className="animate-spin" />}
       {children}
     </button>
   );
 }
 
-/* ---------------- バッジ ---------------- */
-export function Badge({
+/** 矢印つきテキストリンク(コーポレートサイトの標準導線) */
+export function ArrowLink({
+  to,
+  children,
+  className = "",
+  tone = "dark",
+}: {
+  to: string;
+  children: ReactNode;
+  className?: string;
+  tone?: "dark" | "light";
+}) {
+  return (
+    <Link
+      to={to}
+      className={`group/al inline-flex items-center gap-3 text-[13px] font-medium tracking-wide transition-colors ${
+        tone === "light" ? "text-white/80 hover:text-white" : "text-ink-700 hover:text-navy-700"
+      } ${className}`}
+    >
+      <span className="underline-grow">{children}</span>
+      <span
+        className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border transition-all duration-300 group-hover/al:translate-x-1 ${
+          tone === "light"
+            ? "border-white/30 group-hover/al:border-white/60"
+            : "border-ink-300 group-hover/al:border-navy-600"
+        }`}
+      >
+        <ArrowRight size={12} />
+      </span>
+    </Link>
+  );
+}
+
+/* ---------------- タグ ---------------- */
+export function Tag({
   children,
   tone = "neutral",
   className = "",
 }: {
   children: ReactNode;
-  tone?: "neutral" | "sun" | "sea" | "ok" | "warn" | "ng";
+  tone?: "neutral" | "navy" | "amber" | "outline";
   className?: string;
 }) {
   const tones: Record<string, string> = {
-    neutral: "bg-ink-100 text-ink-600 border-ink-200",
-    sun: "bg-sun-100 text-sun-900 border-sun-200",
-    sea: "bg-sea-50 text-sea-700 border-sea-200",
-    ok: "bg-ok-100 text-ok-700 border-ok-100",
-    warn: "bg-warn-100 text-warn-700 border-warn-100",
-    ng: "bg-ng-100 text-ng-700 border-ng-100",
+    neutral: "bg-ink-100 text-ink-600",
+    navy: "bg-navy-800 text-white",
+    amber: "bg-amber-100 text-amber-700",
+    outline: "border border-ink-300 text-ink-500",
   };
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold leading-5 ${tones[tone]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-[2px] px-2.5 py-1 text-[10.5px] font-medium leading-4 tracking-wide ${tones[tone]} ${className}`}
     >
       {children}
     </span>
   );
 }
 
-/* ---------------- スクロール連動フェードイン ---------------- */
+/* ---------------- スクロール連動フェード ---------------- */
 export function Reveal({
   children,
   delay = 0,
-  y = 14,
+  y = 18,
   className = "",
 }: {
   children: ReactNode;
@@ -91,14 +122,14 @@ export function Reveal({
   className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-60px" });
+  const inView = useInView(ref, { once: true, margin: "-80px" });
   const reduce = useReducedMotion();
   return (
     <motion.div
       ref={ref}
       initial={reduce ? false : { opacity: 0, y }}
       animate={inView || reduce ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.85, delay, ease: EASE }}
       className={className}
     >
       {children}
@@ -110,7 +141,7 @@ export function Reveal({
 export function CountUp({
   to,
   decimals = 0,
-  duration = 1400,
+  duration = 1600,
   className = "",
 }: {
   to: number;
@@ -133,8 +164,7 @@ export function CountUp({
     const start = performance.now();
     const tick = (now: number) => {
       const p = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setVal(to * eased);
+      setVal(to * (1 - Math.pow(1 - p, 4)));
       if (p < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -151,22 +181,107 @@ export function CountUp({
   );
 }
 
-/* ---------------- スケルトン ---------------- */
-export function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`skeleton rounded-lg ${className}`} />;
+/* ---------------- セクション見出し ---------------- */
+export function SectionHead({
+  en,
+  ja,
+  lead,
+  align = "left",
+  tone = "dark",
+}: {
+  en: string;
+  ja: ReactNode;
+  lead?: string;
+  align?: "left" | "center";
+  tone?: "dark" | "light";
+}) {
+  const center = align === "center";
+  return (
+    <div className={center ? "text-center" : ""}>
+      <div className={`flex items-center gap-3 ${center ? "justify-center" : ""}`}>
+        <span className={`h-px w-6 ${tone === "light" ? "bg-amber-400" : "bg-amber-500"}`} />
+        <span className={`label-en ${tone === "light" ? "text-amber-300" : "text-amber-600"}`}>
+          {en}
+        </span>
+      </div>
+      <h2
+        className={`serif mt-5 text-[26px] leading-[1.5] sm:text-[32px] lg:text-[36px] ${
+          tone === "light" ? "text-white" : "text-ink-900"
+        }`}
+      >
+        {ja}
+      </h2>
+      {lead && (
+        <p
+          className={`mt-6 text-[14px] leading-[2] ${center ? "mx-auto max-w-2xl" : "max-w-2xl"} ${
+            tone === "light" ? "text-white/70" : "text-ink-600"
+          }`}
+        >
+          {lead}
+        </p>
+      )}
+    </div>
+  );
 }
 
-export function MachineCardSkeleton() {
+/* ---------------- ページ見出し(下層ページ共通) ---------------- */
+export function PageHead({
+  en,
+  ja,
+  lead,
+  breadcrumb,
+}: {
+  en: string;
+  ja: string;
+  lead?: string;
+  breadcrumb: { label: string; to?: string }[];
+}) {
   return (
-    <div className="rounded-2xl border border-ink-200 bg-white p-4">
-      <Skeleton className="mb-4 aspect-[3/2] w-full rounded-xl" />
-      <Skeleton className="mb-2 h-4 w-2/3" />
-      <Skeleton className="mb-4 h-3 w-1/3" />
-      <div className="flex gap-2">
-        <Skeleton className="h-6 w-16 rounded-full" />
-        <Skeleton className="h-6 w-16 rounded-full" />
+    <section className="wash border-b border-ink-200">
+      <div className="blueprint">
+        <div className="mx-auto max-w-[1200px] px-6 pb-16 pt-12 sm:px-8 lg:px-12 lg:pb-24 lg:pt-16">
+          <nav className="thin-scroll flex items-center gap-2 overflow-x-auto text-[11px] text-ink-400">
+            {breadcrumb.map((b, i) => (
+              <span key={b.label} className="flex shrink-0 items-center gap-2">
+                {i > 0 && <span className="text-ink-300">/</span>}
+                {b.to ? (
+                  <Link to={b.to} className="transition-colors hover:text-navy-700">
+                    {b.label}
+                  </Link>
+                ) : (
+                  <span className="text-ink-600">{b.label}</span>
+                )}
+              </span>
+            ))}
+          </nav>
+
+          <div className="mt-10 lg:mt-14">
+            <span className="label-en text-amber-600">{en}</span>
+            <h1 className="serif mt-4 text-[30px] leading-[1.4] text-ink-900 sm:text-[40px] lg:text-[46px]">
+              {ja}
+            </h1>
+            {lead && (
+              <p className="mt-6 max-w-2xl text-[14px] leading-[2] text-ink-600">{lead}</p>
+            )}
+          </div>
+        </div>
       </div>
-      <Skeleton className="mt-4 h-8 w-full rounded-full" />
+    </section>
+  );
+}
+
+/* ---------------- スケルトン ---------------- */
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div className={`skeleton ${className}`} />;
+}
+
+export function CardSkeleton() {
+  return (
+    <div className="border border-ink-200 p-6">
+      <Skeleton className="mb-6 aspect-[16/10] w-full" />
+      <Skeleton className="mb-3 h-3.5 w-2/3" />
+      <Skeleton className="mb-6 h-3 w-1/3" />
+      <Skeleton className="h-3 w-full" />
     </div>
   );
 }
@@ -184,49 +299,32 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-ink-300 bg-ink-50 px-6 py-16 text-center">
-      <div className="mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-sun-100 text-sun-800">
+    <div className="flex flex-col items-center justify-center border border-ink-200 bg-ink-25 px-6 py-20 text-center">
+      <div className="mb-6 grid h-14 w-14 place-items-center border border-ink-300 text-ink-400">
         {icon}
       </div>
-      <p className="text-base font-bold text-ink-900">{title}</p>
-      <p className="mt-1.5 max-w-md text-sm leading-relaxed text-ink-500">{desc}</p>
-      {action && <div className="mt-6">{action}</div>}
+      <p className="serif text-[17px] text-ink-900">{title}</p>
+      <p className="mt-3 max-w-md text-[13px] leading-[2] text-ink-500">{desc}</p>
+      {action && <div className="mt-8">{action}</div>}
     </div>
   );
 }
 
-/* ---------------- セクション見出し ---------------- */
-export function SectionHeading({
-  eyebrow,
-  title,
-  desc,
-  align = "left",
-}: {
-  eyebrow: string;
-  title: ReactNode;
-  desc?: string;
-  align?: "left" | "center";
-}) {
+/* ---------------- 罫線つき定義リスト ---------------- */
+export function DefinitionList({ items }: { items: { label: string; value: ReactNode }[] }) {
   return (
-    <div className={align === "center" ? "text-center" : ""}>
-      <div
-        className={`mb-3 flex items-center gap-2.5 ${align === "center" ? "justify-center" : ""}`}
-      >
-        <span className="h-px w-8 bg-sun-600" />
-        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-sun-800">
-          {eyebrow}
-        </span>
-      </div>
-      <h2 className="text-2xl font-black leading-tight tracking-tight text-ink-900 sm:text-3xl md:text-[2.1rem]">
-        {title}
-      </h2>
-      {desc && (
-        <p
-          className={`mt-4 text-[15px] leading-relaxed text-ink-600 ${align === "center" ? "mx-auto max-w-2xl" : "max-w-2xl"}`}
+    <dl className="border-t border-ink-200">
+      {items.map((f) => (
+        <div
+          key={f.label}
+          className="flex flex-col gap-1 border-b border-ink-200 py-5 sm:flex-row sm:gap-10 sm:py-6"
         >
-          {desc}
-        </p>
-      )}
-    </div>
+          <dt className="w-full shrink-0 text-[12px] font-medium tracking-wide text-ink-500 sm:w-40">
+            {f.label}
+          </dt>
+          <dd className="text-[14px] leading-[1.9] text-ink-800">{f.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
