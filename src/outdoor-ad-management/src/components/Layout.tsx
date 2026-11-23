@@ -30,14 +30,12 @@ type NavItem = { to: string; label: string; desc: string; icon: typeof BarChart3
 
 function useNav(): { group: string; items: NavItem[] }[] {
   const deals = useStore((s) => s.deals);
-  const handovers = useStore((s) => s.handovers);
   const orders = useStore((s) => s.orders);
   return useMemo(() => {
     const today = todayISO();
     const due = deals.filter(
       (d) => d.repId === ME_ID && d.nextAction && d.nextAction.date <= today && d.stage !== "受注" && d.stage !== "失注",
     ).length;
-    const pending = handovers.filter((h) => h.status !== "受領済").length;
     const waiting = orders.filter((o) => o.repId === ME_ID && !o.kikakuNo).length;
     return [
       { group: "", items: [{ to: "/", label: "ホーム", desc: "やりたいことを選ぶ", icon: Home, end: true }] },
@@ -65,11 +63,11 @@ function useNav(): { group: string; items: NavItem[] }[] {
         items: [
           { to: "/boards", label: "看板の空き・仮押さえ", desc: "今回の範囲か確認中", icon: LayoutGrid, muted: true },
           { to: "/contracts", label: "契約の一覧", desc: "今回の範囲か確認中", icon: FileSignature, muted: true },
-          { to: "/handover", label: "管理部への書類提出", desc: "今回の範囲か確認中", icon: ArrowRightLeft, badge: pending, muted: true },
+          { to: "/handover", label: "管理部への書類提出", desc: "今回の範囲か確認中", icon: ArrowRightLeft, muted: true },
         ],
       },
     ];
-  }, [deals, handovers, orders]);
+  }, [deals, orders]);
 }
 
 export default function Layout({ children }: { children: ReactNode }) {
