@@ -1,17 +1,24 @@
-import type { CustomerStatus, HandoverStatus, Rank, Stage } from "../data/seed";
+import { STAGE_LABEL, STAGE_NO, type CustomerStatus, type HandoverStatus, type Rank, type Stage } from "../data/seed";
 import type { ContractState } from "../lib/domain";
+import type { Phase } from "../lib/report";
 import { Pill, type Tone } from "./ui";
 
 const STAGE_TONE: Record<Stage, Tone> = {
-  初回接触: "gray",
-  ヒアリング: "gray",
-  提案: "navy",
-  見積提出: "navy",
-  交渉: "solid",
-  成約: "ok",
+  面談予定: "gray",
+  提案済み: "navy",
+  最終調整中: "solid",
+  受注: "ok",
   失注: "bad",
 };
-export const StagePill = ({ stage }: { stage: Stage }) => <Pill tone={STAGE_TONE[stage]}>{stage}</Pill>;
+export const StagePill = ({ stage, full }: { stage: Stage; full?: boolean }) => (
+  <Pill tone={STAGE_TONE[stage]}>
+    {STAGE_NO[stage] && <span className="mr-0.5">{STAGE_NO[stage]}</span>}
+    {full ? STAGE_LABEL[stage] : stage === "失注" ? "見送り・失注" : stage}
+  </Pill>
+);
+
+const PHASE_TONE: Record<Phase, Tone> = { "受注済・未設置": "navy", 設置済: "ok", 解約済: "gray" };
+export const PhasePill = ({ phase }: { phase: Phase }) => <Pill tone={PHASE_TONE[phase]}>{phase}</Pill>;
 
 const CONTRACT_TONE: Record<ContractState, Tone> = {
   掲載予定: "navy",

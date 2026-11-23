@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
 import { Columns3, Handshake, List, Plus, Search, SearchX } from "lucide-react";
 import { useStore, staffName } from "../store";
-import { ME_ID, OPEN_STAGES, STAGE_PROB, STAGES, type Deal, type Stage } from "../data/seed";
+import { ME_ID, OPEN_STAGES, STAGE_DEF, STAGE_LABEL, STAGE_NO, STAGES, type Deal, type Stage } from "../data/seed";
 import { useLoad } from "../lib/useLoad";
 import { daysFromToday, fmtDate, man, yen } from "../lib/format";
 import { DealFormModal } from "../components/forms";
@@ -60,9 +60,9 @@ export default function Deals() {
         case "stage":
           return STAGES.indexOf(d.stage);
         case "amount":
-          return d.monthlyBudget * d.months;
+          return d.monthlyBudget ?? -1;
         case "close":
-          return d.expectedClose;
+          return d.expectedClose || "9999";
         default:
           return d.nextAction?.date ?? "9999";
       }
@@ -76,23 +76,24 @@ export default function Deals() {
 
   const onSort = (k: string) => setSort((s) => ({ key: k, dir: s.key === k ? ((-s.dir) as 1 | -1) : 1 }));
   const open = filtered.filter((d) => OPEN_STAGES.includes(d.stage));
-  const weighted = open.reduce((s, d) => s + (d.monthlyBudget * d.months * STAGE_PROB[d.stage]) / 100, 0);
+  const adSum = open.reduce((s, d) => s + (d.monthlyBudget ?? 0), 0);
+  const missing = open.filter((d) => d.monthlyBudget === null).length;
 
   return (
     <>
       <PageHeader
         eyebrow="Deals"
-        title="商談"
-        description="お客様との商談を、進み具合ごとに並べています。カードを押すと、商談の詳しい画面が開きます。"
+        title="見込み"
+        description="受注前のお客様を、3つの段階に分けて並べています。カードを押すと、見込みの詳しい画面が開きます。"
         guide={[
-          "新しい商談は、右上の「商談を登録」から始めます。",
-          "カードを押して商談を開き、話した内容を「対応を記録」で残します。",
-          "看板が決まったら仮押さえし、契約がまとまったら「成約を登録する」を押します。",
+          "新しい見込みは、右上の「見込みを登録」から始めます。分からない項目は空欄のままで構いません。",
+          "カードを押して見込みを開き、話した内容を「対応を記録」で残します。段階が進んだら段階を変えます。",
+          "受注が決まったら「受注にする」を押します。受注後の情報は、工事指示システムの企画と紐づけます。",
         ]}
         actions={
           <Button onClick={() => setCreating(true)}>
             <Plus size={15} />
-            商談を登録
+            見込みを登録
           </Button>
         }
       />
@@ -113,16 +114,18 @@ export default function Deals() {
           </div>
           {view === "list" && (
             <select
-              className={inputCls + " w-36!"}
+              className={inputCls + " w-56!"}
               value={stage}
               onChange={(e) => {
                 setStage(e.target.value as Stage);
                 setPage(1);
               }}
             >
-              <option value="">全ステージ</option>
+              <option value="">すべての段階</option>
               {STAGES.map((s) => (
-                <option key={s}>{s}</option>
+                <option key={s} value={s}>
+                  {STAGE_NO[s]} {STAGE_LABEL[s]}
+                </option>
               ))}
             </select>
           )}
@@ -140,9 +143,10 @@ export default function Deals() {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-[13px] text-ink-500">
-            進行中 <span className="tnum font-semibold text-navy-900">{open.length}</span>件 / 受注見込み額{" "}
-            <span className="tnum font-semibold text-navy-900">{man(weighted)}</span>
-            <Help label="受注見込み額" text="進行中の商談の金額に、それぞれの確度(契約になる見込みの%)を掛けて合計した金額です。" />
+            進行中 <span className="tnum font-semibold text-navy-900">{open.length}</span>件 / 広告料(月額・税抜){" "}
+            <span className="tnum font-semibold text-navy-900">{man(adSum)}</span>
+            {missing > 0 && <span className="ml-1 text-warn-700">(金額未入力 {missing}件)</span>}
+            <Help label="広告料(月額・税抜)" text="進行中の見込みの広告料(月額)を合計した金額です。金額が未入力の見込みは0円として足さず、件数だけを表示します。" />
           </div>
           <Segmented
             value={view}
@@ -157,21 +161,23 @@ export default function Deals() {
 
       {view === "board" ? (
         <div className="thin-scroll -mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
-          <div className="grid min-w-[900px] grid-cols-5 gap-3">
+          <div className="grid min-w-[720px] grid-cols-3 gap-3">
             {OPEN_STAGES.map((st) => {
               const items = filtered
                 .filter((d) => d.stage === st)
                 .sort((a, b) => (a.nextAction?.date ?? "9").localeCompare(b.nextAction?.date ?? "9"));
-              const sum = items.reduce((s, d) => s + d.monthlyBudget * d.months, 0);
+              const sum = items.reduce((s, d) => s + (d.monthlyBudget ?? 0), 0);
               return (
                 <div key={st} className="flex flex-col rounded-lg border border-ink-200 bg-ink-100/60">
                   <div className="border-b border-ink-200 px-3.5 py-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[15px] font-semibold text-navy-900">{st}</span>
-                      <span className="tnum text-[12px] text-ink-400">確度 {STAGE_PROB[st]}%</span>
+                      <span className="text-[15px] font-semibold text-navy-900">
+                        {STAGE_NO[st]} {STAGE_LABEL[st]}
+                      </span>
                     </div>
-                    <div className="tnum mt-1 text-[12.5px] text-ink-500">
-                      {items.length}件 ・ {man(sum)}
+                    <div className="mt-0.5 text-[12px] leading-snug text-ink-400">{STAGE_DEF[st]}</div>
+                    <div className="tnum mt-1.5 text-[12.5px] text-ink-500">
+                      {items.length}件 ・ 広告料 {man(sum)}/月
                     </div>
                   </div>
                   <div className="flex min-h-40 flex-col gap-2 p-2">
@@ -189,7 +195,14 @@ export default function Deals() {
                             >
                               <div className="truncate text-[14px] font-semibold text-navy-900">{c?.company}</div>
                               <div className="mt-0.5 truncate text-[13px] text-ink-600">{d.title}</div>
-                              <div className="tnum mt-2 text-[15px] font-semibold text-ink-900">{man(d.monthlyBudget * d.months)}</div>
+                              <div className="mt-2 flex items-baseline justify-between gap-2">
+                                {d.monthlyBudget === null ? (
+                                  <span className="text-[13px] text-warn-700">金額未入力</span>
+                                ) : (
+                                  <span className="tnum text-[15px] font-semibold text-ink-900">{man(d.monthlyBudget)}/月</span>
+                                )}
+                                <span className="tnum text-[12px] text-ink-500">{d.expectedClose ? `受注予定 ${d.expectedClose.slice(5).replace("-", "/")}` : "受注予定 未定"}</span>
+                              </div>
                               <div className="mt-2 flex items-center justify-between border-t border-ink-100 pt-2">
                                 <span
                                   className={
@@ -221,11 +234,11 @@ export default function Deals() {
             deals.length === 0 ? (
               <EmptyState
                 icon={<Handshake size={20} />}
-                title="商談が登録されていません"
-                action={<Button onClick={() => setCreating(true)}>商談を登録</Button>}
+                title="見込みが登録されていません"
+                action={<Button onClick={() => setCreating(true)}>見込みを登録</Button>}
               />
             ) : (
-              <EmptyState icon={<SearchX size={20} />} title="該当する商談がありません" description="検索条件を変更してください。" />
+              <EmptyState icon={<SearchX size={20} />} title="該当する見込みがありません" description="検索条件を変更してください。" />
             )
           ) : (
             <>
@@ -234,8 +247,8 @@ export default function Deals() {
                   <thead className={tableHeadCls}>
                     <tr>
                       <SortTh label="顧客 / 案件" k="company" sort={sort} onSort={onSort} />
-                      <SortTh label="ステージ" k="stage" sort={sort} onSort={onSort} />
-                      <SortTh label="見込金額" k="amount" sort={sort} onSort={onSort} className="text-right" />
+                      <SortTh label="段階" k="stage" sort={sort} onSort={onSort} />
+                      <SortTh label="広告料(月額)" k="amount" sort={sort} onSort={onSort} className="text-right" />
                       <SortTh label="受注予定" k="close" sort={sort} onSort={onSort} />
                       <SortTh label="次回対応" k="next" sort={sort} onSort={onSort} />
                       <th className={thCls}>担当</th>
@@ -255,8 +268,8 @@ export default function Deals() {
                         <td className="px-4 py-3">
                           <StagePill stage={d.stage} />
                         </td>
-                        <td className="tnum px-4 py-3 text-right">{yen(d.monthlyBudget * d.months)}</td>
-                        <td className="tnum px-4 py-3 text-ink-600">{fmtDate(d.expectedClose)}</td>
+                        <td className="tnum px-4 py-3 text-right">{d.monthlyBudget === null ? <span className="text-warn-700">未入力</span> : yen(d.monthlyBudget)}</td>
+                        <td className="tnum px-4 py-3 text-ink-600">{d.expectedClose ? fmtDate(d.expectedClose) : "未定"}</td>
                         <td className="px-4 py-3">
                           {d.nextAction ? (
                             <>

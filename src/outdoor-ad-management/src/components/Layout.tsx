@@ -17,6 +17,8 @@ import {
   RotateCcw,
   Home,
   BookOpen,
+  ClipboardList,
+  TrendingUp,
 } from "lucide-react";
 import { useStore } from "../store";
 import { ME_ID, STAFF } from "../data/seed";
@@ -24,38 +26,50 @@ import { todayISO } from "../lib/format";
 import { Avatar, Confirm } from "./ui";
 import Tour, { useTour, useTourSeen } from "./Tour";
 
-type NavItem = { to: string; label: string; desc: string; icon: typeof BarChart3; end?: boolean; badge?: number };
+type NavItem = { to: string; label: string; desc: string; icon: typeof BarChart3; end?: boolean; badge?: number; muted?: boolean };
 
 function useNav(): { group: string; items: NavItem[] }[] {
   const deals = useStore((s) => s.deals);
   const handovers = useStore((s) => s.handovers);
+  const orders = useStore((s) => s.orders);
   return useMemo(() => {
     const today = todayISO();
     const due = deals.filter(
-      (d) => d.repId === ME_ID && d.nextAction && d.nextAction.date <= today && d.stage !== "成約" && d.stage !== "失注",
+      (d) => d.repId === ME_ID && d.nextAction && d.nextAction.date <= today && d.stage !== "受注" && d.stage !== "失注",
     ).length;
     const pending = handovers.filter((h) => h.status !== "受領済").length;
+    const waiting = orders.filter((o) => o.repId === ME_ID && !o.kikakuNo).length;
     return [
       { group: "", items: [{ to: "/", label: "ホーム", desc: "やりたいことを選ぶ", icon: Home, end: true }] },
       {
         group: "営業",
         items: [
           { to: "/follow-ups", label: "やること一覧", desc: "お客様への次回対応", icon: CalendarClock, badge: due },
-          { to: "/deals", label: "商談", desc: "進めている商談", icon: Handshake },
+          { to: "/deals", label: "見込み", desc: "受注前の案件・3段階", icon: Handshake },
           { to: "/customers", label: "お客様", desc: "見込み客・広告主", icon: Building2 },
         ],
       },
-      { group: "看板", items: [{ to: "/boards", label: "看板の空きを探す", desc: "空き状況・仮押さえ", icon: LayoutGrid }] },
       {
-        group: "契約",
+        group: "受注〜解約",
+        items: [{ to: "/orders", label: "受注・設置・解約", desc: "工事指示システムと連携", icon: ClipboardList, badge: waiting }],
+      },
+      {
+        group: "集計",
         items: [
-          { to: "/contracts", label: "契約の一覧", desc: "広告契約・土地契約", icon: FileSignature },
-          { to: "/handover", label: "管理部への書類提出", desc: "確認・差し戻しの状況", icon: ArrowRightLeft, badge: pending },
+          { to: "/report", label: "営業報告", desc: "今月・来月・再来月", icon: TrendingUp },
+          { to: "/dashboard", label: "経営ダッシュボード", desc: "部長・社長向け", icon: BarChart3 },
         ],
       },
-      { group: "経営", items: [{ to: "/dashboard", label: "会社全体の数字", desc: "新規・解約・稼働率", icon: BarChart3 }] },
+      {
+        group: "確認中の機能",
+        items: [
+          { to: "/boards", label: "看板の空き・仮押さえ", desc: "今回の範囲か確認中", icon: LayoutGrid, muted: true },
+          { to: "/contracts", label: "契約の一覧", desc: "今回の範囲か確認中", icon: FileSignature, muted: true },
+          { to: "/handover", label: "管理部への書類提出", desc: "今回の範囲か確認中", icon: ArrowRightLeft, badge: pending, muted: true },
+        ],
+      },
     ];
-  }, [deals, handovers]);
+  }, [deals, handovers, orders]);
 }
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -122,7 +136,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <Menu size={19} />
             </button>
             <div className="truncate text-[15px] text-ink-500">
-              <span className="hidden sm:inline">営業・看板管理システム</span>
+              <span className="hidden sm:inline">営業管理システム</span>
               {current && (
                 <>
                   <span className="mx-2 hidden text-ink-300 sm:inline">/</span>
@@ -171,13 +185,18 @@ function SideContent({ nav, onNavigate }: { nav: ReturnType<typeof useNav>; onNa
         <Logo />
         <div className="leading-tight">
           <div className="font-serif text-[17px] font-semibold tracking-[0.12em]">○○広告社</div>
-          <div className="mt-1 text-[11.5px] tracking-[0.08em] text-white/50">営業・看板管理システム</div>
+          <div className="mt-1 text-[11.5px] tracking-[0.08em] text-white/50">営業管理システム</div>
         </div>
       </div>
       <nav data-tour="nav" className="thin-scroll flex-1 overflow-y-auto px-3">
         {nav.map((g) => (
           <div key={g.group || "home"} className="mb-4">
             {g.group && <div className="px-3 pb-1.5 text-[12px] tracking-[0.2em] text-white/40">{g.group}</div>}
+            {g.group === "確認中の機能" && (
+              <div className="mx-3 mb-2 rounded border border-white/10 px-2.5 py-1.5 text-[11.5px] leading-relaxed text-white/45">
+                最初のご要望で作った画面です。今回作るかは確認中です(Q10)。
+              </div>
+            )}
             {g.items.map((it) => (
               <NavLink
                 key={it.to}
@@ -187,7 +206,7 @@ function SideContent({ nav, onNavigate }: { nav: ReturnType<typeof useNav>; onNa
                 onClick={onNavigate}
                 className={({ isActive }) =>
                   "group relative mb-1 flex min-h-12 items-center gap-3 rounded-md px-3 py-1.5 text-[15px] transition duration-200 " +
-                  (isActive ? "bg-white/10 font-medium text-white" : "text-white/65 hover:bg-white/5 hover:text-white")
+                  (isActive ? "bg-white/10 font-medium text-white" : it.muted ? "text-white/45 hover:bg-white/5 hover:text-white" : "text-white/65 hover:bg-white/5 hover:text-white")
                 }
               >
                 {({ isActive }) => (

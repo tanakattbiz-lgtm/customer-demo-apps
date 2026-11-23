@@ -5,9 +5,21 @@ import { useStore, uid } from "../store";
 import {
   ACTIVITY_TYPES,
   AREAS,
+  CHANNELS,
+  FACE_COUNT_LABEL,
+  HEIGHT_CLASSES,
+  LAND_TYPES,
   ME_ID,
   OPEN_STAGES,
+  SIGN_TYPES,
   STAFF,
+  STAGE_DEF,
+  STAGE_LABEL,
+  STAGE_NO,
+  type Channel,
+  type HeightClass,
+  type LandType,
+  type SignType,
   type ActivityType,
   type Area,
   type Board,
@@ -22,6 +34,7 @@ import { fakeApi } from "../lib/fakeApi";
 import { addMonthKey, fmtMonth, fmtPeriod, monthRange, thisMonth, todayISO, yen } from "../lib/format";
 import { buildIndex, isFree } from "../lib/domain";
 import { Button, Field, Modal, Segmented, errCls, inputCls, textareaCls } from "./ui";
+import { QTag } from "./tags";
 
 const inDays = (n: number) => format(addDays(new Date(), n), "yyyy-MM-dd");
 
@@ -232,7 +245,150 @@ export function NextActionModal({ open, onClose, deal }: { open: boolean; onClos
   );
 }
 
-// =============== 商談 作成・編集 ===============
+// =============== 見込み(商談) 作成・編集 ===============
+const numOrNull = (v: string) => (v.trim() === "" ? null : Number(v));
+const strOf = (v: number | null | undefined) => (v === null || v === undefined ? "" : String(v));
+
+/** お客様の検索選択(項目定義 I01: 既存顧客は検索選択。同じ名前だけで統合しない) */
+export function CustomerPicker({
+  value,
+  onChange,
+  disabled,
+  error,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  disabled?: boolean;
+  error?: boolean;
+}) {
+  const customers = useStore((s) => s.customers);
+  const [q, setQ] = useState("");
+  const selected = customers.find((c) => c.id === value);
+  const list = useMemo(() => {
+    const kw = q.trim();
+    return [...customers]
+      .filter((c) => !kw || c.company.includes(kw) || c.contact.includes(kw) || c.phone.includes(kw))
+      .sort((a, b) => Number(b.repId === ME_ID) - Number(a.repId === ME_ID) || a.company.localeCompare(b.company, "ja"))
+      .slice(0, 8);
+  }, [customers, q]);
+  if (selected)
+    return (
+      <div className={"flex min-h-11 items-center justify-between gap-2 rounded-md border px-3 py-2 " + (disabled ? "border-ink-200 bg-ink-50" : "border-navy-200 bg-navy-50/50")}>
+        <div className="min-w-0">
+          <div className="truncate text-[15px] font-medium text-navy-900">{selected.company}</div>
+          <div className="truncate text-[12.5px] text-ink-500">
+            {selected.industry} ・ {selected.address} ・ 担当 {STAFF.find((x) => x.id === selected.repId)?.name}
+          </div>
+        </div>
+        {!disabled && (
+          <button type="button" onClick={() => onChange("")} className="shrink-0 rounded px-2 py-1 text-[13px] text-navy-700 hover:bg-white">
+            変更
+          </button>
+        )}
+      </div>
+    );
+  return (
+    <div>
+      <input
+        className={inputCls + (error ? errCls : "")}
+        placeholder="会社名・担当者名・電話番号で検索"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+      />
+      <div className="thin-scroll mt-1.5 max-h-52 overflow-y-auto rounded-md border border-ink-200">
+        {list.length === 0 ? (
+          <div className="px-3 py-3 text-[13.5px] text-ink-500">
+            該当するお客様がいません。新しいお客様は「お客様」の画面で登録してください。
+          </div>
+        ) : (
+          list.map((c) => (
+            <button
+              type="button"
+              key={c.id}
+              onClick={() => onChange(c.id)}
+              className="flex min-h-11 w-full items-center justify-between gap-2 border-b border-ink-100 px-3 py-2 text-left last:border-0 hover:bg-navy-50"
+            >
+              <span className="min-w-0">
+                <span className="block truncate text-[14.5px] text-ink-900">{c.company}</span>
+                <span className="block truncate text-[12px] text-ink-500">
+                  {c.contact} ・ {c.phone}
+                </span>
+              </span>
+              <span className="shrink-0 text-[12px] text-ink-400">{c.status}</span>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** 押しやすい選択ボタン(iPadで指で選ぶ前提) */
+export function ChoiceButtons<T extends string | number>({
+  value,
+  onChange,
+  items,
+  allowEmpty,
+}: {
+  value: T | null;
+  onChange: (v: T | null) => void;
+  items: { value: T; label: string; sub?: string }[];
+  allowEmpty?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((it) => {
+        const on = value === it.value;
+        return (
+          <button
+            type="button"
+            key={String(it.value)}
+            onClick={() => onChange(on && allowEmpty ? null : it.value)}
+            className={
+              "min-h-11 rounded-md border px-3.5 py-2 text-left text-[14.5px] transition " +
+              (on ? "border-navy-900 bg-navy-900 text-white" : "border-ink-300 bg-white text-ink-700 hover:border-navy-300")
+            }
+          >
+            <span className="block leading-tight">{it.label}</span>
+            {it.sub && <span className={"mt-0.5 block text-[12px] leading-snug " + (on ? "text-white/75" : "text-ink-400")}>{it.sub}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function MoneyInput({ value, onChange, placeholder, invalid }: { value: string; onChange: (v: string) => void; placeholder?: string; invalid?: boolean }) {
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[14px] text-ink-400">¥</span>
+      <input
+        type="number"
+        inputMode="numeric"
+        min={0}
+        step={1000}
+        className={inputCls + " tnum pl-7!" + (invalid ? errCls : "")}
+        placeholder={placeholder ?? "未入力"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  );
+}
+
+/** フォームの区切り(描画のたびに作り直さないよう、コンポーネントの外に置く) */
+export function Sec({ title, q, children }: { title: string; q?: string[]; children: React.ReactNode }) {
+  return (
+    <section className="border-t border-ink-100 pt-4 first:border-0 first:pt-0">
+      <div className="mb-3 flex flex-wrap items-center gap-1.5 text-[14.5px] font-semibold text-navy-900">
+        {title}
+        {q?.map((x) => <QTag key={x} id={x} />)}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export function DealFormModal({
   open,
   onClose,
@@ -247,18 +403,32 @@ export function DealFormModal({
   onSaved?: (id: string) => void;
 }) {
   const customers = useStore((s) => s.customers);
+  const deals = useStore((s) => s.deals);
   const saveDeal = useStore((s) => s.saveDeal);
-  const [f, setF] = useState({
+  const blank = {
     customerId: "",
     title: "",
-    stage: "初回接触" as Stage,
+    stage: "面談予定" as Stage,
     monthlyBudget: "",
+    makeupFee: "",
+    landRent: "",
     months: "12",
     expectedClose: "",
+    noClose: false,
     repId: ME_ID,
     nextDate: "",
     nextContent: "",
-  });
+    widthMm: "",
+    heightMm: "",
+    faceCount: null as number | null,
+    heightClass: null as HeightClass | null,
+    signType: null as SignType | null,
+    landType: null as LandType | null,
+    channel: "営業開拓" as Channel | null,
+    investment: false,
+    notes: "",
+  };
+  const [f, setF] = useState(blank);
   const [touched, setTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -267,39 +437,56 @@ export function DealFormModal({
     setF(
       deal
         ? {
+            ...blank,
             customerId: deal.customerId,
             title: deal.title,
             stage: deal.stage,
-            monthlyBudget: String(deal.monthlyBudget),
+            monthlyBudget: strOf(deal.monthlyBudget),
+            makeupFee: strOf(deal.makeupFee),
+            landRent: strOf(deal.landRent),
             months: String(deal.months),
             expectedClose: deal.expectedClose,
+            noClose: !deal.expectedClose,
             repId: deal.repId,
-            nextDate: "",
-            nextContent: "",
+            widthMm: strOf(deal.widthMm),
+            heightMm: strOf(deal.heightMm),
+            faceCount: deal.faceCount,
+            heightClass: deal.heightClass,
+            signType: deal.signType,
+            landType: deal.landType,
+            channel: deal.channel,
+            investment: deal.investment,
+            notes: deal.notes,
           }
-        : {
-            customerId: customerId ?? "",
-            title: "",
-            stage: "初回接触",
-            monthlyBudget: "",
-            months: "12",
-            expectedClose: inDays(45),
-            repId: ME_ID,
-            nextDate: inDays(3),
-            nextContent: "",
-          },
+        : { ...blank, customerId: customerId ?? "", expectedClose: inDays(45), nextDate: inDays(3) },
     );
   }, [open, deal, customerId]);
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setF((p) => ({ ...p, [k]: e.target.value }));
-  const budget = Number(f.monthlyBudget);
+  const set = <K extends keyof typeof f>(k: K) => (v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
+  const ev = (k: "title" | "expectedClose" | "nextDate" | "nextContent" | "widthMm" | "heightMm" | "months" | "repId" | "notes") =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
+
+  const ad = numOrNull(f.monthlyBudget);
+  const makeup = numOrNull(f.makeupFee);
+  const rent = numOrNull(f.landRent);
+  const neg = (v: number | null) => v !== null && !(v >= 0);
   const errs = {
-    customerId: !f.customerId ? "顧客を選択してください" : "",
+    customerId: !f.customerId ? "お客様を選択してください" : "",
     title: !f.title.trim() ? "案件名を入力してください" : "",
-    monthlyBudget: !f.monthlyBudget ? "月額予算を入力してください" : !(budget > 0) ? "正しい金額を入力してください" : "",
-    expectedClose: !f.expectedClose ? "受注予定日を選択してください" : "",
+    monthlyBudget: neg(ad) ? "0以上の金額を入力してください" : "",
+    makeupFee: neg(makeup) ? "0以上の金額を入力してください" : "",
+    landRent: neg(rent) ? "0以上の金額を入力してください" : "",
+    expectedClose: !f.noClose && !f.expectedClose ? "受注予定日を選択するか「未定」を選んでください" : "",
+    size: (f.widthMm && !(Number(f.widthMm) > 0)) || (f.heightMm && !(Number(f.heightMm) > 0)) ? "寸法は正の数(mm)で入力してください" : "",
   };
   const invalid = Object.values(errs).some(Boolean);
+  const ratio = ad && rent !== null ? rent / (ad * 12) : null;
+  const customer = customers.find((c) => c.id === f.customerId);
+  // 重複訪問の防止: 同じお客様の進行中の見込みを、ほかの担当者が持っていないか
+  const others = deals.filter(
+    (d) => d.customerId === f.customerId && d.id !== deal?.id && OPEN_STAGES.includes(d.stage) && d.repId !== f.repId,
+  );
+  const rep = STAFF.find((x) => x.id === f.repId);
+
   const submit = async () => {
     setTouched(true);
     if (invalid) return;
@@ -312,108 +499,200 @@ export function DealFormModal({
       customerId: f.customerId,
       title: f.title.trim(),
       stage: f.stage,
-      monthlyBudget: budget,
+      monthlyBudget: ad,
+      makeupFee: makeup,
+      landRent: rent,
       months: Number(f.months),
-      expectedClose: f.expectedClose,
+      expectedClose: f.noClose ? "" : f.expectedClose,
       repId: f.repId,
+      widthMm: numOrNull(f.widthMm),
+      heightMm: numOrNull(f.heightMm),
+      faceCount: f.faceCount,
+      heightClass: f.heightClass,
+      signType: f.signType,
+      landType: f.landType,
+      channel: f.channel,
+      investment: f.investment,
+      notes: f.notes.trim(),
       nextAction: deal ? deal.nextAction : f.nextDate && f.nextContent.trim() ? { date: f.nextDate, content: f.nextContent.trim() } : null,
       updatedAt: todayISO(),
     } as Deal);
     setBusy(false);
-    toast.success(deal ? "商談を更新しました" : "商談を登録しました");
+    toast.success(deal ? "見込みを更新しました" : "見込みを登録しました");
     onClose();
     onSaved?.(id);
   };
   const err = (k: keyof typeof errs) => (touched ? errs[k] : "");
-  const sortedCustomers = useMemo(
-    () => [...customers].sort((a, b) => Number(b.repId === ME_ID) - Number(a.repId === ME_ID) || a.company.localeCompare(b.company, "ja")),
-    [customers],
-  );
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={deal ? "商談を編集" : "商談を登録"}
-      width={600}
+      title={deal ? "見込みを編集" : "見込みを登録"}
+      sub="一度登録した内容は、受注・設置・解約まで引き継がれます。分からない項目は空欄のままで登録できます。"
+      width={720}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
             キャンセル
           </Button>
-          <Button onClick={submit} loading={busy}>
+          <Button data-tour="deal-submit" onClick={submit} loading={busy}>
             {deal ? "保存する" : "登録する"}
           </Button>
         </>
       }
     >
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="顧客" required error={err("customerId")} className="sm:col-span-2">
-          <select className={inputCls + (err("customerId") ? errCls : "")} value={f.customerId} onChange={set("customerId")} disabled={!!deal}>
-            <option value="">選択してください</option>
-            {sortedCustomers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.company}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="案件名" required error={err("title")} className="sm:col-span-2">
-          <input className={inputCls + (err("title") ? errCls : "")} placeholder="例: 新店オープン告知" value={f.title} onChange={set("title")} />
-        </Field>
-        <Field label="ステージ">
-          <select className={inputCls} value={f.stage} onChange={set("stage")}>
-            {OPEN_STAGES.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-        </Field>
-        <Field label="担当">
-          <select className={inputCls} value={f.repId} onChange={set("repId")}>
-            {STAFF.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}({s.branch})
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="月額予算(円)" required error={err("monthlyBudget")}>
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            step={10000}
-            className={inputCls + " tnum" + (err("monthlyBudget") ? errCls : "")}
-            placeholder="150000"
-            value={f.monthlyBudget}
-            onChange={set("monthlyBudget")}
+      <div className="space-y-5">
+        <Sec title="お客様と案件">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <div className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium text-ink-600">
+                お客様 <span className="text-[11.5px] font-normal text-bad-500">必須</span>
+              </div>
+              <CustomerPicker value={f.customerId} onChange={set("customerId")} disabled={!!deal} error={!!err("customerId")} />
+              {err("customerId") && <div className="mt-1 text-[12.5px] text-bad-600">{err("customerId")}</div>}
+              {others.length > 0 && (
+                <div className="mt-2 rounded-md border border-warn-300 bg-warn-50 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-warn-700">
+                  このお客様には、ほかの担当者の見込みがあります(重複訪問に注意):
+                  {others.map((o) => (
+                    <span key={o.id} className="ml-1 font-medium">
+                      {STAFF.find((x) => x.id === o.repId)?.name}({STAFF.find((x) => x.id === o.repId)?.branch}・{STAGE_NO[o.stage]}{o.stage})
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Field label="案件名" required error={err("title")}>
+              <input className={inputCls + (err("title") ? errCls : "")} placeholder="例: 新店オープン告知" value={f.title} onChange={ev("title")} />
+            </Field>
+            <Field label="業種" hint="お客様の情報から自動で入ります(業種マスター)">
+              <input className={inputCls + " bg-ink-50"} value={customer?.industry ?? ""} placeholder="お客様を選ぶと入ります" readOnly />
+            </Field>
+            <Field label="営業担当者" hint={rep ? `所属: ${rep.area} / ${rep.branch}(自動)` : undefined}>
+              <select className={inputCls} value={f.repId} onChange={ev("repId")}>
+                {STAFF.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}({s.branch})
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <div>
+              <div className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium text-ink-600">
+                案件獲得経路 <QTag id="Q04" />
+              </div>
+              <select className={inputCls} value={f.channel ?? ""} onChange={(e) => set("channel")((e.target.value || null) as Channel | null)}>
+                {CHANNELS.map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+              <label className="mt-2 flex items-center gap-2 text-[14px] text-ink-700">
+                <input type="checkbox" className="h-5 w-5 accent-[oklch(29.5%_0.047_262)]" checked={f.investment} onChange={(e) => set("investment")(e.target.checked)} />
+                投資看板の案件(獲得経路とは別に記録)
+              </label>
+            </div>
+          </div>
+        </Sec>
+
+        <Sec title="見込みの段階" q={["Q02"]}>
+          <ChoiceButtons
+            value={f.stage}
+            onChange={(v) => v && set("stage")(v)}
+            items={OPEN_STAGES.map((s) => ({ value: s, label: `${STAGE_NO[s]} ${STAGE_LABEL[s]}`, sub: STAGE_DEF[s] }))}
           />
-        </Field>
-        <Field label="掲載期間">
-          <select className={inputCls} value={f.months} onChange={set("months")}>
-            {[3, 6, 12, 24, 36].map((m) => (
-              <option key={m} value={m}>
-                {m}ヶ月
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="受注予定日" required error={err("expectedClose")}>
-          <input type="date" className={inputCls} value={f.expectedClose} onChange={set("expectedClose")} />
-        </Field>
-        <div className="flex items-end pb-2 text-[14px] text-ink-500">
-          見込金額 <span className="tnum ml-2 text-[16px] font-semibold text-navy-900">{yen((budget || 0) * Number(f.months))}</span>
-        </div>
-        {!deal && (
-          <>
-            <Field label="次回対応日">
-              <input type="date" className={inputCls} value={f.nextDate} onChange={set("nextDate")} />
+          <div className="mt-3 grid gap-3 sm:grid-cols-[220px_1fr] sm:items-end">
+            <Field label="受注予定日" error={err("expectedClose")}>
+              <input type="date" className={inputCls} value={f.noClose ? "" : f.expectedClose} disabled={f.noClose} onChange={ev("expectedClose")} />
             </Field>
-            <Field label="次回対応内容">
-              <input className={inputCls} placeholder="例: 初回訪問" value={f.nextContent} onChange={set("nextContent")} />
+            <label className="flex min-h-11 items-center gap-2 text-[14px] text-ink-700">
+              <input type="checkbox" className="h-5 w-5 accent-[oklch(29.5%_0.047_262)]" checked={f.noClose} onChange={(e) => set("noClose")(e.target.checked)} />
+              まだ決まっていない(空欄で登録)
+            </label>
+          </div>
+        </Sec>
+
+        <Sec title="金額(税抜)" q={["Q05"]}>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="広告料(月額)" error={err("monthlyBudget")}>
+              <MoneyInput value={f.monthlyBudget} onChange={set("monthlyBudget")} invalid={!!err("monthlyBudget")} />
             </Field>
-          </>
-        )}
+            <Field label="化粧料" error={err("makeupFee")}>
+              <MoneyInput value={f.makeupFee} onChange={set("makeupFee")} invalid={!!err("makeupFee")} />
+            </Field>
+            <Field label="地代(年額・税換算なし)" error={err("landRent")}>
+              <MoneyInput value={f.landRent} onChange={set("landRent")} invalid={!!err("landRent")} />
+            </Field>
+          </div>
+          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-md bg-ink-50 px-3.5 py-2.5 text-[13.5px] text-ink-600">
+            <span>空欄は「未入力」、0円のときは 0 を入力します(集計で区別します)。</span>
+            <span>
+              地代比率 <span className="tnum font-semibold text-navy-900">{ratio === null ? "計算不可" : (ratio * 100).toFixed(1) + "%"}</span>
+              <span className="ml-1 text-[12px] text-ink-400">= 地代 ÷(広告料 × 12)</span>
+            </span>
+          </div>
+        </Sec>
+
+        <Sec title="看板" q={["Q03"]}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="看板の区分">
+              <select className={inputCls} value={f.signType ?? ""} onChange={(e) => set("signType")((e.target.value || null) as SignType | null)}>
+                <option value="">未選択</option>
+                {SIGN_TYPES.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="土地の区分">
+              <select className={inputCls} value={f.landType ?? ""} onChange={(e) => set("landType")((e.target.value || null) as LandType | null)}>
+                <option value="">未選択</option>
+                {LAND_TYPES.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="横幅(mm)" error={err("size")}>
+              <input type="number" inputMode="numeric" className={inputCls + " tnum"} placeholder="例: 6000" value={f.widthMm} onChange={ev("widthMm")} />
+            </Field>
+            <Field label="縦幅(mm)">
+              <input type="number" inputMode="numeric" className={inputCls + " tnum"} placeholder="例: 3000" value={f.heightMm} onChange={ev("heightMm")} />
+            </Field>
+            <div>
+              <div className="mb-1.5 text-[13px] font-medium text-ink-600">面数</div>
+              <ChoiceButtons allowEmpty value={f.faceCount} onChange={set("faceCount")} items={[1, 2, 3, 4].map((n) => ({ value: n, label: FACE_COUNT_LABEL[n] }))} />
+            </div>
+            <div>
+              <div className="mb-1.5 text-[13px] font-medium text-ink-600">高さ区分</div>
+              <ChoiceButtons allowEmpty value={f.heightClass} onChange={set("heightClass")} items={HEIGHT_CLASSES.map((h) => ({ value: h, label: h }))} />
+            </div>
+          </div>
+        </Sec>
+
+        <Sec title="その他">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {!deal && (
+              <>
+                <Field label="次回対応日">
+                  <input type="date" className={inputCls} value={f.nextDate} onChange={ev("nextDate")} />
+                </Field>
+                <Field label="次回対応の内容">
+                  <input className={inputCls} placeholder="例: 責任者と初回面談" value={f.nextContent} onChange={ev("nextContent")} />
+                </Field>
+              </>
+            )}
+            <Field label="掲載期間の希望" hint="看板の空き検索(確認中の機能)で使います">
+              <select className={inputCls} value={f.months} onChange={ev("months")}>
+                {[3, 6, 12, 24, 36].map((m) => (
+                  <option key={m} value={m}>
+                    {m}ヶ月
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="案件の備考・注意事項" className="sm:col-span-2">
+              <textarea className={textareaCls} placeholder="例: 決裁は本社。設置工事は土日不可。" value={f.notes} onChange={ev("notes")} />
+            </Field>
+          </div>
+        </Sec>
       </div>
     </Modal>
   );
@@ -442,7 +721,7 @@ export function CustomerFormModal({
     area: "大阪" as Area,
     rank: "B" as Rank,
     status: "見込み" as CustomerStatus,
-    source: "飛び込み",
+    source: "営業開拓",
     repId: ME_ID,
     memo: "",
   };
@@ -543,7 +822,7 @@ export function CustomerFormModal({
         </Field>
         <Field label="獲得経路">
           <select className={inputCls} value={f.source} onChange={set("source")}>
-            {["飛び込み", "紹介", "問い合わせ", "既存深耕", "展示会"].map((r) => (
+            {CHANNELS.map((r) => (
               <option key={r}>{r}</option>
             ))}
           </select>

@@ -16,6 +16,8 @@ import {
   type Hold,
   type LandContract,
   type NextAction,
+  type Order,
+  type Attachment,
   type SeedData,
   type Stage,
 } from "./data/seed";
@@ -43,6 +45,17 @@ const emptyLive = (): LiveStats => ({
   newLand: 0,
 });
 
+export interface OrderInput {
+  orderDate: string;
+  plannedInstallDate: string | null;
+  adFee: number | null;
+  makeupFee: number | null;
+  landRent: number | null;
+  kikakuNo: string | null;
+  boardName: string;
+  attachments: Omit<Attachment, "id" | "uploadedAt" | "by">[];
+}
+
 export interface CloseInput {
   faceIds: string[];
   startMonth: string;
@@ -64,7 +77,16 @@ interface State extends SeedData {
   // 商談
   saveDeal: (d: Deal) => void;
   removeDeal: (id: string) => void;
-  setStage: (id: string, stage: Stage, lostReason?: string) => void;
+  setStage: (id: string, stage: Stage, lost?: { kind: "見送り" | "失注"; reason: string }) => void;
+  // 受注〜設置〜解約
+  registerOrder: (dealId: string, input: OrderInput) => string;
+  syncOrder: (id: string, kikakuNo?: string) => void;
+  installOrder: (id: string, date: string) => void;
+  planCancel: (id: string, input: { plannedDate: string; fee: number; partial: boolean; reason: string }) => void;
+  withdrawCancel: (orderId: string, cancelId: string) => void;
+  confirmCancel: (orderId: string, cancelId: string, actualDate: string) => void;
+  addAttachments: (orderId: string, files: Omit<Attachment, "id" | "uploadedAt" | "by">[]) => void;
+  removeAttachment: (orderId: string, fileId: string) => void;
   setNextAction: (id: string, na: NextAction | null) => void;
   addActivity: (a: Activity, next?: NextAction | null) => void;
   // 仮押さえ
@@ -141,14 +163,16 @@ export const useStore = create<State>()(
           activities: s.activities.map((a) => (a.dealId === id ? { ...a, dealId: undefined } : a)),
           holds: s.holds.filter((h) => h.dealId !== id),
         })),
-      setStage: (id, stage, lostReason) =>
+      setStage: (id, stage, lost) =>
         set((s) => ({
           deals: s.deals.map((d) =>
             d.id === id
               ? {
                   ...d,
                   stage,
-                  lostReason: stage === "失注" ? lostReason : undefined,
+                  lostKind: stage === "失注" ? lost?.kind : undefined,
+                  lostReason: stage === "失注" ? lost?.reason : undefined,
+                  closedLostAt: stage === "失注" ? todayISO() : undefined,
                   nextAction: stage === "失注" ? null : d.nextAction,
                   updatedAt: todayISO(),
                 }
@@ -213,7 +237,7 @@ export const useStore = create<State>()(
           handovers: [handover, ...s.handovers],
           holds: s.holds.filter((h) => h.dealId !== dealId),
           deals: s.deals.map((d) =>
-            d.id === dealId ? { ...d, stage: "成約", contractId: id, nextAction: null, updatedAt: todayISO() } : d,
+            d.id === dealId ? { ...d, stage: "受注", contractId: id, nextAction: null, updatedAt: todayISO() } : d,
           ),
           customers: s.customers.map((c) => (c.id === deal.customerId ? { ...c, status: "取引中" } : c)),
           live: bumpLive(s.live, { newAd: 1, newAdFaces: input.faceIds.length }),
@@ -290,11 +314,110 @@ export const useStore = create<State>()(
       terminateLand: (id) =>
         set((s) => ({ lands: s.lands.map((l) => (l.id === id ? { ...l, terminated: true, autoRenew: false } : l)) })),
 
+      registerOrder: (dealId, input) => {
+        const s = get();
+        const deal = s.deals.find((d) => d.id === dealId)!;
+        const id = uid("o");
+        const at = now();
+        const order: Order = {
+          id,
+          kikakuNo: input.kikakuNo,
+          syncedAt: input.kikakuNo ? at : null,
+          dealId,
+          customerId: deal.customerId,
+          repId: deal.repId,
+          title: deal.title,
+          boardName: input.boardName,
+          orderDate: input.orderDate,
+          plannedInstallDate: input.plannedInstallDate,
+          actualInstallDate: null,
+          adFee: input.adFee,
+          cancels: [],
+          attachments: input.attachments.map((f) => ({ ...f, id: uid("f"), uploadedAt: todayISO(), by: meName() })),
+          legacy: false,
+          notes: deal.notes,
+          widthMm: deal.widthMm,
+          heightMm: deal.heightMm,
+          faceCount: deal.faceCount,
+          heightClass: deal.heightClass,
+          signType: deal.signType,
+          landType: deal.landType,
+          channel: deal.channel,
+          investment: deal.investment,
+          makeupFee: input.makeupFee,
+          landRent: input.landRent,
+        };
+        set({
+          orders: [order, ...s.orders],
+          holds: s.holds.filter((h) => h.dealId !== dealId),
+          deals: s.deals.map((d) => (d.id === dealId ? { ...d, stage: "受注", orderId: id, nextAction: null, updatedAt: todayISO() } : d)),
+          customers: s.customers.map((c) => (c.id === deal.customerId ? { ...c, status: "取引中" } : c)),
+        });
+        return id;
+      },
+      syncOrder: (id, kikakuNo) =>
+        set((s) => {
+          const max = s.orders.reduce((m, o) => Math.max(m, Number(o.kikakuNo ?? 0)), 0);
+          return {
+            orders: s.orders.map((o) =>
+              o.id === id ? { ...o, kikakuNo: o.kikakuNo ?? kikakuNo ?? String(max + 1).padStart(9, "0"), syncedAt: now() } : o,
+            ),
+          };
+        }),
+      installOrder: (id, date) =>
+        set((s) => ({ orders: s.orders.map((o) => (o.id === id ? { ...o, actualInstallDate: date, syncedAt: now() } : o)) })),
+      planCancel: (id, input) =>
+        set((s) => ({
+          orders: s.orders.map((o) =>
+            o.id === id
+              ? {
+                  ...o,
+                  cancels: [
+                    ...o.cancels,
+                    { id: uid("x"), plannedDate: input.plannedDate, actualDate: null, fee: input.fee, partial: input.partial, reason: input.reason, wfNo: null, withdrawn: false, registeredAt: todayISO() },
+                  ],
+                }
+              : o,
+          ),
+        })),
+      withdrawCancel: (orderId, cancelId) =>
+        set((s) => ({
+          orders: s.orders.map((o) =>
+            o.id === orderId ? { ...o, cancels: o.cancels.map((c) => (c.id === cancelId ? { ...c, withdrawn: true } : c)) } : o,
+          ),
+        })),
+      confirmCancel: (orderId, cancelId, actualDate) =>
+        set((s) => ({
+          orders: s.orders.map((o) =>
+            o.id === orderId
+              ? {
+                  ...o,
+                  syncedAt: now(),
+                  cancels: o.cancels.map((c) =>
+                    c.id === cancelId ? { ...c, actualDate, wfNo: c.wfNo ?? `WF${actualDate.slice(2, 4)}${actualDate.slice(5, 7)}-${String(Math.floor(Math.random() * 9000) + 1000)}` } : c,
+                  ),
+                }
+              : o,
+          ),
+        })),
+      addAttachments: (orderId, files) =>
+        set((s) => ({
+          orders: s.orders.map((o) =>
+            o.id === orderId
+              ? { ...o, attachments: [...o.attachments, ...files.map((f) => ({ ...f, id: uid("f"), uploadedAt: todayISO(), by: meName() }))] }
+              : o,
+          ),
+        })),
+      removeAttachment: (orderId, fileId) =>
+        set((s) => ({
+          orders: s.orders.map((o) => (o.id === orderId ? { ...o, attachments: o.attachments.filter((f) => f.id !== fileId) } : o)),
+        })),
+
       reset: () => rawSet({ ...createSeed(), live: emptyLive(), seededOn: todayISO(), touched: false }),
       };
     },
     {
-      name: "outdoor-ad-management-v2",
+      name: "outdoor-ad-management-v3",
       // 前日以前に生成したサンプルデータが未変更のまま残っていれば、今日の日付で作り直す
       onRehydrateStorage: () => (state) => {
         if (state && !state.touched && state.seededOn !== todayISO()) state.reset();

@@ -166,7 +166,7 @@ export default function FollowUps() {
                                 {c?.company} / {d.title}
                               </Link>
                               <StagePill stage={d.stage} />
-                              <span className="tnum">{man(d.monthlyBudget * d.months)}</span>
+                              <span className="tnum">{d.monthlyBudget === null ? "金額未入力" : `${man(d.monthlyBudget)}/月`}</span>
                               {scope === "all" && <span>担当: {staffName(d.repId)}</span>}
                               {c && (
                                 <a href={`tel:${c.phone}`} className="inline-flex items-center gap-1 hover:text-navy-900">

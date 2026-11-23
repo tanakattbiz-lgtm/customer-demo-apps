@@ -2,7 +2,7 @@
  * ダミーデータ(すべて架空)。
  * 日付は「今日」を基準に相対生成し、乱数は固定シードなのでリセットすると同じ内容に戻る。
  */
-import { addDays, format, isWeekend, setHours, setMinutes, subDays } from "date-fns";
+import { addDays, format, getDaysInMonth, isWeekend, setHours, setMinutes, subDays, subMonths } from "date-fns";
 import { addMonthKey, monthKey } from "../lib/format";
 
 // ======================= 型 =======================
@@ -15,9 +15,23 @@ export const BOARD_TYPES: BoardType[] = ["ビル屋上", "壁面", "野立て", 
 export interface Staff {
   id: string;
   name: string;
+  /** 所属営業所 */
   branch: string;
   dept: string;
+  /** 所属エリア */
+  area: string;
+  /** 入社日(社員情報から取得する想定) */
+  hireDate: string;
 }
+
+/** 組織(エリア → 営業所)。デモ用の架空の組織 */
+export const ORG: { area: string; offices: string[] }[] = [
+  { area: "大阪エリア", offices: ["大阪北営業所", "大阪南営業所"] },
+  { area: "兵庫エリア", offices: ["神戸営業所", "播磨営業所"] },
+  { area: "京滋・三重エリア", offices: ["京都営業所", "三重営業所"] },
+];
+export const OFFICES = ORG.flatMap((a) => a.offices);
+export const areaOfOffice = (office: string) => ORG.find((a) => a.offices.includes(office))?.area ?? "";
 
 export interface Face {
   id: string;
@@ -93,38 +107,125 @@ export interface Customer {
   memo: string;
 }
 
-export type Stage = "初回接触" | "ヒアリング" | "提案" | "見積提出" | "交渉" | "成約" | "失注";
-export const OPEN_STAGES: Stage[] = ["初回接触", "ヒアリング", "提案", "見積提出", "交渉"];
-export const STAGES: Stage[] = [...OPEN_STAGES, "成約", "失注"];
-export const STAGE_PROB: Record<Stage, number> = {
-  初回接触: 10,
-  ヒアリング: 20,
-  提案: 40,
-  見積提出: 60,
-  交渉: 80,
-  成約: 100,
-  失注: 0,
+/** 見込みの3段階(項目定義 P01〜P03 の仮案)+ 受注 + 見送り・失注 */
+export type Stage = "面談予定" | "提案済み" | "最終調整中" | "受注" | "失注";
+export const OPEN_STAGES: Stage[] = ["面談予定", "提案済み", "最終調整中"];
+export const STAGES: Stage[] = [...OPEN_STAGES, "受注", "失注"];
+export const STAGE_NO: Record<Stage, string> = { 面談予定: "①", 提案済み: "②", 最終調整中: "③", 受注: "", 失注: "" };
+export const STAGE_LABEL: Record<Stage, string> = {
+  面談予定: "責任者との面談予定あり",
+  提案済み: "責任者に提案済み",
+  最終調整中: "契約条件を最終調整中",
+  受注: "受注",
+  失注: "見送り・失注",
 };
+export const STAGE_DEF: Record<Stage, string> = {
+  面談予定: "判断できる責任者との訪問日時が決まっている。",
+  提案済み: "掲載内容・条件を責任者に具体的に提案済み。",
+  最終調整中: "掲載意向を確認し、金額・時期などを調整中。確約を意味しない。",
+  受注: "受注日が登録されている。",
+  失注: "見送り・失注として終了した。進行中の見込みから除外する。",
+};
+/** 旧デモ(仮押さえ・成約登録)との互換用。画面には表示しない */
+export const STAGE_PROB: Record<Stage, number> = { 面談予定: 20, 提案済み: 50, 最終調整中: 80, 受注: 100, 失注: 0 };
+
+// ---- 項目定義 I16〜I18 の選択肢(仮案) ----
+export type SignType = "看板を新設" | "既存の看板に掲出";
+export const SIGN_TYPES: SignType[] = ["看板を新設", "既存の看板に掲出"];
+export type LandType = "土地を新規に確保" | "既存の土地" | "土地なし(壁面・屋上)";
+export const LAND_TYPES: LandType[] = ["土地を新規に確保", "既存の土地", "土地なし(壁面・屋上)"];
+export type HeightClass = "4m以下" | "4m超";
+export const HEIGHT_CLASSES: HeightClass[] = ["4m以下", "4m超"];
+export type Channel = "営業開拓" | "コールセンター" | "電話・LP問い合わせ" | "紹介" | "その他";
+export const CHANNELS: Channel[] = ["営業開拓", "コールセンター", "電話・LP問い合わせ", "紹介", "その他"];
+export const FACE_COUNT_LABEL: Record<number, string> = { 1: "片面", 2: "両面", 3: "三面", 4: "四面" };
+
+/** 見込み・受注で共通の、看板と金額の項目(項目定義 I03〜I08・I16〜I18) */
+export interface SignSpec {
+  widthMm: number | null;
+  heightMm: number | null;
+  faceCount: number | null;
+  heightClass: HeightClass | null;
+  signType: SignType | null;
+  landType: LandType | null;
+  channel: Channel | null;
+  /** 投資看板(獲得経路とは別に持つ案。Q04) */
+  investment: boolean;
+  /** 化粧料(税抜)。null=未入力、0=0円 */
+  makeupFee: number | null;
+  /** 地代(年額・税換算しない)。null=未入力 */
+  landRent: number | null;
+}
 
 export interface NextAction {
   date: string; // yyyy-MM-dd
   content: string;
 }
 
-export interface Deal {
+export interface Deal extends SignSpec {
   id: string;
   customerId: string;
   title: string;
   stage: Stage;
-  monthlyBudget: number;
+  /** 広告料(月額・税抜)。null=未入力 */
+  monthlyBudget: number | null;
   months: number;
+  /** 受注予定日(未確定なら空文字) */
   expectedClose: string;
   repId: string;
   nextAction: NextAction | null;
   createdAt: string;
   updatedAt: string;
+  notes: string;
+  lostKind?: "見送り" | "失注";
   lostReason?: string;
+  closedLostAt?: string;
   contractId?: string;
+  orderId?: string;
+}
+
+// ======================= 受注〜設置〜解約(工事指示システムの企画と連携する想定) =======================
+export interface CancelEvent {
+  id: string;
+  /** 解約予定日 */
+  plannedDate: string | null;
+  /** 解約日(実績)。解約の効力が確定した日 */
+  actualDate: string | null;
+  /** 解約で減る広告料(月額・税抜) */
+  fee: number;
+  partial: boolean;
+  reason: string;
+  wfNo: string | null;
+  withdrawn: boolean;
+  registeredAt: string;
+}
+export interface Attachment {
+  id: string;
+  name: string;
+  kind: "pdf" | "image";
+  uploadedAt: string;
+  by: string;
+}
+export interface Order extends SignSpec {
+  id: string;
+  /** 企画番号(工事指示システム)。null=連携待ち */
+  kikakuNo: string | null;
+  syncedAt: string | null;
+  dealId?: string;
+  customerId: string;
+  repId: string;
+  title: string;
+  boardName: string;
+  orderDate: string;
+  plannedInstallDate: string | null;
+  actualInstallDate: string | null;
+  /** 広告料(月額・税抜) */
+  adFee: number | null;
+  cancels: CancelEvent[];
+  attachments: Attachment[];
+  /** 新システム導入前からの契約(元の見込みが無い) */
+  legacy: boolean;
+  notes: string;
 }
 
 export type ActivityType = "訪問" | "電話" | "メール" | "提案" | "オンライン";
@@ -203,21 +304,33 @@ export const ME_ID = "u01";
 export const ADMIN_NAME = "藤井 美咲";
 export const ADMIN_DEPT = "管理部 契約課";
 
+const st = (id: string, name: string, branch: string, hireDate: string): Staff => ({
+  id,
+  name,
+  branch,
+  dept: "営業課",
+  area: ORG.find((a) => a.offices.includes(branch))!.area,
+  hireDate,
+});
 export const STAFF: Staff[] = [
-  { id: "u01", name: "中村 拓也", branch: "大阪本社", dept: "営業1課" },
-  { id: "u02", name: "松本 恵", branch: "大阪本社", dept: "営業1課" },
-  { id: "u03", name: "井上 健太", branch: "大阪本社", dept: "営業2課" },
-  { id: "u04", name: "木村 沙織", branch: "大阪本社", dept: "営業2課" },
-  { id: "u05", name: "林 翔平", branch: "大阪本社", dept: "営業3課" },
-  { id: "u06", name: "清水 由香", branch: "大阪本社", dept: "営業3課" },
-  { id: "u07", name: "山口 誠", branch: "神戸支店", dept: "営業課" },
-  { id: "u08", name: "森 彩花", branch: "神戸支店", dept: "営業課" },
-  { id: "u09", name: "池田 亮", branch: "神戸支店", dept: "営業課" },
-  { id: "u10", name: "橋本 真理子", branch: "京都支店", dept: "営業課" },
-  { id: "u11", name: "阿部 大輝", branch: "京都支店", dept: "営業課" },
-  { id: "u12", name: "石川 直樹", branch: "奈良営業所", dept: "営業課" },
-  { id: "u13", name: "前田 優子", branch: "滋賀営業所", dept: "営業課" },
-  { id: "u14", name: "岡田 隼人", branch: "和歌山営業所", dept: "営業課" },
+  st("u01", "中村 拓也", "大阪北営業所", "2018-04-01"),
+  st("u02", "松本 恵", "大阪北営業所", "2015-04-01"),
+  st("u03", "井上 健太", "大阪北営業所", "2023-04-01"),
+  st("u04", "木村 沙織", "大阪南営業所", "2016-10-01"),
+  st("u05", "林 翔平", "大阪南営業所", "2021-04-01"),
+  st("u06", "清水 由香", "大阪南営業所", "2024-04-01"),
+  st("u07", "山口 誠", "神戸営業所", "2012-04-01"),
+  st("u08", "森 彩花", "神戸営業所", "2020-04-01"),
+  st("u09", "池田 亮", "神戸営業所", "2022-07-01"),
+  st("u15", "西田 健吾", "播磨営業所", "2014-04-01"),
+  st("u16", "大塚 まどか", "播磨営業所", "2019-04-01"),
+  st("u17", "荒木 慎也", "播磨営業所", "2025-04-01"),
+  st("u10", "橋本 真理子", "京都営業所", "2013-04-01"),
+  st("u11", "阿部 大輝", "京都営業所", "2021-10-01"),
+  st("u13", "前田 優子", "京都営業所", "2017-04-01"),
+  st("u12", "石川 直樹", "三重営業所", "2011-04-01"),
+  st("u14", "岡田 隼人", "三重営業所", "2020-04-01"),
+  st("u18", "堀 美里", "三重営業所", "2024-10-01"),
 ];
 
 // ======================= 看板マスタ =======================
@@ -374,7 +487,7 @@ const PROSPECTS: [string, string][] = [
 const SURNAMES = ["田中", "高橋", "渡辺", "伊藤", "小林", "加藤", "吉田", "山田", "佐々木", "山崎", "中島", "藤田", "小川", "後藤", "岡本", "長谷川", "村上", "近藤", "石井", "坂本", "遠藤", "青木", "藤原", "西村", "福田", "太田", "三浦", "藤井", "岡崎", "原田"];
 const GIVEN = ["浩二", "美穂", "健一", "裕子", "誠", "直美", "和也", "智子", "隆", "由美子", "聡", "久美子", "大介", "麻衣", "修", "加奈子", "博之", "真由美", "剛", "恵子"];
 const TITLES = ["代表取締役", "販促部 部長", "総務課長", "マーケティング担当", "院長", "事務長", "店長", "広報担当", "営業企画課長", "取締役"];
-const SOURCES = ["飛び込み", "紹介", "問い合わせ", "既存深耕", "展示会"];
+const SOURCES: string[] = CHANNELS;
 const CITY: Record<Area, string[]> = {
   大阪: ["大阪府大阪市北区", "大阪府吹田市", "大阪府堺市北区", "大阪府東大阪市", "大阪府豊中市", "大阪府枚方市"],
   兵庫: ["兵庫県神戸市中央区", "兵庫県尼崎市", "兵庫県西宮市", "兵庫県姫路市", "兵庫県明石市"],
@@ -393,9 +506,9 @@ const TEL_PREFIX: Record<Area, string> = {
 };
 const AREA_REPS: Record<Area, string[]> = {
   大阪: ["u01", "u02", "u03", "u04", "u05", "u06"],
-  兵庫: ["u07", "u08", "u09"],
+  兵庫: ["u07", "u08", "u09", "u15", "u16", "u17"],
   京都: ["u10", "u11"],
-  奈良: ["u12"],
+  奈良: ["u12", "u18"],
   滋賀: ["u13"],
   和歌山: ["u14"],
 };
@@ -466,6 +579,7 @@ export interface SeedData {
   contracts: AdContract[];
   lands: LandContract[];
   handovers: Handover[];
+  orders: Order[];
 }
 
 // ======================= 生成 =======================
@@ -540,7 +654,7 @@ export function createSeed(): SeedData {
       area,
       rank: status === "取引中" ? pick(["A", "A", "B"] as Rank[]) : pick(["A", "B", "B", "C"] as Rank[]),
       status,
-      source: status === "取引中" ? pick(["既存深耕", "紹介", "飛び込み"]) : pick(SOURCES),
+      source: status === "取引中" ? pick(["営業開拓", "紹介", "営業開拓"]) : pick(SOURCES),
       repId,
       createdAt: iso(created),
       memo: "",
@@ -699,31 +813,76 @@ export function createSeed(): SeedData {
     };
   });
 
-  // ---- 商談 ----
+  // ---- 看板・金額の項目(見込み・受注で共通) ----
+  const AD_FEES = [18000, 22000, 25000, 30000, 35000, 40000, 45000, 50000, 60000, 70000, 80000, 100000, 120000];
+  const MAKEUP = [0, 50000, 80000, 100000, 120000, 150000, 200000, 250000, 300000];
+  /** 地代(年額)。広告料の年額の15〜35%程度 */
+  const rentFor = (fee: number) => Math.round((fee * 12 * (0.15 + rnd() * 0.2)) / 1000) * 1000;
+  /** filled: 各項目が入力済みである確率 */
+  const spec = (filled: number, fee: number | null): SignSpec => {
+    const f = () => rnd() < filled;
+    const signType = pick(SIGN_TYPES);
+    const landType: LandType =
+      signType === "看板を新設"
+        ? rnd() < 0.72
+          ? "土地を新規に確保"
+          : "土地なし(壁面・屋上)"
+        : pick(["既存の土地", "既存の土地", "土地なし(壁面・屋上)"] as LandType[]);
+    const width = pick([3600, 4500, 5400, 6000, 7200, 8000, 9000, 10000, 12000]);
+    const height = Math.round((width * pick([0.3, 0.4, 0.5, 0.6])) / 100) * 100;
+    const known = f();
+    return {
+      widthMm: known ? width : null,
+      heightMm: known ? height : null,
+      faceCount: f() ? pick([1, 1, 2, 2, 2, 3, 4]) : null,
+      heightClass: f() ? (rnd() < 0.62 ? "4m以下" : "4m超") : null,
+      signType: f() ? signType : null,
+      landType: f() ? landType : null,
+      channel: pick(CHANNELS),
+      investment: rnd() < 0.08,
+      makeupFee: f() ? pick(MAKEUP) : null,
+      landRent: landType === "土地を新規に確保" ? (fee !== null && f() ? rentFor(fee) : null) : 0,
+    };
+  };
+
+  // ---- 見込み(商談) ----
   const deals: Deal[] = [];
   const activities: Activity[] = [];
   const prospects = customers.filter((c) => c.status === "商談中");
   const stagePlan: Stage[] = [
-    "交渉", "交渉", "交渉", "見積提出", "見積提出", "見積提出", "見積提出", "提案", "提案", "提案", "提案", "提案",
-    "ヒアリング", "ヒアリング", "ヒアリング", "ヒアリング", "初回接触", "初回接触", "初回接触", "初回接触",
+    "最終調整中", "最終調整中", "最終調整中", "最終調整中", "提案済み", "提案済み", "提案済み", "提案済み", "提案済み",
+    "面談予定", "面談予定", "面談予定", "提案済み", "提案済み", "面談予定", "面談予定", "面談予定", "最終調整中", "提案済み", "面談予定",
   ];
-  const dealCustomers = [...prospects, ...advertisers.slice(0, 10)];
-  dealCustomers.forEach((cu, i) => {
-    const stage: Stage = i < stagePlan.length ? stagePlan[i] : pick(["提案", "見積提出", "ヒアリング", "交渉"] as Stage[]);
+  const addActivities = (cuId: string, dealId: string, repId: string, created: Date, n: number) => {
+    for (let k = 0; k < n; k++) {
+      const type = k === 0 ? "訪問" : pick(ACTIVITY_TYPES);
+      const d = subDays(today, Math.max(1, Math.round(((n - k) / n) * (created.getTime() < today.getTime() ? (today.getTime() - created.getTime()) / 86400000 : 5))));
+      activities.push({
+        id: `a${String(activities.length + 1).padStart(4, "0")}`,
+        customerId: cuId,
+        dealId,
+        type,
+        date: dt(d),
+        memo: pick(ACT_MEMOS[type]),
+        repId,
+      });
+    }
+  };
+  const mkDeal = (cu: Customer, stage: Stage, repId: string, i: number) => {
     const created = subDays(today, int(8, 75));
-    const months = pick([6, 12, 12, 12, 24]);
-    const budget = pick([4, 6, 8, 12, 15, 18, 24, 30, 36]) * 10000;
+    const filled = stage === "面談予定" ? 0.45 : stage === "提案済み" ? 0.8 : 0.97;
+    const fee = rnd() < filled + 0.08 ? pick(AD_FEES) : null;
+    const closeIn = stage === "最終調整中" ? int(0, 38) : stage === "提案済み" ? int(8, 70) : int(25, 95);
     const naOffset = [-4, -2, -1, 0, 0, 0, 1, 1, 2, 3, 4, 5, 7, 9, 12][i % 15];
-    const id = `d${String(i + 1).padStart(3, "0")}`;
-    const repId = i < 12 ? "u01" : cu.repId;
+    const id = `d${String(deals.length + 1).padStart(3, "0")}`;
     deals.push({
       id,
       customerId: cu.id,
-      title: `${pick(DEAL_TITLES)}`,
+      title: pick(DEAL_TITLES),
       stage,
-      monthlyBudget: budget,
-      months,
-      expectedClose: iso(biz(addDays(today, int(5, 70)), 1)),
+      monthlyBudget: fee,
+      months: pick([6, 12, 12, 12, 24]),
+      expectedClose: stage === "面談予定" && rnd() < 0.3 ? "" : iso(biz(addDays(today, closeIn), 1)),
       repId,
       nextAction:
         i % 11 === 10
@@ -731,24 +890,29 @@ export function createSeed(): SeedData {
           : { date: iso(naOffset === 0 ? today : biz(addDays(today, naOffset), naOffset < 0 ? -1 : 1)), content: pick(NEXT_CONTENTS) },
       createdAt: iso(created),
       updatedAt: iso(subDays(today, int(0, 6))),
+      notes: "",
+      ...spec(filled, fee),
     });
+    addActivities(cu.id, id, repId, created, int(2, 5));
+  };
+  const dealCustomers = [...prospects, ...advertisers.slice(0, 10)];
+  dealCustomers.forEach((cu, i) => {
+    const stage: Stage = i < stagePlan.length ? stagePlan[i] : pick(["提案済み", "面談予定", "最終調整中"] as Stage[]);
+    const repId = i < 12 ? "u01" : cu.repId;
+    mkDeal(cu, stage, repId, i);
     cu.repId = repId;
-    const n = int(2, 5);
+  });
+  // ほかの担当者の見込み(営業所・エリアの集計用)
+  STAFF.filter((s) => s.id !== ME_ID).forEach((s, si) => {
+    const n = int(3, 6);
     for (let k = 0; k < n; k++) {
-      const type = k === 0 ? "訪問" : pick(ACTIVITY_TYPES);
-      const d = subDays(today, Math.max(1, Math.round(((n - k) / n) * (created.getTime() < today.getTime() ? (today.getTime() - created.getTime()) / 86400000 : 5))));
-      activities.push({
-        id: `a${String(activities.length + 1).padStart(4, "0")}`,
-        customerId: cu.id,
-        dealId: id,
-        type,
-        date: dt(d),
-        memo: pick(ACT_MEMOS[type]),
-        repId,
-      });
+      const cu = pick(customers.filter((c) => c.status !== "休眠"));
+      mkDeal(cu, pick(["面談予定", "面談予定", "提案済み", "提案済み", "最終調整中"] as Stage[]), s.id, si * 7 + k);
     }
   });
-  // 失注・成約済の履歴も少し
+  // 重複訪問の例: 自分(u01)が進めているお客様を、別の営業所の担当者も訪問予定
+  mkDeal(prospects[1], "面談予定", "u04", 5);
+  // 見送り・失注の履歴も少し
   [advertisers[12], advertisers[13]].forEach((cu, i) => {
     deals.push({
       id: `d${String(deals.length + 1).padStart(3, "0")}`,
@@ -762,16 +926,131 @@ export function createSeed(): SeedData {
       nextAction: null,
       createdAt: iso(subDays(today, 70)),
       updatedAt: iso(subDays(today, 18)),
-      lostReason: i === 0 ? "予算不足" : "Web広告を優先",
+      notes: "",
+      lostKind: i === 0 ? "見送り" : "失注",
+      lostReason: i === 0 ? "時期の見送り(来年度に再検討)" : "Web広告を優先",
+      closedLostAt: iso(subDays(today, 18)),
+      ...spec(0.9, 80000),
     });
   });
+
+  // ---- 受注〜設置〜解約(工事指示システムの「企画」から取り込む想定) ----
+  const orders: Order[] = [];
+  let kseq = 184200;
+  const dateOf = (mk: string, day: number) => {
+    const [y, m] = mk.split("-").map(Number);
+    return new Date(y, m - 1, day, 10, 0, 0);
+  };
+  const OFFICE_POWER: Record<string, number> = {
+    大阪北営業所: 1.15,
+    大阪南営業所: 1.0,
+    神戸営業所: 1.05,
+    播磨営業所: 0.92,
+    京都営業所: 0.95,
+    三重営業所: 0.72,
+  };
+  const boardNames = [...LOCS, ...PLANNED].map((l) => l[0]);
+  const mkOrder = (repId: string, orderDate: Date, legacy: boolean): Order => {
+    const fee = legacy || rnd() < 0.96 ? pick(AD_FEES) : null;
+    const sp = spec(legacy ? 1 : 0.95, fee);
+    if (legacy && sp.makeupFee === null) sp.makeupFee = 0;
+    const planned = addDays(orderDate, int(18, 70));
+    let actual: Date | null = null;
+    if (planned <= subDays(today, 2)) {
+      actual = !legacy && rnd() < 0.06 ? null : addDays(planned, int(-6, 9));
+      if (actual && actual > today) actual = null;
+    }
+    const recent = !legacy && orderDate >= subDays(today, 3);
+    const waiting = recent && rnd() < 0.45;
+    kseq += int(1, 4);
+    const kikakuNo = waiting ? null : String(kseq).padStart(9, "0");
+    const rep = STAFF.find((s) => s.id === repId)!;
+    const cu = pick(advertisers);
+    return {
+      id: `o${String(orders.length + 1).padStart(4, "0")}`,
+      kikakuNo,
+      syncedAt: waiting ? null : format(setHours(addDays(orderDate, 1), 8), "yyyy-MM-dd'T'HH:mm:ss"),
+      customerId: cu.id,
+      repId,
+      title: pick(DEAL_TITLES),
+      boardName: pick(boardNames),
+      orderDate: iso(orderDate),
+      plannedInstallDate: iso(planned),
+      actualInstallDate: actual ? iso(actual) : null,
+      adFee: fee,
+      cancels: [],
+      attachments:
+        !legacy && rnd() < 0.78
+          ? [{ id: `f${orders.length + 1}`, name: `${kikakuNo ?? "新規"}_屋外広告物掲出契約書.pdf`, kind: "pdf", uploadedAt: iso(orderDate), by: rep.name }]
+          : [],
+      legacy,
+      notes: "",
+      ...sp,
+    };
+  };
+  STAFF.forEach((s) => {
+    const power = OFFICE_POWER[s.branch] * (s.hireDate >= "2024-01-01" ? 0.65 : 1);
+    // 新システム導入前からの契約(設置済み)
+    for (let k = 0; k < 16; k++) orders.push(mkOrder(s.id, subDays(today, int(420, 1800)), true));
+    for (let mi = -13; mi <= 0; mi++) {
+      const mk = addMonthKey(cur, mi);
+      const n = Math.max(0, Math.round((1.1 + rnd() * 1.9) * power));
+      const last = mi === 0 ? today.getDate() : getDaysInMonth(dateOf(mk, 1));
+      for (let k = 0; k < n; k++) {
+        const d = dateOf(mk, int(1, last));
+        if (isWeekend(d) || d > today) continue;
+        orders.push(mkOrder(s.id, d, false));
+      }
+    }
+  });
+  // 解約(予定・実績)。1件の契約につき解約は1回まで(一部解約を含む)
+  let wf = 1;
+  const reasons = ["販促予算の見直し", "店舗閉鎖", "他媒体への切替", "店舗移転", "事業縮小"];
+  const addCancel = (o: Order, d: Date, partial: boolean, withdrawn = false) => {
+    const past = d <= today && !withdrawn;
+    const fee = o.adFee === null ? 0 : partial ? Math.round((o.adFee * 0.5) / 1000) * 1000 : o.adFee;
+    const reg = subDays(d, int(15, 50));
+    o.cancels.push({
+      id: `x${o.id}${o.cancels.length}`,
+      plannedDate: iso(d),
+      actualDate: past ? iso(d) : null,
+      fee,
+      partial,
+      reason: partial ? "一部の面の掲出をやめる" : pick(reasons),
+      wfNo: past || rnd() < 0.5 ? `WF${format(d, "yyMM")}-${String(wf++).padStart(4, "0")}` : null,
+      withdrawn,
+      registeredAt: iso(reg > today ? today : reg),
+    });
+  };
+  const cancelPool = (repId: string, before: Date) =>
+    orders.filter((o) => o.repId === repId && o.actualInstallDate && new Date(o.actualInstallDate) < before && o.cancels.length === 0);
+  STAFF.forEach((s) => {
+    for (let mi = -13; mi <= 2; mi++) {
+      const mk = addMonthKey(cur, mi);
+      const n = rnd() < 0.5 ? 1 : rnd() < 0.3 ? 2 : 0;
+      for (let k = 0; k < n; k++) {
+        const d = dateOf(mk, int(1, getDaysInMonth(dateOf(mk, 1))));
+        const pool = cancelPool(s.id, subMonths(d, 4));
+        if (!pool.length) continue;
+        const o = pick(pool);
+        addCancel(o, d, (o.adFee ?? 0) >= 40000 && rnd() < 0.15);
+      }
+    }
+  });
+  // 自分(u01)の例: 今月中の解約予定、来月の一部解約、撤回された解約予定
+  const mine = () => cancelPool(ME_ID, subMonths(today, 4));
+  const soon = addDays(today, 4);
+  if (mine().length) addCancel(mine()[0], soon.getMonth() === today.getMonth() ? soon : today, false);
+  const big = mine().find((o) => (o.adFee ?? 0) >= 40000);
+  if (big) addCancel(big, dateOf(addMonthKey(cur, 1), 20), true);
+  if (mine().length) addCancel(mine()[0], dateOf(addMonthKey(cur, 2), 10), false, true);
 
   // ---- 仮押さえ(空いている面に) ----
   const holds: Hold[] = [];
   const busy = (faceId: string, a: string, b: string) =>
     contracts.some((c) => c.faceIds.includes(faceId) && c.startMonth <= b && (c.cancelMonth ?? c.endMonth) >= a) ||
     holds.some((h) => h.faceId === faceId && h.startMonth <= b && h.endMonth >= a);
-  const holdDeals = deals.filter((d) => d.stage === "交渉" || d.stage === "見積提出" || d.stage === "提案").slice(0, 10);
+  const holdDeals = deals.filter((d) => d.stage === "最終調整中" || d.stage === "提案済み").slice(0, 10);
   const allFaces = boards.filter((b) => b.installMonth <= cur).flatMap((b) => b.faces.map((f) => ({ b, f })));
   let fi = 3;
   holdDeals.forEach((d, i) => {
@@ -796,7 +1075,7 @@ export function createSeed(): SeedData {
     }
   });
 
-  return { boards, customers, deals, activities, holds, contracts, lands, handovers };
+  return { boards, customers, deals, activities, holds, contracts, lands, handovers, orders };
 }
 
 // ======================= 経営集計(全社規模のベース値) =======================

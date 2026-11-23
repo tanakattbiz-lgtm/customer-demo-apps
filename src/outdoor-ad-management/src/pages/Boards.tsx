@@ -107,7 +107,7 @@ export default function Boards() {
           <div className="text-[15px] text-navy-900">
             <span className="mr-2 text-[12px] tracking-[0.15em] text-navy-500">仮押さえ先を選択中</span>
             <span className="font-semibold">{cname(deal.customerId)}</span> / {deal.title}
-            <span className="ml-2 text-ink-500">(希望 {deal.months}ヶ月・月額 {yen(deal.monthlyBudget)})</span>
+            <span className="ml-2 text-ink-500">(希望 {deal.months}ヶ月・広告料 {deal.monthlyBudget === null ? "未入力" : yen(deal.monthlyBudget) + "/月"})</span>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => nav(`/deals/${deal.id}`)}>

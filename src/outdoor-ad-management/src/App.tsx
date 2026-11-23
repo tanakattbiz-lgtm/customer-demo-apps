@@ -10,6 +10,9 @@ import Boards from "./pages/Boards";
 import BoardDetail from "./pages/BoardDetail";
 import Contracts from "./pages/Contracts";
 import Handover from "./pages/Handover";
+import Orders from "./pages/Orders";
+import OrderDetail from "./pages/OrderDetail";
+import Report from "./pages/Report";
 
 export default function App() {
   return (
@@ -25,6 +28,9 @@ export default function App() {
         <Route path="/boards/:id" element={<BoardDetail />} />
         <Route path="/contracts" element={<Contracts />} />
         <Route path="/handover" element={<Handover />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/orders/:id" element={<OrderDetail />} />
+        <Route path="/report" element={<Report />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

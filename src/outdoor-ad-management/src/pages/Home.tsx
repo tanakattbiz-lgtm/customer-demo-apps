@@ -8,11 +8,12 @@ import {
   Building2,
   CalendarClock,
   ChevronRight,
+  ClipboardList,
   Handshake,
-  LayoutGrid,
   PencilLine,
-  Undo2,
+  TrendingUp,
 } from "lucide-react";
+import { DEFAULT_PLAN, installOverdue, pendingCancel, phaseOf, signedYen, threeMonths } from "../lib/report";
 import { useStore } from "../store";
 import { ME_ID, OPEN_STAGES, STAFF, type Deal } from "../data/seed";
 import { faceLookup, holdActive } from "../lib/domain";
@@ -28,7 +29,16 @@ export default function Home() {
   const boards = useStore((s) => s.boards);
   const contracts = useStore((s) => s.contracts);
   const handovers = useStore((s) => s.handovers);
+  const orders = useStore((s) => s.orders);
   const [logFor, setLogFor] = useState<Deal | null>(null);
+  const myCols = useMemo(() => threeMonths(orders, deals, { kind: "rep", id: ME_ID }, DEFAULT_PLAN), [orders, deals]);
+  const myOrders = orders.filter((o) => o.repId === ME_ID);
+  const overdueInstall = myOrders.filter((o) => installOverdue(o));
+  const cancelSoon = myOrders.filter((o) => {
+    const c = phaseOf(o) === "設置済" ? pendingCancel(o) : undefined;
+    return c && c.plannedDate && daysFromToday(c.plannedDate) <= 14;
+  });
+  const waiting = myOrders.filter((o) => !o.kikakuNo);
   const me = STAFF.find((s) => s.id === ME_ID)!;
   const hour = new Date().getHours();
   const greet = hour < 11 ? "おはようございます" : hour < 18 ? "こんにちは" : "お疲れさまです";
@@ -47,22 +57,18 @@ export default function Home() {
     const c = contracts.find((k) => k.id === h.contractId);
     return h.status === "差し戻し" && c?.repId === ME_ID;
   });
-  const allRejected = handovers.filter((h) => h.status === "差し戻し");
-
   const TILES = [
     { to: "/follow-ups", icon: CalendarClock, title: "やることを確認する", desc: "お客様への次回対応を、期限の近い順に確認します" },
+    { to: "/deals?new=1", icon: Handshake, title: "見込みを登録する", desc: "新しい案件を始めるときに使います。分からない項目は空欄で構いません" },
     { to: "/customers?new=1", icon: Building2, title: "新しいお客様を登録する", desc: "名刺や問い合わせの内容を入力します" },
-    { to: "/deals?new=1", icon: Handshake, title: "商談を登録する", desc: "お客様との商談を始めるときに使います" },
-    { to: "/boards", icon: LayoutGrid, title: "看板の空きを探す", desc: "エリアと期間を選ぶと、空いている面が出てきます" },
-    {
-      to: "/handover?tab=rejected",
-      icon: Undo2,
-      title: "差し戻された書類を直す",
-      desc: "管理部から修正を頼まれた契約書類を確認します",
-      badge: allRejected.length,
-    },
-    { to: "/dashboard", icon: BarChart3, title: "会社全体の数字を見る", desc: "新規契約・解約・稼働率などの集計です" },
+    { to: "/orders", icon: ClipboardList, title: "受注・設置・解約を見る", desc: "受注した案件の設置予定や、解約の予定を確認します", badge: waiting.length },
+    { to: "/report", icon: TrendingUp, title: "営業報告を見る", desc: "今月・来月・再来月の予定と実績が、自動で集計されています" },
+    { to: "/dashboard", icon: BarChart3, title: "経営ダッシュボード", desc: "部長・社長向けの、エリア別の新規・純増の一覧です" },
   ];
+  const c0 = myCols[0];
+  const net = (v: number | null) => (
+    <span className={"tnum font-serif text-[24px] font-semibold " + ((v ?? 0) > 0 ? "text-ok-700" : (v ?? 0) < 0 ? "text-bad-700" : "text-navy-900")}>{v === null ? "—" : signedYen(v)}</span>
+  );
 
   return (
     <>
@@ -74,8 +80,47 @@ export default function Home() {
         <p className="mt-1.5 text-[15px] text-ink-600">下のボタンから、やりたいことを選んでください。</p>
       </div>
 
+      {/* 今月の自分の数字(営業報告から) */}
+      <Link
+        to="/report"
+        data-tour="home-numbers"
+        className="mb-8 grid gap-px overflow-hidden rounded-lg border border-ink-200 bg-ink-200 transition hover:border-navy-300 sm:grid-cols-2 lg:grid-cols-4"
+      >
+        <div className="bg-white px-5 py-4">
+          <div className="text-[13px] text-ink-600">今月の受注(広告料/月)</div>
+          <div className="tnum mt-1 font-serif text-[24px] font-semibold text-navy-900">¥{(c0.orderActual.amount ?? 0).toLocaleString()}</div>
+          <div className="tnum text-[12.5px] text-ink-500">
+            {c0.orderActual.count}件 ・ 受注予定 ¥{(c0.orderPlan.amount ?? 0).toLocaleString()}
+          </div>
+        </div>
+        <div className="bg-white px-5 py-4">
+          <div className="text-[13px] text-ink-600">今月の設置 実績</div>
+          <div className="tnum mt-1 font-serif text-[24px] font-semibold text-navy-900">¥{(c0.installActual.amount ?? 0).toLocaleString()}</div>
+          <div className="tnum text-[12.5px] text-ink-500">
+            {c0.installActual.count}件 ・ 予定 ¥{(c0.installPlan.amount ?? 0).toLocaleString()}
+          </div>
+        </div>
+        <div className="bg-white px-5 py-4">
+          <div className="text-[13px] text-ink-600">今月の解約 実績</div>
+          <div className="tnum mt-1 font-serif text-[24px] font-semibold text-bad-700">−¥{(c0.cancelActual.amount ?? 0).toLocaleString()}</div>
+          <div className="tnum text-[12.5px] text-ink-500">
+            {c0.cancelActual.count}件 ・ 予定 −¥{(c0.cancelPlan.amount ?? 0).toLocaleString()}
+          </div>
+        </div>
+        <div className="bg-white px-5 py-4">
+          <div className="flex items-center justify-between text-[13px] text-ink-600">
+            今月の純増減 実績
+            <span className="inline-flex items-center gap-0.5 text-navy-700">
+              営業報告へ <ChevronRight size={14} />
+            </span>
+          </div>
+          <div className="mt-1">{net(c0.netActual)}</div>
+          <div className="tnum text-[12.5px] text-ink-500">月末までの見通し {signedYen(c0.netPlan)}</div>
+        </div>
+      </Link>
+
       {/* お知らせ */}
-      {(todo.length > 0 || myHoldsSoon.length > 0 || myRejected.length > 0) && (
+      {(todo.length > 0 || myHoldsSoon.length > 0 || myRejected.length > 0 || overdueInstall.length > 0 || cancelSoon.length > 0 || waiting.length > 0) && (
         <Card data-tour="home-todo" className="mb-8 overflow-hidden">
           <div className="border-b border-ink-200 px-6 py-4">
             <div className="text-[17px] font-semibold text-navy-900">今日、対応が必要なこと</div>
@@ -107,6 +152,59 @@ export default function Home() {
                 ほか {todo.length - 4} 件をすべて見る
                 <ChevronRight size={16} />
               </Link>
+            )}
+            {overdueInstall.slice(0, 2).map((o) => (
+              <div key={o.id} className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center">
+                <div className="w-36 shrink-0">
+                  <Pill tone="bad">設置予定日超過</Pill>
+                  <div className="tnum mt-1 text-[14px] text-ink-500">予定 {fmtDate(o.plannedInstallDate!)}</div>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[16px] font-medium text-ink-900">設置予定日を過ぎていますが、施工完了がまだ反映されていません</div>
+                  <div className="text-[14px] text-ink-500">
+                    {cname(o.customerId)} / {o.boardName}
+                  </div>
+                </div>
+                <Button variant="outline" onClick={() => nav(`/orders/${o.id}`)}>
+                  案件を開く
+                </Button>
+              </div>
+            ))}
+            {cancelSoon.map((o) => {
+              const c = pendingCancel(o)!;
+              return (
+                <div key={o.id} className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center">
+                  <div className="w-36 shrink-0">
+                    <Pill tone="warn">{c.partial ? "一部解約予定" : "解約予定"}</Pill>
+                    <div className="tnum mt-1 text-[14px] text-ink-500">{fmtDate(c.plannedDate!)}</div>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[16px] font-medium text-ink-900">
+                      解約の予定日が近づいています(広告料 −¥{c.fee.toLocaleString()}/月)
+                    </div>
+                    <div className="text-[14px] text-ink-500">
+                      {cname(o.customerId)} / {o.boardName} ・ WF {c.wfNo ?? "未提出"}
+                    </div>
+                  </div>
+                  <Button variant="outline" onClick={() => nav(`/orders/${o.id}`)}>
+                    案件を開く
+                  </Button>
+                </div>
+              );
+            })}
+            {waiting.length > 0 && (
+              <div className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center">
+                <div className="w-36 shrink-0">
+                  <Pill tone="warn">連携待ち</Pill>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[16px] font-medium text-ink-900">工事指示システムの企画と、まだ紐づいていない受注が {waiting.length}件あります</div>
+                  <div className="text-[14px] text-ink-500">企画が登録されると、自動で企画番号が入ります</div>
+                </div>
+                <Button variant="outline" onClick={() => nav("/orders?tab=waiting")}>
+                  一覧を見る
+                </Button>
+              </div>
             )}
             {myHoldsSoon.map((h) => {
               const l = lookup.get(h.faceId);
