@@ -88,7 +88,7 @@ export default function Orders() {
           <QTag id="Q06" />
         </span>
         <span className="flex flex-wrap items-center gap-2 text-[12.5px]">
-          <SourceTag kind="link" /> 既存システムから自動 <SourceTag kind="input" /> この画面で入力
+          印の意味: <SourceTag kind="link" /> <SourceTag kind="input" />
         </span>
       </div>
 

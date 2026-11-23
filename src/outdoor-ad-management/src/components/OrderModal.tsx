@@ -14,7 +14,7 @@ type NewFile = Omit<Attachment, "id" | "uploadedAt" | "by">;
 const kindOf = (name: string): "pdf" | "image" => (/\.(png|jpe?g|heic|webp|gif)$/i.test(name) ? "image" : "pdf");
 
 /** 契約書スキャンの添付欄(項目定義 I24)。PDF・画像、複数ファイル、iPadのカメラから */
-export function ScanPicker({ files, onAdd, onRemove, sample }: { files: { id?: string; name: string; kind: "pdf" | "image" }[]; onAdd: (f: NewFile[]) => void; onRemove: (i: number) => void; sample: string }) {
+export function ScanPicker({ files, onAdd, onRemove, sample, hideList }: { files: { id?: string; name: string; kind: "pdf" | "image" }[]; onAdd: (f: NewFile[]) => void; onRemove: (i: number) => void; sample: string; hideList?: boolean }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const camRef = useRef<HTMLInputElement>(null);
   const pick = (list: FileList | null) => {
@@ -25,7 +25,7 @@ export function ScanPicker({ files, onAdd, onRemove, sample }: { files: { id?: s
     <div>
       <input ref={fileRef} type="file" multiple accept="application/pdf,image/*" className="hidden" onChange={(e) => { pick(e.target.files); e.target.value = ""; }} />
       <input ref={camRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { pick(e.target.files); e.target.value = ""; }} />
-      <div className="overflow-hidden rounded-md border border-ink-200">
+      {!hideList && <div className="overflow-hidden rounded-md border border-ink-200">
         {files.length === 0 ? (
           <div className="px-4 py-4 text-center text-[13.5px] text-ink-500">まだ添付されていません</div>
         ) : (
@@ -39,8 +39,8 @@ export function ScanPicker({ files, onAdd, onRemove, sample }: { files: { id?: s
             </div>
           ))
         )}
-      </div>
-      <div className="mt-2 flex flex-wrap gap-2">
+      </div>}
+      <div className={(hideList ? "" : "mt-2 ") + "flex flex-wrap gap-2"}>
         <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
           <Paperclip size={13} />
           ファイルを選ぶ(PDF・画像)

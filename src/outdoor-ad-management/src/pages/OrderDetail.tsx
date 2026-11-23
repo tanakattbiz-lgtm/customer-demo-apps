@@ -360,7 +360,9 @@ export default function OrderDetail() {
                   ))}
                 </div>
               )}
+              {order.attachments.length === 0 && <div className="rounded-md border border-ink-200 px-4 py-4 text-center text-[13.5px] text-ink-500">まだ添付されていません</div>}
               <ScanPicker
+                hideList
                 files={[]}
                 sample={`${order.kikakuNo ?? "新規"}_屋外広告物掲出契約書.pdf`}
                 onAdd={(x) => {
