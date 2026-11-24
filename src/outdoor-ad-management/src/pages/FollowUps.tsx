@@ -50,7 +50,7 @@ export default function FollowUps() {
       <PageHeader
         eyebrow="Follow-ups"
         title="やること一覧"
-        description="お客様への次回対応(電話・訪問など)を、期限の近い順に並べています。"
+        description="クライアントへの次回対応(電話・訪問など)を、期限の近い順に並べています。"
         guide={[
           "「期限超過」(赤字)の項目から順に対応してください。",
           "対応したら「対応を記録」を押し、話した内容を書きます。",

@@ -94,11 +94,11 @@ export default function Report() {
       <PageHeader
         eyebrow="Report"
         title="営業報告"
-        description="見込み・受注・設置・解約を、同じ元データから自動で集計します。報告のために数字を書き写す必要はありません。"
+        description="見込案件・契約締結・設置・解約を、同じ元データから自動で集計します。報告のために数字を書き写す必要はありません。"
         guide={[
           "上の「表示する人」を切り替えると、担当者・営業所・エリア・営業部全体の数字に変わります(本番はログインした人の役職で自動)。",
           "表の数字を押すと、その数字のもとになった案件の一覧が出ます。",
-          "「対象月」で過去の月を選ぶと、その月末の状態で受注残などを再現します。",
+          "「対象月」で過去の月を選ぶと、その月末の状態で未設置案件などを再現します。",
         ]}
       />
 
@@ -197,14 +197,14 @@ export default function Report() {
           {loading ? <Skeleton className="m-5 h-64" /> : <ThreeMonthTable cols={cols} onDrill={setDrill} />}
           {!opt.prospectInstall && (
             <div className="border-t border-ink-100 px-5 py-2.5 text-[12.5px] leading-relaxed text-ink-500">
-              来月以降の設置予定には、まだ受注していない分は入っていません(受注済みの設置予定だけ)。そのため純増減の予定が小さく出ます。
-              見込みも含めた見通しは「設置予定に未受注の見込みも含める」で確認できます。
+              来月以降の設置予定には、まだ契約締結していない分は入っていません(契約締結済みの設置予定だけ)。そのため純増減の予定が小さく出ます。
+              見込案件も含めた見通しは「設置予定に未契約の見込案件も含める」で確認できます。
             </div>
           )}
           {overdueDeals.length > 0 && (
             <div className="border-t border-ink-100 px-5 py-2.5 text-[12.5px] text-warn-700">
-              受注予定日を過ぎた見込みが {overdueDeals.length}件あります(受注予定には含めていません)。
-              <button className="ml-1 underline" onClick={() => setDrill({ title: "受注予定日を過ぎた見込み", deals: overdueDeals.map((d) => d.id) })}>
+              契約締結予定日を過ぎた見込案件が {overdueDeals.length}件あります(契約締結予定には含めていません)。
+              <button className="ml-1 underline" onClick={() => setDrill({ title: "契約締結予定日を過ぎた見込案件", deals: overdueDeals.map((d) => d.id) })}>
                 一覧を見る
               </button>
             </div>
@@ -235,22 +235,22 @@ export default function Report() {
             </thead>
             <tbody>
               {snap.prospects ? (
-                <SnapRow label="見込み(進行中)" sub="受注前" a={snap.prospects.agg} onClick={() => setDrill({ title: "見込み(進行中)", deals: snap.prospects!.deals.map((d) => d.id) })} />
+                <SnapRow label="見込案件(進行中)" sub="契約締結前" a={snap.prospects.agg} onClick={() => setDrill({ title: "見込案件(進行中)", deals: snap.prospects!.deals.map((d) => d.id) })} />
               ) : (
                 <tr className="border-b border-ink-100">
-                  <td className="px-4 py-3 text-ink-900">見込み(進行中)</td>
+                  <td className="px-4 py-3 text-ink-900">見込案件(進行中)</td>
                   <td colSpan={5} className="px-4 py-3 text-[13px] text-ink-500">
-                    過去の月の見込みは、月末の状態を保存して表示します(デモでは省略) <QTag id="Q09" />
+                    過去の月の見込案件は、月末の状態を保存して表示します(デモでは省略) <QTag id="Q09" />
                   </td>
                 </tr>
               )}
-              <SnapRow label="今月受注" sub="受注日がこの月" a={snap.ordered.agg} onClick={() => setDrill({ title: `${fmtMonth(month)}の受注`, orders: snap.ordered.orders.map((o) => o.id) })} />
-              <SnapRow label="受注残" sub="受注済で、月末時点で未設置" a={snap.backlog.agg} onClick={() => setDrill({ title: `受注残(${fmtDate(base)}時点)`, orders: snap.backlog.orders.map((o) => o.id) })} />
+              <SnapRow label="今月の契約締結" sub="契約締結日がこの月" a={snap.ordered.agg} onClick={() => setDrill({ title: `${fmtMonth(month)}の契約締結`, orders: snap.ordered.orders.map((o) => o.id) })} />
+              <SnapRow label="未設置案件" sub="契約締結済で、月末時点で未設置" a={snap.backlog.agg} onClick={() => setDrill({ title: `未設置案件(${fmtDate(base)}時点)`, orders: snap.backlog.orders.map((o) => o.id) })} />
               <SnapRow label="今月設置" sub="設置日(実績)がこの月" a={snap.installed.agg} onClick={() => setDrill({ title: `${fmtMonth(month)}の設置`, orders: snap.installed.orders.map((o) => o.id) })} />
             </tbody>
           </table>
         </div>
-        <div className="border-t border-ink-100 px-5 py-2.5 text-[12.5px] text-ink-500">同じ月に受注して設置した案件は「今月受注」と「今月設置」の両方に出ます。区分同士の合計は足しません。</div>
+        <div className="border-t border-ink-100 px-5 py-2.5 text-[12.5px] text-ink-500">同じ月に契約締結して設置した案件は「今月の契約締結」と「今月設置」の両方に出ます。区分同士の合計は足しません。</div>
       </Card>
 
       {/* 内訳 */}
@@ -326,7 +326,7 @@ function PlanOptionsBar({ opt, onChange }: { opt: PlanOptions; onChange: (o: Pla
         />
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        受注予定に含める段階
+        契約締結予定に含める段階
         {OPEN_STAGES.map((s) => (
           <label key={s} className="inline-flex min-h-9 items-center gap-1.5 rounded border border-ink-200 bg-white px-2 py-1">
             <input type="checkbox" className="h-4 w-4 accent-[oklch(29.5%_0.047_262)]" checked={opt.stages.includes(s)} onChange={() => toggle(s)} />
@@ -338,7 +338,7 @@ function PlanOptionsBar({ opt, onChange }: { opt: PlanOptions; onChange: (o: Pla
       </div>
       <label className="inline-flex items-center gap-1.5">
         <input type="checkbox" className="h-4 w-4 accent-[oklch(29.5%_0.047_262)]" checked={opt.prospectInstall} onChange={(e) => onChange({ ...opt, prospectInstall: e.target.checked })} />
-        設置予定に未受注の見込みも含める
+        設置予定に未契約の見込案件も含める
       </label>
     </div>
   );
@@ -362,8 +362,8 @@ function ThreeMonthTable({ cols, onDrill }: { cols: MonthCol[]; onDrill: (d: Dri
   const net = (v: number | null) =>
     v === null ? <span className="text-ink-400">未到来</span> : <span className={"tnum text-[16px] font-semibold " + (v > 0 ? "text-ok-700" : v < 0 ? "text-bad-700" : "text-ink-700")}>{signedYen(v)}</span>;
   const rows: { k: string; label: string; sub: string; render: (c: MonthCol, i: number) => ReactNode; strong?: boolean; group?: boolean }[] = [
-    { k: "op", label: "受注予定", sub: "見込みの受注予定日", render: (c, i) => cell(c.orderPlan, `${label(c.month, i)} 受注予定`) },
-    { k: "oa", label: "受注実績", sub: "受注日", render: (c, i) => cell(c.orderActual, `${label(c.month, i)} 受注実績`) },
+    { k: "op", label: "契約締結予定", sub: "見込案件の契約締結予定日", render: (c, i) => cell(c.orderPlan, `${label(c.month, i)} 契約締結予定`) },
+    { k: "oa", label: "契約締結実績", sub: "契約締結日", render: (c, i) => cell(c.orderActual, `${label(c.month, i)} 契約締結実績`) },
     { k: "ip", label: "設置予定", sub: "設置予定日", render: (c, i) => cell(c.installPlan, `${label(c.month, i)} 設置予定`), group: true },
     { k: "ia", label: "設置実績", sub: "設置日(実績)", render: (c, i) => cell(c.installActual, `${label(c.month, i)} 設置実績`) },
     { k: "cp", label: "解約予定", sub: "解約予定日", render: (c, i) => cell(c.cancelPlan, `${label(c.month, i)} 解約予定`, true), group: true },
@@ -445,9 +445,9 @@ function Breakdown({ scopes, month, opt, onOpen }: { scopes: Scope[]; month: str
         <thead className={tableHeadCls}>
           <tr>
             <th className={thCls}>{scopes[0].kind === "rep" ? "担当者" : scopes[0].kind === "office" ? "営業所" : "エリア"}</th>
-            <th className={thCls + " text-right"}>見込み</th>
-            <th className={thCls + " text-right"}>受注</th>
-            <th className={thCls + " text-right"}>受注残</th>
+            <th className={thCls + " text-right"}>見込案件</th>
+            <th className={thCls + " text-right"}>契約締結</th>
+            <th className={thCls + " text-right"}>未設置案件</th>
             <th className={thCls + " text-right"}>設置実績</th>
             <th className={thCls + " text-right"}>解約実績</th>
             <th className={thCls + " text-right"}>純増減 実績</th>
@@ -513,7 +513,7 @@ function DrillDrawer({ drill, onClose }: { drill: Drill | null; onClose: () => v
         key: it.id + i,
         to: o ? `/orders/${o.id}` : `/deals/${d?.id}`,
         name: cname((o ?? d)!.customerId),
-        sub: `${staffName((o ?? d)!.repId)}${o ? " ・ " + (o.kikakuNo ?? "連携待ち") : " ・ 見込み"}`,
+        sub: `${staffName((o ?? d)!.repId)}${o ? " ・ " + (o.kikakuNo ?? "連携待ち") : " ・ 見込案件"}`,
         date: it.date,
         amount: it.amount,
         note: it.note,

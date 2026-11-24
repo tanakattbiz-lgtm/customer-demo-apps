@@ -78,17 +78,17 @@ export default function Customers() {
     <>
       <PageHeader
         eyebrow="Customers"
-        title="お客様"
-        description="これから営業するお客様(見込み客)から、すでに広告を出しているお客様(広告主)までをまとめて確認できます。"
+        title="クライアント"
+        description="これから営業するクライアント(クライアント)から、すでに広告を出しているクライアント(広告主)までをまとめて確認できます。"
         guide={[
-          "新しいお客様は、右上の「見込み客を登録」から入力します。",
-          "行を押すと、そのお客様の商談・これまでの対応・契約が見られます。",
-          "お客様と話したら「対応を記録」で内容を残しておきましょう。",
+          "新しいクライアントは、右上の「クライアントを登録」から入力します。",
+          "行を押すと、そのクライアントの商談・これまでの対応・契約が見られます。",
+          "クライアントと話したら「対応を記録」で内容を残しておきましょう。",
         ]}
         actions={
           <Button onClick={() => setForm({ open: true })}>
             <Plus size={15} />
-            見込み客を登録
+            クライアントを登録
           </Button>
         }
       />
@@ -101,7 +101,7 @@ export default function Customers() {
           }}
           items={[
             { value: "", label: "すべて", count: base.length },
-            { value: "見込み", label: "見込み", count: count("見込み") },
+            { value: "契約前", label: "契約前", count: count("契約前") },
             { value: "商談中", label: "商談中", count: count("商談中") },
             { value: "取引中", label: "取引中", count: count("取引中") },
             { value: "休眠", label: "休眠", count: count("休眠") },
@@ -136,9 +136,9 @@ export default function Customers() {
           <TableSkeleton />
         ) : rows.length === 0 ? (
           base.length === 0 ? (
-            <EmptyState icon={<Building2 size={20} />} title="お客様が登録されていません" action={<Button onClick={() => setForm({ open: true })}>見込み客を登録</Button>} />
+            <EmptyState icon={<Building2 size={20} />} title="クライアントが登録されていません" action={<Button onClick={() => setForm({ open: true })}>クライアントを登録</Button>} />
           ) : (
-            <EmptyState icon={<SearchX size={20} />} title="該当する顧客がありません" description="検索条件を変更してください。" />
+            <EmptyState icon={<SearchX size={20} />} title="該当するクライアントがありません" description="検索条件を変更してください。" />
           )
         ) : (
           <>
@@ -315,10 +315,10 @@ function CustomerDrawer({ customer, onClose, onEdit }: { customer?: Customer; on
       {c && <ActivityModal open={actOpen} onClose={() => setActOpen(false)} customerId={c.id} title={c.company} />}
       <Confirm
         open={del}
-        title="この顧客を削除しますか"
+        title="このクライアントを削除しますか"
         message={
           contracts.length > 0
-            ? "この顧客には広告契約があるため削除できません。状態を「休眠」に変更してください。"
+            ? "このクライアントには広告契約があるため削除できません。状態を「休眠」に変更してください。"
             : "関連する商談・活動履歴・仮押さえもあわせて削除されます。この操作は取り消せません。"
         }
         confirmLabel={contracts.length > 0 ? "閉じる" : "削除する"}
@@ -333,7 +333,7 @@ function CustomerDrawer({ customer, onClose, onEdit }: { customer?: Customer; on
           removeCustomer(c.id);
           setDel(false);
           onClose();
-          toast.success("顧客を削除しました");
+          toast.success("クライアントを削除しました");
         }}
       />
     </>

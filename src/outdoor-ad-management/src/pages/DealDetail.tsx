@@ -77,11 +77,11 @@ export default function DealDetail() {
       <Card>
         <EmptyState
           icon={<FileSignature size={20} />}
-          title="見込みが見つかりません"
+          title="見込案件が見つかりません"
           description="削除されたか、URLが正しくない可能性があります。"
           action={
             <Link to="/deals">
-              <Button>見込みの一覧へ戻る</Button>
+              <Button>見込案件の一覧へ戻る</Button>
             </Link>
           }
         />
@@ -105,7 +105,7 @@ export default function DealDetail() {
     <>
       <Link to="/deals" className="mb-4 inline-flex items-center gap-1.5 text-[14px] text-ink-500 transition hover:text-navy-900">
         <ArrowLeft size={14} />
-        見込みの一覧
+        見込案件の一覧
       </Link>
 
       {/* ヘッダー */}
@@ -121,7 +121,7 @@ export default function DealDetail() {
               広告料 <span className="font-semibold text-navy-900">{money(deal.monthlyBudget, "/月")}</span>
             </span>
             <span>担当 {staffName(deal.repId)}</span>
-            <span className="tnum">受注予定 {deal.expectedClose ? fmtDate(deal.expectedClose) : "未定"}</span>
+            <span className="tnum">契約締結予定 {deal.expectedClose ? fmtDate(deal.expectedClose) : "未定"}</span>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -139,7 +139,7 @@ export default function DealDetail() {
               </Button>
               <Button onClick={() => setCloseOpen(true)}>
                 <FileSignature size={14} />
-                受注にする
+                契約締結を登録
               </Button>
             </>
           )}
@@ -151,7 +151,7 @@ export default function DealDetail() {
         isOpen={isOpen}
         stage={deal.stage}
         hasHold={holds.some((h) => holdActive(h))}
-        hoStatus={order ? "受注" : contract ? (ho?.status ?? "受領済") : undefined}
+        hoStatus={order ? "契約締結" : contract ? (ho?.status ?? "受領済") : undefined}
         onFind={() => nav(`/boards?deal=${deal.id}`)}
         onClose={() => setCloseOpen(true)}
         onLog={() => setLogOpen(true)}
@@ -162,21 +162,21 @@ export default function DealDetail() {
       {deal.stage !== "失注" ? (
         <Card className="mb-6 px-2 py-2">
           <div className="flex items-center gap-1 px-3 pt-2 text-[14px] font-semibold text-navy-900">
-            見込みの段階
-            <Help label="見込みの段階" text="押すと段階を変更できます。段階の名前と判定の基準は、まだ仮の案です。" />
+            見込案件の段階
+            <Help label="見込案件の段階" text="押すと段階を変更できます。段階の名前と判定の基準は、まだ仮の案です。" />
             <QTag id="Q02" />
           </div>
           <div className="thin-scroll flex overflow-x-auto">
-            {[...OPEN_STAGES, "受注" as Stage].map((s, i, arr) => {
+            {[...OPEN_STAGES, "契約締結" as Stage].map((s, i, arr) => {
               const pos = arr.indexOf(deal.stage);
               const done = i < pos;
               const active = i === pos;
-              const clickable = isOpen && s !== "受注";
+              const clickable = isOpen && s !== "契約締結";
               return (
                 <button
                   key={s}
                   disabled={!clickable}
-                  onClick={() => (s === "受注" ? setCloseOpen(true) : changeStage(s))}
+                  onClick={() => (s === "契約締結" ? setCloseOpen(true) : changeStage(s))}
                   className={
                     "group flex min-w-[170px] flex-1 items-start gap-2.5 rounded-md px-3 py-2.5 text-left transition " +
                     (clickable ? "hover:bg-ink-50" : "cursor-default")
@@ -206,10 +206,10 @@ export default function DealDetail() {
       ) : (
         <div className="mb-6 flex flex-col gap-3 rounded-lg border border-bad-100 bg-bad-50 px-5 py-3.5 sm:flex-row sm:items-center">
           <div className="flex-1 text-[15px] text-bad-700">
-            この見込みは「{deal.lostKind ?? "失注"}」として終了しています。理由: {deal.lostReason ?? "—"}
+            この見込案件は「{deal.lostKind ?? "失注"}」として終了しています。理由: {deal.lostReason ?? "—"}
             {deal.closedLostAt && <span className="tnum ml-2 text-[13px]">({fmtDate(deal.closedLostAt)})</span>}
             <div className="mt-1 flex items-center gap-1.5 text-[12.5px] text-bad-600">
-              進行中の見込みの集計からは外れています。再開のルールは確認中です。 <QTag id="Q08" />
+              進行中の見込案件の集計からは外れています。再開のルールは確認中です。 <QTag id="Q08" />
             </div>
           </div>
           <Button
@@ -217,10 +217,10 @@ export default function DealDetail() {
             onClick={async () => {
               await fakeApi(null, 250);
               setStage(deal.id, "面談予定");
-              toast.success("見込みを再開しました", { description: "段階は「① 責任者との面談予定あり」に戻しました。" });
+              toast.success("見込案件を再開しました", { description: "段階は「① 責任者との面談予定あり」に戻しました。" });
             }}
           >
-            見込みを再開する
+            見込案件を再開する
           </Button>
         </div>
       )}
@@ -316,19 +316,19 @@ export default function DealDetail() {
         <div className="space-y-6">
           {order && (
             <Card className="border-navy-200">
-              <CardHeader title="受注した案件" right={phaseOf(order) && <PhasePill phase={phaseOf(order)!} />} />
+              <CardHeader title="契約締結した案件" right={phaseOf(order) && <PhasePill phase={phaseOf(order)!} />} />
               <div className="space-y-3 px-5 py-4">
                 <DL
                   items={[
                     ["企画番号", order.kikakuNo ? <span className="tnum">{order.kikakuNo}</span> : <Pill tone="warn">連携待ち</Pill>],
-                    ["受注日", <span className="tnum">{fmtDate(order.orderDate)}</span>],
+                    ["契約締結日", <span className="tnum">{fmtDate(order.orderDate)}</span>],
                     ["設置予定日", order.plannedInstallDate ? <span className="tnum">{fmtDate(order.plannedInstallDate)}</span> : "—"],
                     ["広告料", money(order.adFee, "/月")],
                   ]}
                 />
                 <Link to={`/orders/${order.id}`}>
                   <Button variant="outline" size="sm" className="w-full">
-                    受注・設置・解約の画面を開く
+                    契約締結・設置・解約の画面を開く
                   </Button>
                 </Link>
               </div>
@@ -336,7 +336,7 @@ export default function DealDetail() {
           )}
           {contract && (
             <Card className="border-navy-200">
-              <CardHeader title="成約した契約" right={<ContractPill state={contractState(contract)} />} />
+              <CardHeader title="締結した契約" right={<ContractPill state={contractState(contract)} />} />
               <div className="space-y-3 px-5 py-4">
                 <DL
                   items={[
@@ -364,7 +364,7 @@ export default function DealDetail() {
 
           <Card data-tour="deal-fields">
             <CardHeader
-              title="見込みの内容"
+              title="見込案件の内容"
               right={
                 <span className="flex items-center gap-2">
                   <SourceTag kind="input" />
@@ -401,7 +401,7 @@ export default function DealDetail() {
                 items={[
                   ["獲得経路", (deal.channel ?? "—") + (deal.investment ? "(投資看板)" : "")],
                   ["業種", customer.industry],
-                  ["受注予定日", deal.expectedClose ? <span className="tnum">{fmtDate(deal.expectedClose)}</span> : "未定"],
+                  ["契約締結予定日", deal.expectedClose ? <span className="tnum">{fmtDate(deal.expectedClose)}</span> : "未定"],
                   ["登録日", <span className="tnum">{fmtDate(deal.createdAt)}</span>],
                   ["備考", deal.notes || "—"],
                 ]}
@@ -413,7 +413,7 @@ export default function DealDetail() {
             <Card>
               <CardHeader
                 title="仮押さえ中の広告面"
-                sub="確認中の機能。期限までに受注しない場合は自動解除"
+                sub="確認中の機能。期限までに契約締結しない場合は自動解除"
                 right={
                   <Button variant="outline" size="sm" onClick={() => nav(`/boards?deal=${deal.id}`)}>
                     <LayoutGrid size={13} />
@@ -477,7 +477,7 @@ export default function DealDetail() {
           )}
 
           <Card>
-            <CardHeader title="顧客情報" />
+            <CardHeader title="クライアント情報" />
             <div className="px-5 py-4">
               <DL
                 items={[
@@ -505,19 +505,19 @@ export default function DealDetail() {
       <LostModal open={lostOpen} onClose={() => setLostOpen(false)} onSubmit={async (kind, r) => {
         await fakeApi(null);
         setStage(deal.id, "失注", { kind, reason: r });
-        toast.success(`「${kind}」として記録しました`, { description: "進行中の見込みの集計から外れました。" });
+        toast.success(`「${kind}」として記録しました`, { description: "進行中の見込案件の集計から外れました。" });
       }} />
       <Confirm
         open={delOpen}
-        title="この見込みを削除しますか"
-        message="活動履歴は顧客に紐づいたまま残ります。仮押さえ中の面は解除されます。この操作は取り消せません。"
+        title="この見込案件を削除しますか"
+        message="活動履歴はクライアントに紐づいたまま残ります。仮押さえ中の面は解除されます。この操作は取り消せません。"
         confirmLabel="削除する"
         danger
         onClose={() => setDelOpen(false)}
         onConfirm={async () => {
           await fakeApi(null);
           removeDeal(deal.id);
-          toast.success("見込みを削除しました");
+          toast.success("見込案件を削除しました");
           nav("/deals");
         }}
       />
@@ -575,7 +575,7 @@ function LostModal({ open, onClose, onSubmit }: { open: boolean; onClose: () => 
           {(
             [
               ["見送り", "今回は見送り。時期を改めて再開する可能性がある"],
-              ["失注", "他社に決まった・広告をやめたなど、受注に至らなかった"],
+              ["失注", "他社に決まった・広告をやめたなど、契約締結に至らなかった"],
             ] as const
           ).map(([k, d]) => (
             <button
@@ -597,7 +597,7 @@ function LostModal({ open, onClose, onSubmit }: { open: boolean; onClose: () => 
           ))}
         </select>
       </Field>
-      <p className="mt-3 text-[13px] text-ink-500">記録すると、進行中の見込みから外れ、終了日({todayISO().replaceAll("-", "/")})も残ります。仮押さえ中の面は解除されます。</p>
+      <p className="mt-3 text-[13px] text-ink-500">記録すると、進行中の見込案件から外れ、終了日({todayISO().replaceAll("-", "/")})も残ります。仮押さえ中の面は解除されます。</p>
     </Modal>
   );
 }
@@ -627,8 +627,8 @@ function NextStep({
   if (stage === "失注") return null;
   if (isOpen) {
     if (stage === "最終調整中" || hasHold) {
-      msg = "契約条件を最終調整しています。受注が決まったら「受注にする」を押して、受注日と金額を確定してください。";
-      action = { label: "受注にする", onClick: onClose };
+      msg = "契約条件を最終調整しています。契約締結が決まったら「契約締結を登録」を押して、契約締結日と金額を確定してください。";
+      action = { label: "契約締結を登録", onClick: onClose };
     } else if (stage === "面談予定") {
       msg = "責任者との面談が終わったら、話した内容を「対応を記録」で残し、提案が済んだら段階を「② 提案済み」にします。";
       action = { label: "対応を記録する", onClick: onLog };
@@ -637,9 +637,9 @@ function NextStep({
       action = { label: "対応を記録する", onClick: onLog };
       void onFind;
     }
-  } else if (hoStatus === "受注") {
-    msg = "受注として登録しました。工事指示システムの企画と紐づくと、設置・解約は自動で反映されます。";
-    action = { label: "受注の画面を開く", onClick: onHandover };
+  } else if (hoStatus === "契約締結") {
+    msg = "契約締結として登録しました。工事指示システムの企画と紐づくと、設置・解約は自動で反映されます。";
+    action = { label: "契約締結の画面を開く", onClick: onHandover };
     tone = "border-ok-600/25 bg-ok-50";
   } else if (hoStatus === "差し戻し") {
     msg = "管理部から書類の修正を頼まれています。内容を確認して、修正した書類を再提出してください。";

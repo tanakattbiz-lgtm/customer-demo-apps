@@ -82,7 +82,7 @@ export default function OrderDetail() {
   };
 
   const steps = [
-    { label: "受注", date: order.orderDate, done: true },
+    { label: "契約締結", date: order.orderDate, done: true },
     { label: "設置", date: order.actualInstallDate ?? order.plannedInstallDate, done: !!order.actualInstallDate, plan: !order.actualInstallDate },
     {
       label: "解約",
@@ -96,7 +96,7 @@ export default function OrderDetail() {
     <>
       <Link to="/orders" className="mb-4 inline-flex items-center gap-1.5 text-[14px] text-ink-500 transition hover:text-navy-900">
         <ArrowLeft size={14} />
-        受注・設置・解約の一覧
+        契約締結・設置・解約の一覧
       </Link>
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
@@ -125,20 +125,20 @@ export default function OrderDetail() {
           )}
           {order.dealId && (
             <Link to={`/deals/${order.dealId}`}>
-              <Button variant="ghost">見込みの記録を見る</Button>
+              <Button variant="ghost">見込案件の記録を見る</Button>
             </Link>
           )}
         </div>
       </div>
 
       {/* 連携の状態(デモでは手動で取り込みを再現) */}
-      {(!order.kikakuNo || (!order.actualInstallDate && ph === "受注済・未設置")) && (
+      {(!order.kikakuNo || (!order.actualInstallDate && ph === "未設置案件")) && (
         <div className="mb-6 flex flex-col gap-3 rounded-lg border border-warn-300 bg-warn-50 px-5 py-4 sm:flex-row sm:items-center">
           <div className="min-w-0 flex-1 text-[15px] leading-relaxed text-ink-900">
             {!order.kikakuNo ? (
               <>
                 <span className="font-semibold">工事指示システムの企画と、まだ紐づいていません。</span>
-                企画が登録されると、企画番号・受注日・金額が自動で入ります。
+                企画が登録されると、企画番号・契約締結日・金額が自動で入ります。
               </>
             ) : (
               <>
@@ -171,7 +171,7 @@ export default function OrderDetail() {
       {/* 流れ */}
       <Card className="mb-6 px-5 py-4">
         <div className="mb-3 flex items-center gap-1.5 text-[14px] font-semibold text-navy-900">
-          見込み → 受注 → 設置 → 解約 <span className="text-[12.5px] font-normal text-ink-500">(1つの案件として引き継ぎ)</span>
+          見込案件 → 契約締結 → 設置 → 解約 <span className="text-[12.5px] font-normal text-ink-500">(1つの案件として引き継ぎ)</span>
         </div>
         <ol className="grid grid-cols-3 gap-2">
           {steps.map((s) => (
@@ -192,7 +192,7 @@ export default function OrderDetail() {
         <div className="space-y-6">
           <Card>
             <CardHeader
-              title="受注の情報"
+              title="契約締結の情報"
               right={
                 <span className="flex flex-wrap items-center gap-2 text-[12px] text-ink-500">
                   <SourceTag kind="link" />
@@ -204,7 +204,7 @@ export default function OrderDetail() {
               <Row label="企画番号" src="link">
                 {order.kikakuNo ? <span className="tnum">{order.kikakuNo}</span> : <Pill tone="warn">連携待ち</Pill>}
               </Row>
-              <Row label="受注日(成約日)" src="link">
+              <Row label="契約締結日" src="link">
                 <span className="tnum">{fmtDate(order.orderDate)}</span>
               </Row>
               <Row label="設置予定日" src="input">
@@ -238,7 +238,7 @@ export default function OrderDetail() {
             <div className="px-5 py-2">
               <Row label="広告料(月額)" src="link">
                 {m(order.adFee)}
-                {curFee !== null && curFee !== order.adFee && <span className="tnum ml-2 text-[13px] text-bad-600">一部解約後 {yen(curFee)}</span>}
+                {curFee !== null && curFee !== order.adFee && ph !== "解約済" && <span className="tnum ml-2 text-[13px] text-bad-600">一部解約後 {yen(curFee)}</span>}
               </Row>
               <Row label="化粧料" src="link">
                 {m(order.makeupFee)}
@@ -375,7 +375,7 @@ export default function OrderDetail() {
           </Card>
 
           <Card>
-            <CardHeader title="お客様" />
+            <CardHeader title="クライアント" />
             <div className="px-5 py-2">
               <Row label="クライアント名" src="link">
                 {customer.company}

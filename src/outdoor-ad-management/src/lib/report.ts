@@ -1,6 +1,6 @@
 /**
  * 営業報告の集計(項目定義 S01〜S26・ルール R01〜R11 の仮案をそのまま実装)。
- * すべて「同じ元データ(見込み・受注)」から計算し、担当者・営業所・エリアで絞るだけにする(R11)。
+ * すべて「同じ元データ(見込案件・契約締結)」から計算し、担当者・営業所・エリアで絞るだけにする(R11)。
  */
 import { endOfMonth, format } from "date-fns";
 import { ORG, STAFF, OPEN_STAGES, type Deal, type Order, type Stage } from "../data/seed";
@@ -64,21 +64,21 @@ const inMonth = (d: string | null | undefined, m: string) => !!d && d.slice(0, 7
 export const baseDateOf = (m: string) => (m === thisMonth() ? todayISO() : monthEndISO(m));
 
 // ======================= 状態の判定(A06) =======================
-export type Phase = "受注済・未設置" | "設置済" | "解約済";
+export type Phase = "未設置案件" | "設置済" | "解約済";
 export const liveCancels = (o: Order) => o.cancels.filter((c) => !c.withdrawn);
 export function phaseOf(o: Order, base = todayISO()): Phase | null {
   if (o.orderDate > base) return null;
   const full = liveCancels(o).find((c) => !c.partial && c.actualDate && c.actualDate <= base);
   if (full) return "解約済";
   if (o.actualInstallDate && o.actualInstallDate <= base) return "設置済";
-  return "受注済・未設置";
+  return "未設置案件";
 }
 /** 解約予定(未実施)があるか */
 export const pendingCancel = (o: Order, base = todayISO()) =>
   liveCancels(o).find((c) => c.plannedDate && (!c.actualDate || c.actualDate > base));
 /** 設置予定日を過ぎても設置日が入っていない */
 export const installOverdue = (o: Order, base = todayISO()) =>
-  !o.actualInstallDate && !!o.plannedInstallDate && o.plannedInstallDate < base && phaseOf(o, base) === "受注済・未設置";
+  !o.actualInstallDate && !!o.plannedInstallDate && o.plannedInstallDate < base && phaseOf(o, base) === "未設置案件";
 
 // ======================= 件数・金額の集計(S01〜S20) =======================
 export interface Agg {
@@ -125,14 +125,14 @@ export function snapshot(orders: Order[], deals: Deal[], scope: Scope, month: st
   const base = baseDateOf(month);
   const end = monthEndISO(month);
   const mine = orders.filter((o) => reps.has(o.repId));
-  // S06〜S10 今月受注: 対象月初 ≦ 受注日 ＜ 翌月初(基準日まで)
+  // S06〜S10 今月の契約締結: 対象月初 ≦ 契約締結日 ＜ 翌月初(基準日まで)
   const ordered = mine.filter((o) => inMonth(o.orderDate, month) && o.orderDate <= base);
-  // S11〜S15 受注残(R02): 受注日 ≦ 月末 かつ(設置日なし または 設置日 ＞ 月末)。当月受注を含む
+  // S11〜S15 未設置案件(R02): 契約締結日 ≦ 月末 かつ(設置日なし または 設置日 ＞ 月末)。当月契約締結を含む
   const cut = base < end ? base : end;
-  const backlog = mine.filter((o) => o.orderDate <= cut && phaseOf(o, cut) === "受注済・未設置");
+  const backlog = mine.filter((o) => o.orderDate <= cut && phaseOf(o, cut) === "未設置案件");
   // S16〜S20 今月設置
   const installed = mine.filter((o) => inMonth(o.actualInstallDate, month) && o.actualInstallDate! <= base);
-  // S01〜S05 見込み: 進行中の未受注(過去月は月末の状態の保存が要る → Q09)
+  // S01〜S05 見込案件: 進行中の未契約(過去月は月末の状態の保存が要る → Q09)
   const isCurrent = month === thisMonth();
   const pros = isCurrent ? deals.filter((d) => reps.has(d.repId) && OPEN_STAGES.includes(d.stage)) : null;
   return {
@@ -149,9 +149,9 @@ export function snapshot(orders: Order[], deals: Deal[], scope: Scope, month: st
 export interface PlanOptions {
   /** whole: 月全体の見通し(実績 + 同月内の残予定)/ remaining: 残りの予定だけ(Q12) */
   mode: "whole" | "remaining";
-  /** 受注予定に含める見込み段階(Q12) */
+  /** 契約締結予定に含める見込案件段階(Q12) */
   stages: Stage[];
-  /** 設置予定に、未受注の見込みを含めるか(Q12) */
+  /** 設置予定に、未契約の見込案件を含めるか(Q12) */
   prospectInstall: boolean;
 }
 export const DEFAULT_PLAN: PlanOptions = { mode: "whole", stages: ["面談予定", "提案済み", "最終調整中"], prospectInstall: false };
@@ -187,7 +187,7 @@ export function threeMonths(orders: Order[], deals: Deal[], scope: Scope, opt: P
   return [0, 1, 2].map((i) => {
     const m = addMonthKey(M, i);
     const future = i > 0;
-    // ---- 受注 ----
+    // ---- 契約締結 ----
     const oAct = mine
       .filter((o) => inMonth(o.orderDate, m) && o.orderDate <= base)
       .map((o) => ({ kind: "order" as const, id: o.id, amount: o.adFee ?? 0, date: o.orderDate }));
@@ -199,8 +199,8 @@ export function threeMonths(orders: Order[], deals: Deal[], scope: Scope, opt: P
       .filter((o) => inMonth(o.actualInstallDate, m) && o.actualInstallDate! <= base)
       .map((o) => ({ kind: "order" as const, id: o.id, amount: o.adFee ?? 0, date: o.actualInstallDate! }));
     const iRem: Line["items"] = mine
-      .filter((o) => !o.actualInstallDate && inMonth(o.plannedInstallDate, m) && phaseOf(o, base) === "受注済・未設置")
-      .map((o) => ({ kind: "order" as const, id: o.id, amount: o.adFee ?? 0, date: o.plannedInstallDate!, note: "受注済・未設置" }));
+      .filter((o) => !o.actualInstallDate && inMonth(o.plannedInstallDate, m) && phaseOf(o, base) === "未設置案件")
+      .map((o) => ({ kind: "order" as const, id: o.id, amount: o.adFee ?? 0, date: o.plannedInstallDate!, note: "未設置案件" }));
     // 当月の予定に、予定日を過ぎた未設置も含める(月全体の見通し)
     if (i === 0)
       mine
@@ -209,7 +209,7 @@ export function threeMonths(orders: Order[], deals: Deal[], scope: Scope, opt: P
     if (opt.prospectInstall)
       pros
         .filter((d) => d.expectedClose && addMonthKey(d.expectedClose.slice(0, 7), 1) === m)
-        .forEach((d) => iRem.push({ kind: "deal", id: d.id, amount: d.monthlyBudget ?? 0, date: d.expectedClose, note: "未受注の見込み" }));
+        .forEach((d) => iRem.push({ kind: "deal", id: d.id, amount: d.monthlyBudget ?? 0, date: d.expectedClose, note: "未契約の見込案件" }));
     // ---- 解約 ----
     const cAct: Line["items"] = [];
     const cRem: Line["items"] = [];
@@ -237,7 +237,7 @@ export function threeMonths(orders: Order[], deals: Deal[], scope: Scope, opt: P
       installActual,
       cancelPlan,
       cancelActual,
-      // S25: 設置予定 − 解約予定(受注予定額は加えない)
+      // S25: 設置予定 − 解約予定(契約締結予定額は加えない)
       netPlan: installPlan.amount! - cancelPlan.amount!,
       // S26: 設置実績 − 解約実績
       netActual: future ? null : installActual.amount! - cancelActual.amount!,
@@ -250,9 +250,9 @@ export interface ForecastRow {
   month: string;
   /** 設置済みで継続中の広告料(解約予定を差し引き) */
   running: number;
-  /** 受注済・未設置の設置予定 */
+  /** 未設置案件の設置予定 */
   backlog: number;
-  /** 未受注の見込み(受注予定日の翌月に設置と仮定) */
+  /** 未契約の見込案件(契約締結予定日の翌月に設置と仮定) */
   prospect: number;
 }
 export function forecast12(orders: Order[], deals: Deal[], scope: Scope, base = todayISO()): ForecastRow[] {

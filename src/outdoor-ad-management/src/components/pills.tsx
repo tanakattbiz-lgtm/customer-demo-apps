@@ -7,7 +7,7 @@ const STAGE_TONE: Record<Stage, Tone> = {
   面談予定: "gray",
   提案済み: "navy",
   最終調整中: "solid",
-  受注: "ok",
+  契約締結: "ok",
   失注: "bad",
 };
 export const StagePill = ({ stage, full }: { stage: Stage; full?: boolean }) => (
@@ -17,7 +17,7 @@ export const StagePill = ({ stage, full }: { stage: Stage; full?: boolean }) => 
   </Pill>
 );
 
-const PHASE_TONE: Record<Phase, Tone> = { "受注済・未設置": "navy", 設置済: "ok", 解約済: "gray" };
+const PHASE_TONE: Record<Phase, Tone> = { "未設置案件": "navy", 設置済: "ok", 解約済: "gray" };
 export const PhasePill = ({ phase }: { phase: Phase }) => <Pill tone={PHASE_TONE[phase]}>{phase}</Pill>;
 
 const CONTRACT_TONE: Record<ContractState, Tone> = {
@@ -55,5 +55,5 @@ export const RankPill = ({ rank }: { rank: Rank }) => (
   </span>
 );
 
-const CS_TONE: Record<CustomerStatus, Tone> = { 見込み: "gray", 商談中: "navy", 取引中: "ok", 休眠: "gray" };
+const CS_TONE: Record<CustomerStatus, Tone> = { 契約前: "gray", 商談中: "navy", 取引中: "ok", 休眠: "gray" };
 export const CustomerStatusPill = ({ status }: { status: CustomerStatus }) => <Pill tone={CS_TONE[status]}>{status}</Pill>;

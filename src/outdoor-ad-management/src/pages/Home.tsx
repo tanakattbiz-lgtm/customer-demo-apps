@@ -58,10 +58,10 @@ export default function Home() {
     return h.status === "差し戻し" && c?.repId === ME_ID;
   });
   const TILES = [
-    { to: "/follow-ups", icon: CalendarClock, title: "やることを確認する", desc: "お客様への次回対応を、期限の近い順に確認します" },
-    { to: "/deals?new=1", icon: Handshake, title: "見込みを登録する", desc: "新しい案件を始めるときに使います。分からない項目は空欄で構いません" },
-    { to: "/customers?new=1", icon: Building2, title: "新しいお客様を登録する", desc: "名刺や問い合わせの内容を入力します" },
-    { to: "/orders", icon: ClipboardList, title: "受注・設置・解約を見る", desc: "受注した案件の設置予定や、解約の予定を確認します", badge: waiting.length },
+    { to: "/follow-ups", icon: CalendarClock, title: "やることを確認する", desc: "クライアントへの次回対応を、期限の近い順に確認します" },
+    { to: "/deals?new=1", icon: Handshake, title: "見込案件を登録する", desc: "新しい案件を始めるときに使います。分からない項目は空欄で構いません" },
+    { to: "/customers?new=1", icon: Building2, title: "新しいクライアントを登録する", desc: "名刺や問い合わせの内容を入力します" },
+    { to: "/orders", icon: ClipboardList, title: "契約締結・設置・解約を見る", desc: "契約締結した案件の設置予定や、解約の予定を確認します", badge: waiting.length },
     { to: "/report", icon: TrendingUp, title: "営業報告を見る", desc: "今月・来月・再来月の予定と実績が、自動で集計されています" },
     { to: "/dashboard", icon: BarChart3, title: "経営ダッシュボード", desc: "部長・社長向けの、エリア別の新規・純増の一覧です" },
   ];
@@ -87,10 +87,10 @@ export default function Home() {
         className="mb-8 grid gap-px overflow-hidden rounded-lg border border-ink-200 bg-ink-200 transition hover:border-navy-300 sm:grid-cols-2 lg:grid-cols-4"
       >
         <div className="bg-white px-5 py-4">
-          <div className="text-[13px] text-ink-600">今月の受注(広告料/月)</div>
+          <div className="text-[13px] text-ink-600">今月の契約締結(広告料/月)</div>
           <div className="tnum mt-1 font-serif text-[24px] font-semibold text-navy-900">¥{(c0.orderActual.amount ?? 0).toLocaleString()}</div>
           <div className="tnum text-[12.5px] text-ink-500">
-            {c0.orderActual.count}件 ・ 受注予定 ¥{(c0.orderPlan.amount ?? 0).toLocaleString()}
+            {c0.orderActual.count}件 ・ 契約締結予定 ¥{(c0.orderPlan.amount ?? 0).toLocaleString()}
           </div>
         </div>
         <div className="bg-white px-5 py-4">
@@ -102,9 +102,9 @@ export default function Home() {
         </div>
         <div className="bg-white px-5 py-4">
           <div className="text-[13px] text-ink-600">今月の解約 実績</div>
-          <div className="tnum mt-1 font-serif text-[24px] font-semibold text-bad-700">−¥{(c0.cancelActual.amount ?? 0).toLocaleString()}</div>
+          <div className="tnum mt-1 font-serif text-[24px] font-semibold text-bad-700">{(c0.cancelActual.amount ?? 0) > 0 ? "−" : ""}¥{(c0.cancelActual.amount ?? 0).toLocaleString()}</div>
           <div className="tnum text-[12.5px] text-ink-500">
-            {c0.cancelActual.count}件 ・ 予定 −¥{(c0.cancelPlan.amount ?? 0).toLocaleString()}
+            {c0.cancelActual.count}件 ・ 予定 {(c0.cancelPlan.amount ?? 0) > 0 ? "−" : ""}¥{(c0.cancelPlan.amount ?? 0).toLocaleString()}
           </div>
         </div>
         <div className="bg-white px-5 py-4">
@@ -198,7 +198,7 @@ export default function Home() {
                   <Pill tone="warn">連携待ち</Pill>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[16px] font-medium text-ink-900">工事指示システムの企画と、まだ紐づいていない受注が {waiting.length}件あります</div>
+                  <div className="text-[16px] font-medium text-ink-900">工事指示システムの企画と、まだ紐づいていない契約締結が {waiting.length}件あります</div>
                   <div className="text-[14px] text-ink-500">企画が登録されると、自動で企画番号が入ります</div>
                 </div>
                 <Button variant="outline" onClick={() => nav("/orders?tab=waiting")}>

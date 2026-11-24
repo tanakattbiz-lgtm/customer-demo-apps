@@ -74,13 +74,13 @@ export default function Handover() {
       <PageHeader
         eyebrow="Handover"
         title="管理部への書類提出"
-        description="成約した契約の書類が、いまどの段階にあるかを確認できます。"
+        description="締結した契約の書類が、いまどの段階にあるかを確認できます。"
       />
 
       {/* フロー */}
       <Card className="mb-6 px-5 py-4">
         <div className="flex flex-col gap-3 text-[14px] md:flex-row md:items-center">
-          <FlowStep role="営業" label="成約登録・書類提出" />
+          <FlowStep role="営業" label="契約締結登録・書類提出" />
           <ArrowRight size={15} className="hidden shrink-0 text-ink-300 md:block" />
           <FlowStep role="管理部" label="内容・書類を確認" />
           <ArrowRight size={15} className="hidden shrink-0 text-ink-300 md:block" />
@@ -113,7 +113,7 @@ export default function Handover() {
         />
         <div className="relative mb-2">
           <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-400" />
-          <input className={inputCls + " w-full! pl-8! md:w-60!"} placeholder="番号・お客様名で検索" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
+          <input className={inputCls + " w-full! pl-8! md:w-60!"} placeholder="番号・クライアント名で検索" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
         </div>
       </div>
 
@@ -127,7 +127,7 @@ export default function Handover() {
             <EmptyState
               icon={<Inbox size={20} />}
               title={tab === "todo" ? "確認待ちの引継ぎはありません" : tab === "rejected" ? "差し戻し中の引継ぎはありません" : "引継ぎはまだありません"}
-              description={tab === "todo" ? "営業が成約登録すると、ここに届きます。" : undefined}
+              description={tab === "todo" ? "営業が契約締結登録すると、ここに届きます。" : undefined}
             />
           )
         ) : (

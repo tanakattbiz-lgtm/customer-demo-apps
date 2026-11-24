@@ -29,7 +29,7 @@ export default function Orders() {
   const scoped = useMemo(() => orders.filter((o) => scope === "all" || o.repId === ME_ID), [orders, scope]);
   const is = (o: Order, t: Tab) => {
     const ph = phaseOf(o);
-    if (t === "backlog") return ph === "受注済・未設置";
+    if (t === "backlog") return ph === "未設置案件";
     if (t === "installed") return ph === "設置済";
     if (t === "cancelPlan") return ph === "設置済" && !!pendingCancel(o);
     if (t === "cancelled") return ph === "解約済";
@@ -72,10 +72,10 @@ export default function Orders() {
     <>
       <PageHeader
         eyebrow="Orders"
-        title="受注・設置・解約"
-        description="受注した案件を、設置・解約まで1件ずつ追いかけます。企画番号・設置日・解約日は、工事指示システムの「企画」から自動で入る想定です。"
+        title="契約締結・設置・解約"
+        description="契約締結した案件を、設置・解約まで1件ずつ追いかけます。企画番号・設置日・解約日は、工事指示システムの「企画」から自動で入る想定です。"
         guide={[
-          "見込みで「受注にする」を押すと、ここに「受注済・未設置」として並びます。",
+          "見込案件で「契約締結を登録」を押すと、ここに「未設置案件」として並びます。",
           "工事指示システムで企画が登録されると企画番号が紐づき、製造部の施工完了で「設置済」になります。",
           "解約の連絡を受けたら、案件を開いて「解約予定を登録」を押します。一部の面だけの解約もできます。",
         ]}
@@ -100,7 +100,7 @@ export default function Orders() {
             setPage(1);
           }}
           items={[
-            { value: "backlog", label: "受注済・未設置(受注残)", count: counts("backlog") },
+            { value: "backlog", label: "未設置案件", count: counts("backlog") },
             { value: "installed", label: "設置済", count: counts("installed") },
             { value: "cancelPlan", label: "解約予定あり", count: counts("cancelPlan") },
             { value: "cancelled", label: "解約済", count: counts("cancelled") },
@@ -153,7 +153,7 @@ export default function Orders() {
                   <tr>
                     <SortTh label="企画番号" k="no" sort={sort} onSort={onSort} />
                     <th className="px-4 py-2.5 font-medium">クライアント / 設置場所</th>
-                    <SortTh label="受注日" k="order" sort={sort} onSort={onSort} />
+                    <SortTh label="契約締結日" k="order" sort={sort} onSort={onSort} />
                     <SortTh label="設置(予定)" k="install" sort={sort} onSort={onSort} />
                     <SortTh label="広告料/月" k="fee" sort={sort} onSort={onSort} className="text-right" />
                     <th className="px-4 py-2.5 text-right font-medium">化粧料</th>
@@ -200,7 +200,7 @@ export default function Orders() {
                   </div>
                   <div className="tnum mt-2 grid grid-cols-3 gap-2 text-[12.5px] text-ink-500">
                     <span>
-                      受注
+                      契約締結
                       <span className="block text-[14px] text-ink-800">{fmtDate(o.orderDate).slice(5)}</span>
                     </span>
                     <span>

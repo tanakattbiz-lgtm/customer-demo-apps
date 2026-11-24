@@ -245,11 +245,11 @@ export function NextActionModal({ open, onClose, deal }: { open: boolean; onClos
   );
 }
 
-// =============== 見込み(商談) 作成・編集 ===============
+// =============== 見込案件(商談) 作成・編集 ===============
 const numOrNull = (v: string) => (v.trim() === "" ? null : Number(v));
 const strOf = (v: number | null | undefined) => (v === null || v === undefined ? "" : String(v));
 
-/** お客様の検索選択(項目定義 I01: 既存顧客は検索選択。同じ名前だけで統合しない) */
+/** クライアントの検索選択(項目定義 I01: 既存顧客は検索選択。同じ名前だけで統合しない) */
 export function CustomerPicker({
   value,
   onChange,
@@ -298,7 +298,7 @@ export function CustomerPicker({
       <div className="thin-scroll mt-1.5 max-h-52 overflow-y-auto rounded-md border border-ink-200">
         {list.length === 0 ? (
           <div className="px-3 py-3 text-[13.5px] text-ink-500">
-            該当するお客様がいません。新しいお客様は「お客様」の画面で登録してください。
+            該当するクライアントがいません。新しいクライアントは「クライアント」の画面で登録してください。
           </div>
         ) : (
           list.map((c) => (
@@ -470,18 +470,18 @@ export function DealFormModal({
   const rent = numOrNull(f.landRent);
   const neg = (v: number | null) => v !== null && !(v >= 0);
   const errs = {
-    customerId: !f.customerId ? "お客様を選択してください" : "",
+    customerId: !f.customerId ? "クライアントを選択してください" : "",
     title: !f.title.trim() ? "案件名を入力してください" : "",
     monthlyBudget: neg(ad) ? "0以上の金額を入力してください" : "",
     makeupFee: neg(makeup) ? "0以上の金額を入力してください" : "",
     landRent: neg(rent) ? "0以上の金額を入力してください" : "",
-    expectedClose: !f.noClose && !f.expectedClose ? "受注予定日を選択するか「未定」を選んでください" : "",
+    expectedClose: !f.noClose && !f.expectedClose ? "契約締結予定日を選択するか「未定」を選んでください" : "",
     size: (f.widthMm && !(Number(f.widthMm) > 0)) || (f.heightMm && !(Number(f.heightMm) > 0)) ? "寸法は正の数(mm)で入力してください" : "",
   };
   const invalid = Object.values(errs).some(Boolean);
   const ratio = ad && rent !== null ? rent / (ad * 12) : null;
   const customer = customers.find((c) => c.id === f.customerId);
-  // 重複訪問の防止: 同じお客様の進行中の見込みを、ほかの担当者が持っていないか
+  // 重複訪問の防止: 同じクライアントの進行中の見込案件を、ほかの担当者が持っていないか
   const others = deals.filter(
     (d) => d.customerId === f.customerId && d.id !== deal?.id && OPEN_STAGES.includes(d.stage) && d.repId !== f.repId,
   );
@@ -518,7 +518,7 @@ export function DealFormModal({
       updatedAt: todayISO(),
     } as Deal);
     setBusy(false);
-    toast.success(deal ? "見込みを更新しました" : "見込みを登録しました");
+    toast.success(deal ? "見込案件を更新しました" : "見込案件を登録しました");
     onClose();
     onSaved?.(id);
   };
@@ -528,8 +528,8 @@ export function DealFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={deal ? "見込みを編集" : "見込みを登録"}
-      sub="一度登録した内容は、受注・設置・解約まで引き継がれます。分からない項目は空欄のままで登録できます。"
+      title={deal ? "見込案件を編集" : "見込案件を登録"}
+      sub="一度登録した内容は、契約締結・設置・解約まで引き継がれます。分からない項目は空欄のままで登録できます。"
       width={720}
       footer={
         <>
@@ -543,17 +543,17 @@ export function DealFormModal({
       }
     >
       <div className="space-y-5">
-        <Sec title="お客様と案件">
+        <Sec title="クライアントと案件">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <div className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium text-ink-600">
-                お客様 <span className="text-[11.5px] font-normal text-bad-500">必須</span>
+                クライアント <span className="text-[11.5px] font-normal text-bad-500">必須</span>
               </div>
               <CustomerPicker value={f.customerId} onChange={set("customerId")} disabled={!!deal} error={!!err("customerId")} />
               {err("customerId") && <div className="mt-1 text-[12.5px] text-bad-600">{err("customerId")}</div>}
               {others.length > 0 && (
                 <div className="mt-2 rounded-md border border-warn-300 bg-warn-50 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-warn-700">
-                  このお客様には、ほかの担当者の見込みがあります(重複訪問に注意):
+                  このクライアントには、ほかの担当者の見込案件があります(重複訪問に注意):
                   {others.map((o) => (
                     <span key={o.id} className="ml-1 font-medium">
                       {STAFF.find((x) => x.id === o.repId)?.name}({STAFF.find((x) => x.id === o.repId)?.branch}・{STAGE_NO[o.stage]}{o.stage})
@@ -565,8 +565,8 @@ export function DealFormModal({
             <Field label="案件名" required error={err("title")}>
               <input className={inputCls + (err("title") ? errCls : "")} placeholder="例: 新店オープン告知" value={f.title} onChange={ev("title")} />
             </Field>
-            <Field label="業種" hint="お客様の情報から自動で入ります(業種マスター)">
-              <input className={inputCls + " bg-ink-50"} value={customer?.industry ?? ""} placeholder="お客様を選ぶと入ります" readOnly />
+            <Field label="業種" hint="クライアントの情報から自動で入ります(業種マスター)">
+              <input className={inputCls + " bg-ink-50"} value={customer?.industry ?? ""} placeholder="クライアントを選ぶと入ります" readOnly />
             </Field>
             <Field label="営業担当者" hint={rep ? `所属: ${rep.area} / ${rep.branch}(自動)` : undefined}>
               <select className={inputCls} value={f.repId} onChange={ev("repId")}>
@@ -594,14 +594,14 @@ export function DealFormModal({
           </div>
         </Sec>
 
-        <Sec title="見込みの段階" q={["Q02"]}>
+        <Sec title="見込案件の段階" q={["Q02"]}>
           <ChoiceButtons
             value={f.stage}
             onChange={(v) => v && set("stage")(v)}
             items={OPEN_STAGES.map((s) => ({ value: s, label: `${STAGE_NO[s]} ${STAGE_LABEL[s]}`, sub: STAGE_DEF[s] }))}
           />
           <div className="mt-3 grid gap-3 sm:grid-cols-[220px_1fr] sm:items-end">
-            <Field label="受注予定日" error={err("expectedClose")}>
+            <Field label="契約締結予定日" error={err("expectedClose")}>
               <input type="date" className={inputCls} value={f.noClose ? "" : f.expectedClose} disabled={f.noClose} onChange={ev("expectedClose")} />
             </Field>
             <label className="flex min-h-11 items-center gap-2 text-[14px] text-ink-700">
@@ -720,7 +720,7 @@ export function CustomerFormModal({
     address: "",
     area: "大阪" as Area,
     rank: "B" as Rank,
-    status: "見込み" as CustomerStatus,
+    status: "契約前" as CustomerStatus,
     source: "営業開拓",
     repId: ME_ID,
     memo: "",
@@ -753,14 +753,14 @@ export function CustomerFormModal({
       company: f.company.trim(),
     } as Customer);
     setBusy(false);
-    toast.success(customer ? "顧客情報を更新しました" : "見込み客を登録しました");
+    toast.success(customer ? "クライアント情報を更新しました" : "クライアントを登録しました");
     onClose();
   };
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={customer ? "顧客情報を編集" : "見込み客を登録"}
+      title={customer ? "クライアント情報を編集" : "クライアントを登録"}
       width={640}
       footer={
         <>
@@ -806,7 +806,7 @@ export function CustomerFormModal({
         <Field label="所在地" className="sm:col-span-2">
           <input className={inputCls} value={f.address} onChange={set("address")} />
         </Field>
-        <Field label="ランク" hint="A: 受注確度・規模ともに高い">
+        <Field label="ランク" hint="A: 契約締結確度・規模ともに高い">
           <select className={inputCls} value={f.rank} onChange={set("rank")}>
             {["A", "B", "C"].map((r) => (
               <option key={r}>{r}</option>
@@ -815,7 +815,7 @@ export function CustomerFormModal({
         </Field>
         <Field label="状態">
           <select className={inputCls} value={f.status} onChange={set("status")}>
-            {["見込み", "商談中", "取引中", "休眠"].map((r) => (
+            {["契約前", "商談中", "取引中", "休眠"].map((r) => (
               <option key={r}>{r}</option>
             ))}
           </select>
@@ -934,7 +934,7 @@ export function HoldModal({
           </div>
         )}
         <p className="text-[14px] leading-relaxed text-ink-600">
-          仮押さえをすると、期限までの間、他の担当者がこの面を押さえられなくなります。お客様の返事を待つ間の「一時的な確保」です。
+          仮押さえをすると、期限までの間、他の担当者がこの面を押さえられなくなります。クライアントの返事を待つ間の「一時的な確保」です。
         </p>
         <Field label="どの商談のための仮押さえですか" required error={touched ? errs.dealId : ""}>
           <select data-tour="hold-deal" className={inputCls + (touched && errs.dealId ? errCls : "")} value={f.dealId} onChange={(e) => setF({ ...f, dealId: e.target.value })}>

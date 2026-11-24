@@ -34,7 +34,7 @@ function useNav(): { group: string; items: NavItem[] }[] {
   return useMemo(() => {
     const today = todayISO();
     const due = deals.filter(
-      (d) => d.repId === ME_ID && d.nextAction && d.nextAction.date <= today && d.stage !== "受注" && d.stage !== "失注",
+      (d) => d.repId === ME_ID && d.nextAction && d.nextAction.date <= today && d.stage !== "契約締結" && d.stage !== "失注",
     ).length;
     const waiting = orders.filter((o) => o.repId === ME_ID && !o.kikakuNo).length;
     return [
@@ -42,14 +42,14 @@ function useNav(): { group: string; items: NavItem[] }[] {
       {
         group: "営業",
         items: [
-          { to: "/follow-ups", label: "やること一覧", desc: "お客様への次回対応", icon: CalendarClock, badge: due },
-          { to: "/deals", label: "見込み", desc: "受注前の案件・3段階", icon: Handshake },
-          { to: "/customers", label: "お客様", desc: "見込み客・広告主", icon: Building2 },
+          { to: "/follow-ups", label: "やること一覧", desc: "クライアントへの次回対応", icon: CalendarClock, badge: due },
+          { to: "/deals", label: "見込案件", desc: "契約締結前の案件・3段階", icon: Handshake },
+          { to: "/customers", label: "クライアント", desc: "契約前・契約中の相手", icon: Building2 },
         ],
       },
       {
-        group: "受注〜解約",
-        items: [{ to: "/orders", label: "受注・設置・解約", desc: "工事指示システムと連携", icon: ClipboardList, badge: waiting }],
+        group: "契約締結〜解約",
+        items: [{ to: "/orders", label: "契約締結・設置・解約", desc: "工事指示システムと連携", icon: ClipboardList, badge: waiting }],
       },
       {
         group: "集計",

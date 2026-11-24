@@ -157,7 +157,7 @@ export default function CloseDealModal({ open, onClose, deal }: { open: boolean;
     <Modal
       open={open}
       onClose={onClose}
-      title="成約を登録する"
+      title="契約締結を登録する"
       sub="3つの手順で、契約の内容と書類を管理部へ提出します"
       width={680}
       footer={
@@ -187,7 +187,7 @@ export default function CloseDealModal({ open, onClose, deal }: { open: boolean;
         <EmptyState
           icon={<LayoutGrid size={20} />}
           title="仮押さえ中の広告面がありません"
-          description="成約登録の前に、掲載する看板・広告面を仮押さえしてください。"
+          description="契約締結登録の前に、掲載する看板・広告面を仮押さえしてください。"
           action={
             <Button
               onClick={() => {

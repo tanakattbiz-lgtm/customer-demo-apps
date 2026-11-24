@@ -71,12 +71,12 @@ export default function Dashboard() {
 
       {/* KPI */}
       <div data-tour="kpi" className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-ink-200 bg-ink-200 lg:grid-cols-3 xl:grid-cols-6">
-        <Kpi loading={loading} label="今月の新規受注" help="今月、受注日が入った案件の件数と、広告料(月額・税抜)の合計です。" value={`${d.snap.ordered.agg.count}`} unit="件" sub={`広告料 ${yen(d.snap.ordered.agg.ad)}/月`} />
+        <Kpi loading={loading} label="今月の新規契約" help="今月、契約締結日が入った案件の件数と、広告料(月額・税抜)の合計です。" value={`${d.snap.ordered.agg.count}`} unit="件" sub={`広告料 ${yen(d.snap.ordered.agg.ad)}/月`} />
         <Kpi loading={loading} label="設置 実績" help="今月、設置日(実績)が入った案件の広告料です。純増減の増える側です。" value={manY(c0.installActual.amount ?? 0)} unit="円" sub={`${c0.installActual.count}件`} />
         <Kpi loading={loading} label="解約 実績" help="今月、解約日(実績)が入った解約の広告料です。純増減の減る側です。" value={manY(c0.cancelActual.amount ?? 0)} unit="円" sub={`${c0.cancelActual.count}件`} />
         <Kpi loading={loading} label="純増減 実績" help="設置実績 − 解約実績。今日までの途中の数字です。" value={manSigned(c0.netActual ?? 0)} unit="円" sub="今月(今日まで)" tone={(c0.netActual ?? 0) >= 0 ? "ok" : "bad"} />
         <Kpi loading={loading} label="純増減 予定" help="設置予定 − 解約予定。今月の実績に、月末までの残りの予定を足した見通しです。" value={manSigned(c0.netPlan)} unit="円" sub="今月の月全体の見通し" tone={c0.netPlan >= 0 ? "ok" : "bad"} />
-        <Kpi loading={loading} label="受注残" help="受注済みで、まだ設置していない案件です。これから設置広告料になります。" value={`${d.snap.backlog.agg.count}`} unit="件" sub={`広告料 ${yen(d.snap.backlog.agg.ad)}/月`} />
+        <Kpi loading={loading} label="未設置案件" help="契約締結済みで、まだ設置していない案件です。これから設置広告料になります。" value={`${d.snap.backlog.agg.count}`} unit="件" sub={`広告料 ${yen(d.snap.backlog.agg.ad)}/月`} />
       </div>
 
       {/* エリア別 */}
@@ -87,7 +87,7 @@ export default function Dashboard() {
             <thead className={tableHeadCls}>
               <tr>
                 <th className={thCls}>エリア</th>
-                <th className={thCls + " text-right"}>新規受注</th>
+                <th className={thCls + " text-right"}>新規契約</th>
                 <th className={thCls + " text-right"}>設置 実績</th>
                 <th className={thCls + " text-right"}>解約 実績</th>
                 <th className={thCls + " text-right"}>純増減 実績</th>
@@ -182,10 +182,10 @@ export default function Dashboard() {
         <Card>
           <CardHeader
             title="約1年先までの広告料の見通し(月額)"
-            sub="確定(設置済・受注残)と見込みを分けて表示"
+            sub="確定(設置済・未設置案件)と見込案件を分けて表示"
             right={
               <span className="flex items-center gap-1.5">
-                <Help label="1年先の見通し" text="「1年先の契約広告料」が、今後受注する広告料・設置予定の広告料・契約継続中の広告料のどれを指すかは、まだ決まっていません。ここでは3つを分けて積み上げています。" />
+                <Help label="1年先の見通し" text="「1年先の契約広告料」が、今後契約締結する広告料・設置予定の広告料・契約継続中の広告料のどれを指すかは、まだ決まっていません。ここでは3つを分けて積み上げています。" />
                 <QTag id="Q14" />
               </span>
             }
@@ -199,7 +199,7 @@ export default function Dashboard() {
                   <CartesianGrid vertical={false} stroke={GRID} />
                   <XAxis dataKey="label" tick={{ fontSize: 11, fill: AXIS }} axisLine={false} tickLine={false} interval={0} />
                   <YAxis tick={{ fontSize: 11, fill: AXIS }} axisLine={false} tickLine={false} width={52} tickFormatter={manY} />
-                  <Tooltip content={<Tip names={{ running: "契約継続中(設置済)", backlog: "受注残の設置予定", prospect: "見込み(未受注)" }} total />} cursor={{ fill: "rgba(34,49,74,0.05)" }} />
+                  <Tooltip content={<Tip names={{ running: "契約継続中(設置済)", backlog: "未設置案件の設置予定", prospect: "見込案件(未契約)" }} total />} cursor={{ fill: "rgba(34,49,74,0.05)" }} />
                   <Bar dataKey="running" stackId="a" fill={C_NAVY} animationDuration={500} />
                   <Bar dataKey="backlog" stackId="a" fill={C_OK} animationDuration={500} />
                   <Bar dataKey="prospect" stackId="a" fill={C_LIGHT} radius={[3, 3, 0, 0]} animationDuration={500} />
@@ -209,8 +209,8 @@ export default function Dashboard() {
           </div>
           <div className="flex flex-wrap gap-4 px-5 pb-4 text-[12.5px] text-ink-500">
             <Legend color={C_NAVY} label="契約継続中(設置済・解約予定を差し引き)" />
-            <Legend color={C_OK} label="受注残の設置予定(確定)" />
-            <Legend color={C_LIGHT} label="見込み(受注予定日の翌月に設置と仮定)" />
+            <Legend color={C_OK} label="未設置案件の設置予定(確定)" />
+            <Legend color={C_LIGHT} label="見込案件(契約締結予定日の翌月に設置と仮定)" />
           </div>
         </Card>
       </div>

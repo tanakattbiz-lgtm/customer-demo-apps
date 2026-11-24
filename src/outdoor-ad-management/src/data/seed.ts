@@ -87,7 +87,7 @@ export interface LandContract {
   terminated?: boolean;
 }
 
-export type CustomerStatus = "見込み" | "商談中" | "取引中" | "休眠";
+export type CustomerStatus = "契約前" | "商談中" | "取引中" | "休眠";
 export type Rank = "A" | "B" | "C";
 export interface Customer {
   id: string;
@@ -107,27 +107,27 @@ export interface Customer {
   memo: string;
 }
 
-/** 見込みの3段階(項目定義 P01〜P03 の仮案)+ 受注 + 見送り・失注 */
-export type Stage = "面談予定" | "提案済み" | "最終調整中" | "受注" | "失注";
+/** 見込案件の3段階(項目定義 P01〜P03 の仮案)+ 契約締結 + 見送り・失注 */
+export type Stage = "面談予定" | "提案済み" | "最終調整中" | "契約締結" | "失注";
 export const OPEN_STAGES: Stage[] = ["面談予定", "提案済み", "最終調整中"];
-export const STAGES: Stage[] = [...OPEN_STAGES, "受注", "失注"];
-export const STAGE_NO: Record<Stage, string> = { 面談予定: "①", 提案済み: "②", 最終調整中: "③", 受注: "", 失注: "" };
+export const STAGES: Stage[] = [...OPEN_STAGES, "契約締結", "失注"];
+export const STAGE_NO: Record<Stage, string> = { 面談予定: "①", 提案済み: "②", 最終調整中: "③", 契約締結: "", 失注: "" };
 export const STAGE_LABEL: Record<Stage, string> = {
   面談予定: "責任者との面談予定あり",
   提案済み: "責任者に提案済み",
   最終調整中: "契約条件を最終調整中",
-  受注: "受注",
+  契約締結: "契約締結",
   失注: "見送り・失注",
 };
 export const STAGE_DEF: Record<Stage, string> = {
   面談予定: "判断できる責任者との訪問日時が決まっている。",
   提案済み: "掲載内容・条件を責任者に具体的に提案済み。",
   最終調整中: "掲載意向を確認し、金額・時期などを調整中。確約を意味しない。",
-  受注: "受注日が登録されている。",
-  失注: "見送り・失注として終了した。進行中の見込みから除外する。",
+  契約締結: "契約締結日が登録されている。",
+  失注: "見送り・失注として終了した。進行中の見込案件から除外する。",
 };
-/** 旧デモ(仮押さえ・成約登録)との互換用。画面には表示しない */
-export const STAGE_PROB: Record<Stage, number> = { 面談予定: 20, 提案済み: 50, 最終調整中: 80, 受注: 100, 失注: 0 };
+/** 旧デモ(仮押さえ・契約締結登録)との互換用。画面には表示しない */
+export const STAGE_PROB: Record<Stage, number> = { 面談予定: 20, 提案済み: 50, 最終調整中: 80, 契約締結: 100, 失注: 0 };
 
 // ---- 項目定義 I16〜I18 の選択肢(仮案) ----
 export type SignType = "看板を新設" | "既存の看板に掲出";
@@ -140,7 +140,7 @@ export type Channel = "営業開拓" | "コールセンター" | "電話・LP問
 export const CHANNELS: Channel[] = ["営業開拓", "コールセンター", "電話・LP問い合わせ", "紹介", "その他"];
 export const FACE_COUNT_LABEL: Record<number, string> = { 1: "片面", 2: "両面", 3: "三面", 4: "四面" };
 
-/** 見込み・受注で共通の、看板と金額の項目(項目定義 I03〜I08・I16〜I18) */
+/** 見込案件・契約締結で共通の、看板と金額の項目(項目定義 I03〜I08・I16〜I18) */
 export interface SignSpec {
   widthMm: number | null;
   heightMm: number | null;
@@ -170,7 +170,7 @@ export interface Deal extends SignSpec {
   /** 広告料(月額・税抜)。null=未入力 */
   monthlyBudget: number | null;
   months: number;
-  /** 受注予定日(未確定なら空文字) */
+  /** 契約締結予定日(未確定なら空文字) */
   expectedClose: string;
   repId: string;
   nextAction: NextAction | null;
@@ -184,7 +184,7 @@ export interface Deal extends SignSpec {
   orderId?: string;
 }
 
-// ======================= 受注〜設置〜解約(工事指示システムの企画と連携する想定) =======================
+// ======================= 契約締結〜設置〜解約(工事指示システムの企画と連携する想定) =======================
 export interface CancelEvent {
   id: string;
   /** 解約予定日 */
@@ -223,7 +223,7 @@ export interface Order extends SignSpec {
   adFee: number | null;
   cancels: CancelEvent[];
   attachments: Attachment[];
-  /** 新システム導入前からの契約(元の見込みが無い) */
+  /** 新システム導入前からの契約(元の見込案件が無い) */
   legacy: boolean;
   notes: string;
 }
@@ -661,7 +661,7 @@ export function createSeed(): SeedData {
     });
   };
   ADVERTISERS.forEach(([n, ind], i) => mkCustomer(n, ind, "取引中", i));
-  PROSPECTS.forEach(([n, ind], i) => mkCustomer(n, ind, i < 20 ? "商談中" : i < 25 ? "見込み" : "休眠", ADVERTISERS.length + i));
+  PROSPECTS.forEach(([n, ind], i) => mkCustomer(n, ind, i < 20 ? "商談中" : i < 25 ? "契約前" : "休眠", ADVERTISERS.length + i));
   const advertisers = customers.filter((c) => c.status === "取引中");
 
   // ---- 広告契約(面ごとに時系列で敷き詰める) ----
@@ -813,7 +813,7 @@ export function createSeed(): SeedData {
     };
   });
 
-  // ---- 看板・金額の項目(見込み・受注で共通) ----
+  // ---- 看板・金額の項目(見込案件・契約締結で共通) ----
   const AD_FEES = [18000, 22000, 25000, 30000, 35000, 40000, 45000, 50000, 60000, 70000, 80000, 100000, 120000];
   const MAKEUP = [0, 50000, 80000, 100000, 120000, 150000, 200000, 250000, 300000];
   /** 地代(年額)。広告料の年額の15〜35%程度 */
@@ -845,7 +845,7 @@ export function createSeed(): SeedData {
     };
   };
 
-  // ---- 見込み(商談) ----
+  // ---- 見込案件(商談) ----
   const deals: Deal[] = [];
   const activities: Activity[] = [];
   const prospects = customers.filter((c) => c.status === "商談中");
@@ -902,7 +902,7 @@ export function createSeed(): SeedData {
     mkDeal(cu, stage, repId, i);
     cu.repId = repId;
   });
-  // ほかの担当者の見込み(営業所・エリアの集計用)
+  // ほかの担当者の見込案件(営業所・エリアの集計用)
   STAFF.filter((s) => s.id !== ME_ID).forEach((s, si) => {
     const n = int(3, 6);
     for (let k = 0; k < n; k++) {
@@ -910,7 +910,7 @@ export function createSeed(): SeedData {
       mkDeal(cu, pick(["面談予定", "面談予定", "提案済み", "提案済み", "最終調整中"] as Stage[]), s.id, si * 7 + k);
     }
   });
-  // 重複訪問の例: 自分(u01)が進めているお客様を、別の営業所の担当者も訪問予定
+  // 重複訪問の例: 自分(u01)が進めているクライアントを、別の営業所の担当者も訪問予定
   mkDeal(prospects[1], "面談予定", "u04", 5);
   // 見送り・失注の履歴も少し
   [advertisers[12], advertisers[13]].forEach((cu, i) => {
@@ -934,7 +934,7 @@ export function createSeed(): SeedData {
     });
   });
 
-  // ---- 受注〜設置〜解約(工事指示システムの「企画」から取り込む想定) ----
+  // ---- 契約締結〜設置〜解約(工事指示システムの「企画」から取り込む想定) ----
   const orders: Order[] = [];
   let kseq = 184200;
   const dateOf = (mk: string, day: number) => {
@@ -969,7 +969,7 @@ export function createSeed(): SeedData {
     return {
       id: `o${String(orders.length + 1).padStart(4, "0")}`,
       kikakuNo,
-      syncedAt: waiting ? null : format(setHours(addDays(orderDate, 1), 8), "yyyy-MM-dd'T'HH:mm:ss"),
+      syncedAt: waiting ? null : format(addDays(orderDate, 1) > today ? setMinutes(setHours(today, 8), 0) : setHours(addDays(orderDate, 1), 8), "yyyy-MM-dd'T'HH:mm:ss"),
       customerId: cu.id,
       repId,
       title: pick(DEAL_TITLES),

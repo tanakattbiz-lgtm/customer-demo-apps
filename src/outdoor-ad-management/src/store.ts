@@ -78,7 +78,7 @@ interface State extends SeedData {
   saveDeal: (d: Deal) => void;
   removeDeal: (id: string) => void;
   setStage: (id: string, stage: Stage, lost?: { kind: "見送り" | "失注"; reason: string }) => void;
-  // 受注〜設置〜解約
+  // 契約締結〜設置〜解約
   registerOrder: (dealId: string, input: OrderInput) => string;
   syncOrder: (id: string, kikakuNo?: string) => void;
   installOrder: (id: string, date: string) => void;
@@ -93,7 +93,7 @@ interface State extends SeedData {
   addHold: (h: Omit<Hold, "id" | "createdAt" | "repId">) => void;
   extendHold: (id: string, until: string) => void;
   releaseHold: (id: string) => void;
-  // 成約 → 契約 → 引継ぎ
+  // 契約締結 → 契約 → 引継ぎ
   closeDeal: (dealId: string, input: CloseInput) => string;
   cancelContract: (id: string, lastMonth: string, reason: string) => void;
   // 引継ぎ
@@ -151,7 +151,7 @@ export const useStore = create<State>()(
           return {
             deals: exists ? s.deals.map((x) => (x.id === d.id ? deal : x)) : [deal, ...s.deals],
             customers: s.customers.map((c) =>
-              c.id === d.customerId && (c.status === "見込み" || c.status === "休眠")
+              c.id === d.customerId && (c.status === "契約前" || c.status === "休眠")
                 ? { ...c, status: "商談中" }
                 : c,
             ),
@@ -237,7 +237,7 @@ export const useStore = create<State>()(
           handovers: [handover, ...s.handovers],
           holds: s.holds.filter((h) => h.dealId !== dealId),
           deals: s.deals.map((d) =>
-            d.id === dealId ? { ...d, stage: "受注", contractId: id, nextAction: null, updatedAt: todayISO() } : d,
+            d.id === dealId ? { ...d, stage: "契約締結", contractId: id, nextAction: null, updatedAt: todayISO() } : d,
           ),
           customers: s.customers.map((c) => (c.id === deal.customerId ? { ...c, status: "取引中" } : c)),
           live: bumpLive(s.live, { newAd: 1, newAdFaces: input.faceIds.length }),
@@ -350,7 +350,7 @@ export const useStore = create<State>()(
         set({
           orders: [order, ...s.orders],
           holds: s.holds.filter((h) => h.dealId !== dealId),
-          deals: s.deals.map((d) => (d.id === dealId ? { ...d, stage: "受注", orderId: id, nextAction: null, updatedAt: todayISO() } : d)),
+          deals: s.deals.map((d) => (d.id === dealId ? { ...d, stage: "契約締結", orderId: id, nextAction: null, updatedAt: todayISO() } : d)),
           customers: s.customers.map((c) => (c.id === deal.customerId ? { ...c, status: "取引中" } : c)),
         });
         return id;
@@ -417,7 +417,7 @@ export const useStore = create<State>()(
       };
     },
     {
-      name: "outdoor-ad-management-v3",
+      name: "outdoor-ad-management-v4",
       // 前日以前に生成したサンプルデータが未変更のまま残っていれば、今日の日付で作り直す
       onRehydrateStorage: () => (state) => {
         if (state && !state.touched && state.seededOn !== todayISO()) state.reset();

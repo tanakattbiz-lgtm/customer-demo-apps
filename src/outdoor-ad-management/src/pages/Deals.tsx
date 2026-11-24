@@ -83,17 +83,17 @@ export default function Deals() {
     <>
       <PageHeader
         eyebrow="Deals"
-        title="見込み"
-        description="受注前のお客様を、3つの段階に分けて並べています。カードを押すと、見込みの詳しい画面が開きます。"
+        title="見込案件"
+        description="契約締結前の案件を、3つの段階に分けて並べています。カードを押すと、見込案件の詳しい画面が開きます。"
         guide={[
-          "新しい見込みは、右上の「見込みを登録」から始めます。分からない項目は空欄のままで構いません。",
-          "カードを押して見込みを開き、話した内容を「対応を記録」で残します。段階が進んだら段階を変えます。",
-          "受注が決まったら「受注にする」を押します。受注後の情報は、工事指示システムの企画と紐づけます。",
+          "新しい見込案件は、右上の「見込案件を登録」から始めます。分からない項目は空欄のままで構いません。",
+          "カードを押して見込案件を開き、話した内容を「対応を記録」で残します。段階が進んだら段階を変えます。",
+          "契約締結が決まったら「契約締結を登録」を押します。契約締結後の情報は、工事指示システムの企画と紐づけます。",
         ]}
         actions={
           <Button onClick={() => setCreating(true)}>
             <Plus size={15} />
-            見込みを登録
+            見込案件を登録
           </Button>
         }
       />
@@ -104,7 +104,7 @@ export default function Deals() {
             <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-400" />
             <input
               className={inputCls + " w-60! pl-8!"}
-              placeholder="顧客名・案件名で検索"
+              placeholder="クライアント名・案件名で検索"
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
@@ -146,7 +146,7 @@ export default function Deals() {
             進行中 <span className="tnum font-semibold text-navy-900">{open.length}</span>件 / 広告料(月額・税抜){" "}
             <span className="tnum font-semibold text-navy-900">{man(adSum)}</span>
             {missing > 0 && <span className="ml-1 text-warn-700">(金額未入力 {missing}件)</span>}
-            <Help label="広告料(月額・税抜)" text="進行中の見込みの広告料(月額)を合計した金額です。金額が未入力の見込みは0円として足さず、件数だけを表示します。" />
+            <Help label="広告料(月額・税抜)" text="進行中の見込案件の広告料(月額)を合計した金額です。金額が未入力の見込案件は0円として足さず、件数だけを表示します。" />
           </div>
           <Segmented
             value={view}
@@ -201,7 +201,7 @@ export default function Deals() {
                                 ) : (
                                   <span className="tnum text-[15px] font-semibold text-ink-900">{man(d.monthlyBudget)}/月</span>
                                 )}
-                                <span className="tnum text-[12px] text-ink-500">{d.expectedClose ? `受注予定 ${d.expectedClose.slice(5).replace("-", "/")}` : "受注予定 未定"}</span>
+                                <span className="tnum text-[12px] text-ink-500">{d.expectedClose ? `契約締結予定 ${d.expectedClose.slice(5).replace("-", "/")}` : "契約締結予定 未定"}</span>
                               </div>
                               <div className="mt-2 flex items-center justify-between border-t border-ink-100 pt-2">
                                 <span
@@ -234,11 +234,11 @@ export default function Deals() {
             deals.length === 0 ? (
               <EmptyState
                 icon={<Handshake size={20} />}
-                title="見込みが登録されていません"
-                action={<Button onClick={() => setCreating(true)}>見込みを登録</Button>}
+                title="見込案件が登録されていません"
+                action={<Button onClick={() => setCreating(true)}>見込案件を登録</Button>}
               />
             ) : (
-              <EmptyState icon={<SearchX size={20} />} title="該当する見込みがありません" description="検索条件を変更してください。" />
+              <EmptyState icon={<SearchX size={20} />} title="該当する見込案件がありません" description="検索条件を変更してください。" />
             )
           ) : (
             <>
@@ -246,10 +246,10 @@ export default function Deals() {
                 <table className="w-full min-w-[860px] text-[15px]">
                   <thead className={tableHeadCls}>
                     <tr>
-                      <SortTh label="顧客 / 案件" k="company" sort={sort} onSort={onSort} />
+                      <SortTh label="クライアント / 案件" k="company" sort={sort} onSort={onSort} />
                       <SortTh label="段階" k="stage" sort={sort} onSort={onSort} />
                       <SortTh label="広告料(月額)" k="amount" sort={sort} onSort={onSort} className="text-right" />
-                      <SortTh label="受注予定" k="close" sort={sort} onSort={onSort} />
+                      <SortTh label="契約締結予定" k="close" sort={sort} onSort={onSort} />
                       <SortTh label="次回対応" k="next" sort={sort} onSort={onSort} />
                       <th className={thCls}>担当</th>
                     </tr>

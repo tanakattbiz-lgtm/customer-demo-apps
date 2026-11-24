@@ -94,7 +94,7 @@ export default function Boards() {
       <PageHeader
         eyebrow="Availability"
         title="看板の空きを探す"
-        description="お客様が希望する時期に空いている看板(広告面)を探して、仮押さえ(一時的な確保)ができます。"
+        description="クライアントが希望する時期に空いている看板(広告面)を探して、仮押さえ(一時的な確保)ができます。"
         guide={[
           "「エリア」「掲載を始めたい月」「掲載する期間」を選びます。",
           "条件に合う空き面が一覧で表示されます。料金も確認できます。",
@@ -445,7 +445,7 @@ function HoldInfoModal({ hold, onClose }: { hold: Hold | null; onClose: () => vo
       {hold && (
         <DL
           items={[
-            ["顧客", customer?.company ?? "—"],
+            ["クライアント", customer?.company ?? "—"],
             ["商談", deal?.title ?? "—"],
             ["担当", staffName(hold.repId)],
             ["期間", fmtPeriod(hold.startMonth, hold.endMonth)],
@@ -606,7 +606,7 @@ function FindVacancy({
                 <div className="tnum text-[17px] font-semibold text-navy-900">{yen(f.price)}<span className="text-[13px] font-normal text-ink-500"> /月</span></div>
                 <div className="tnum text-[13px] text-ink-500">
                   {months}ヶ月の合計 {yen(f.price * Number(months))}
-                  <Help label="定価" text="値引き前の料金です。契約金額は成約登録のときに入力できます。" />
+                  <Help label="定価" text="値引き前の料金です。契約金額は契約締結登録のときに入力できます。" />
                 </div>
               </div>
               <Button data-tour="hold-btn" className="shrink-0" onClick={() => onHold(b, f, start, end)}>

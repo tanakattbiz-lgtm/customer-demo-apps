@@ -84,9 +84,9 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
   }, [open, deal]);
   const n = (v: string) => (v.trim() === "" ? null : Number(v));
   const errs = {
-    orderDate: !f.orderDate ? "受注日を選択してください" : f.orderDate > todayISO() ? "受注日に未来の日付は入れられません" : "",
-    planned: f.planned && f.planned < f.orderDate ? "設置予定日は受注日以降にしてください" : "",
-    ad: n(f.ad) === null ? "広告料を入力してください(受注時までに確定)" : !(n(f.ad)! >= 0) ? "0以上の金額を入力してください" : "",
+    orderDate: !f.orderDate ? "契約締結日を選択してください" : f.orderDate > todayISO() ? "契約締結日に未来の日付は入れられません" : "",
+    planned: f.planned && f.planned < f.orderDate ? "設置予定日は契約締結日以降にしてください" : "",
+    ad: n(f.ad) === null ? "広告料を入力してください(契約締結時までに確定)" : !(n(f.ad)! >= 0) ? "0以上の金額を入力してください" : "",
     kikakuNo: f.kikakuNo && !/^\d{9}$/.test(f.kikakuNo) ? "企画番号は9桁の数字です(先頭の0も入れます)" : "",
     boardName: !f.boardName.trim() ? "設置場所(媒体)を入力してください" : "",
   };
@@ -108,17 +108,17 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
     });
     setBusy(false);
     onClose();
-    toast.success("受注として登録しました", {
+    toast.success("契約締結として登録しました", {
       description: f.kikakuNo ? `企画番号 ${f.kikakuNo} と紐づけました。設置・解約は工事指示システムから自動で反映されます。` : "工事指示システムの企画と紐づくまで「連携待ち」と表示されます。",
-      action: { label: "受注の画面を開く", onClick: () => nav(`/orders/${id}`) },
+      action: { label: "契約締結の画面を開く", onClick: () => nav(`/orders/${id}`) },
     });
   };
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="受注にする"
-      sub="この見込みの内容を引き継いで、受注として登録します"
+      title="契約締結を登録"
+      sub="この見込案件の内容を引き継いで、契約締結として登録します"
       width={640}
       footer={
         <>
@@ -126,7 +126,7 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
             キャンセル
           </Button>
           <Button data-tour="order-submit" onClick={submit} loading={busy}>
-            受注として登録する
+            契約締結として登録する
           </Button>
         </>
       }
@@ -135,7 +135,7 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
         <div className="flex gap-3 rounded-md border border-navy-100 bg-navy-50 px-4 py-3 text-[13.5px] leading-relaxed text-navy-800">
           <Link2 size={16} className="mt-0.5 shrink-0" />
           <div>
-            受注から後の情報(企画番号・受注日・設置日・解約)は、<span className="font-semibold">工事指示システムの「企画」から自動で取り込む</span>想定です。
+            契約締結後の情報(企画番号・契約締結日・設置日・解約)は、<span className="font-semibold">工事指示システムの「企画」から自動で取り込む</span>想定です。
             同じ内容を2回入力しないよう、ここでは企画と紐づけるだけにしています。 <QTag id="Q06" />
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
           <Field label="設置場所(媒体)" required error={err("boardName")}>
             <input data-tour="order-board" className={inputCls + (err("boardName") ? errCls : "")} placeholder="例: 国道2号 西本町交差点" value={f.boardName} onChange={(e) => setF({ ...f, boardName: e.target.value })} />
           </Field>
-          <Field label="受注日(成約日)" required error={err("orderDate")}>
+          <Field label="契約締結日" required error={err("orderDate")}>
             <input type="date" className={inputCls} value={f.orderDate} max={todayISO()} onChange={(e) => setF({ ...f, orderDate: e.target.value })} />
           </Field>
           <Field label="設置予定日" error={err("planned")} hint="設置の完了は、製造部の施工完了から自動で入る想定です">
@@ -156,7 +156,7 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[14.5px] font-semibold text-navy-900">
             金額(税抜) <QTag id="Q05" />
-            <span className="ml-auto text-[12px] font-normal text-ink-500">見込みの金額を引き継いでいます</span>
+            <span className="ml-auto text-[12px] font-normal text-ink-500">見込案件の金額を引き継いでいます</span>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <Field label="広告料(月額)" required error={err("ad")}>
