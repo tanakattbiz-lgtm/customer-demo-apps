@@ -20,6 +20,10 @@ import {
   type Attachment,
   type SeedData,
   type Stage,
+  type KikakuType,
+  type OpenStage,
+  type StageText,
+  DEFAULT_STAGE_TEXT,
 } from "./data/seed";
 import { thisMonth, todayISO } from "./lib/format";
 
@@ -46,6 +50,7 @@ const emptyLive = (): LiveStats => ({
 });
 
 export interface OrderInput {
+  kikakuType: KikakuType;
   orderDate: string;
   plannedInstallDate: string | null;
   adFee: number | null;
@@ -71,6 +76,9 @@ interface State extends SeedData {
   seededOn: string;
   /** 利用者がデータを変更したか(未変更なら日付が変わったときにサンプルデータを作り直す) */
   touched: boolean;
+  /** 見込案件の段階の名前と基準(営業部で変えられる) */
+  stageText: Record<OpenStage, StageText>;
+  setStageText: (t: Record<OpenStage, StageText>) => void;
   // 顧客
   saveCustomer: (c: Customer) => void;
   removeCustomer: (id: string) => void;
@@ -126,6 +134,8 @@ export const useStore = create<State>()(
       live: emptyLive(),
       seededOn: todayISO(),
       touched: false,
+      stageText: DEFAULT_STAGE_TEXT,
+      setStageText: (t) => set({ stageText: t }),
 
       saveCustomer: (c) =>
         set((s) => ({
@@ -319,10 +329,14 @@ export const useStore = create<State>()(
         const deal = s.deals.find((d) => d.id === dealId)!;
         const id = uid("o");
         const at = now();
+        // 確定したら、その場で工事指示システムへ企画を登録する(デモでは企画番号を採番して再現)
+        const maxNo = s.orders.reduce((m, o) => Math.max(m, Number(o.kikakuNo ?? 0)), 0);
+        const kikakuNo = input.kikakuNo ?? String(maxNo + 1).padStart(9, "0");
         const order: Order = {
           id,
-          kikakuNo: input.kikakuNo,
-          syncedAt: input.kikakuNo ? at : null,
+          kikakuNo,
+          kikakuType: input.kikakuType,
+          syncedAt: at,
           dealId,
           customerId: deal.customerId,
           repId: deal.repId,
@@ -413,7 +427,7 @@ export const useStore = create<State>()(
           orders: s.orders.map((o) => (o.id === orderId ? { ...o, attachments: o.attachments.filter((f) => f.id !== fileId) } : o)),
         })),
 
-      reset: () => rawSet({ ...createSeed(), live: emptyLive(), seededOn: todayISO(), touched: false }),
+      reset: () => rawSet({ ...createSeed(), live: emptyLive(), seededOn: todayISO(), touched: false, stageText: DEFAULT_STAGE_TEXT }),
       };
     },
     {

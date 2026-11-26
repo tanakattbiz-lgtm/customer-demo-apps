@@ -195,10 +195,10 @@ export default function Home() {
             {waiting.length > 0 && (
               <div className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center">
                 <div className="w-36 shrink-0">
-                  <Pill tone="warn">連携待ち</Pill>
+                  <Pill tone="warn">登録待ち</Pill>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[16px] font-medium text-ink-900">工事指示システムの企画と、まだ紐づいていない契約締結が {waiting.length}件あります</div>
+                  <div className="text-[16px] font-medium text-ink-900">工事指示システムへの企画の登録が終わっていない契約締結が {waiting.length}件あります</div>
                   <div className="text-[14px] text-ink-500">企画が登録されると、自動で企画番号が入ります</div>
                 </div>
                 <Button variant="outline" onClick={() => nav("/orders?tab=waiting")}>

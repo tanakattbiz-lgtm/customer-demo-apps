@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useStageText } from "../lib/stages";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { addDays, format, parseISO } from "date-fns";
@@ -20,7 +21,7 @@ import {
   Users,
 } from "lucide-react";
 import { useStore, staffName } from "../store";
-import { FACE_COUNT_LABEL, OPEN_STAGES, STAGE_DEF, STAGE_LABEL, STAGE_NO, type ActivityType, type Stage } from "../data/seed";
+import { FACE_COUNT_LABEL, OPEN_STAGES, STAGE_NO, type ActivityType, type Stage } from "../data/seed";
 import { fakeApi } from "../lib/fakeApi";
 import { useLoad } from "../lib/useLoad";
 import { contractState, faceLookup, handoverOf, holdActive } from "../lib/domain";
@@ -41,6 +42,7 @@ const ACT_ICON: Record<ActivityType, typeof Phone> = {
 };
 
 export default function DealDetail() {
+  const { label: stageLabel, def: stageDef } = useStageText();
   const { id } = useParams();
   const nav = useNavigate();
   const loading = useLoad(380);
@@ -98,7 +100,7 @@ export default function DealDetail() {
     if (s === deal.stage) return;
     await fakeApi(null, 200);
     setStage(deal.id, s);
-    toast.success(`段階を「${STAGE_NO[s]} ${STAGE_LABEL[s]}」に変更しました`);
+    toast.success(`段階を「${STAGE_NO[s]} ${stageLabel(s)}」に変更しました`);
   };
 
   return (
@@ -195,8 +197,8 @@ export default function DealDetail() {
                     {done ? <Check size={12} /> : i + 1}
                   </span>
                   <span className="leading-tight">
-                    <span className={"block text-[14px] " + (active ? "font-semibold text-navy-900" : done ? "text-navy-800" : "text-ink-500")}>{STAGE_LABEL[s]}</span>
-                    <span className="mt-0.5 block text-[12px] leading-snug text-ink-400">{STAGE_DEF[s]}</span>
+                    <span className={"block text-[14px] " + (active ? "font-semibold text-navy-900" : done ? "text-navy-800" : "text-ink-500")}>{stageLabel(s)}</span>
+                    <span className="mt-0.5 block text-[12px] leading-snug text-ink-400">{stageDef(s)}</span>
                   </span>
                 </button>
               );
@@ -320,7 +322,7 @@ export default function DealDetail() {
               <div className="space-y-3 px-5 py-4">
                 <DL
                   items={[
-                    ["企画番号", order.kikakuNo ? <span className="tnum">{order.kikakuNo}</span> : <Pill tone="warn">連携待ち</Pill>],
+                    ["企画番号", order.kikakuNo ? <span className="tnum">{order.kikakuNo}</span> : <Pill tone="warn">登録待ち</Pill>],
                     ["契約締結日", <span className="tnum">{fmtDate(order.orderDate)}</span>],
                     ["設置予定日", order.plannedInstallDate ? <span className="tnum">{fmtDate(order.plannedInstallDate)}</span> : "—"],
                     ["広告料", money(order.adFee, "/月")],
@@ -638,7 +640,7 @@ function NextStep({
       void onFind;
     }
   } else if (hoStatus === "契約締結") {
-    msg = "契約締結として登録しました。工事指示システムの企画と紐づくと、設置・解約は自動で反映されます。";
+    msg = "企画を作成し、工事指示システムに登録しました。このあとの工事・設置・解約は自動で反映されます。";
     action = { label: "契約締結の画面を開く", onClick: onHandover };
     tone = "border-ok-600/25 bg-ok-50";
   } else if (hoStatus === "差し戻し") {

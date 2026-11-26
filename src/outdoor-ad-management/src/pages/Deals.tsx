@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
+import { useStageText } from "../lib/stages";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
-import { Columns3, Handshake, List, Plus, Search, SearchX } from "lucide-react";
+import { Columns3, Handshake, List, Plus, Search, SearchX, Settings2 } from "lucide-react";
 import { useStore, staffName } from "../store";
-import { ME_ID, OPEN_STAGES, STAGE_DEF, STAGE_LABEL, STAGE_NO, STAGES, type Deal, type Stage } from "../data/seed";
+import { ME_ID, OPEN_STAGES, STAGE_NO, STAGES, type Deal, type Stage } from "../data/seed";
 import { useLoad } from "../lib/useLoad";
 import { daysFromToday, fmtDate, man, yen } from "../lib/format";
 import { DealFormModal } from "../components/forms";
+import StageSettings from "../components/StageSettings";
 import {
   Avatar,
   Button,
@@ -28,11 +30,13 @@ import { StagePill } from "../components/pills";
 const PER = 15;
 
 export default function Deals() {
+  const { label: stageLabel, def: stageDef } = useStageText();
   const loading = useLoad();
   const nav = useNavigate();
   const deals = useStore((s) => s.deals);
   const customers = useStore((s) => s.customers);
   const [view, setView] = useState<"board" | "list">("board");
+  const [stageOpen, setStageOpen] = useState(false);
   const [scope, setScope] = useState<"me" | "all">("me");
   const [q, setQ] = useState("");
   const [stage, setStage] = useState<"" | Stage>("");
@@ -88,13 +92,20 @@ export default function Deals() {
         guide={[
           "新しい見込案件は、右上の「見込案件を登録」から始めます。分からない項目は空欄のままで構いません。",
           "カードを押して見込案件を開き、話した内容を「対応を記録」で残します。段階が進んだら段階を変えます。",
-          "契約締結が決まったら「契約締結を登録」を押します。契約締結後の情報は、工事指示システムの企画と紐づけます。",
+          "契約締結が決まったら「契約締結を登録」を押します。見込案件の内容を引き継いで企画を作り、工事指示システムに登録します。",
+          "段階の名前と基準は「段階の設定」で、営業部で決めた内容に変えられます。",
         ]}
         actions={
-          <Button onClick={() => setCreating(true)}>
-            <Plus size={15} />
-            見込案件を登録
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setStageOpen(true)}>
+              <Settings2 size={15} />
+              段階の設定
+            </Button>
+            <Button onClick={() => setCreating(true)}>
+              <Plus size={15} />
+              見込案件を登録
+            </Button>
+          </div>
         }
       />
 
@@ -124,7 +135,7 @@ export default function Deals() {
               <option value="">すべての段階</option>
               {STAGES.map((s) => (
                 <option key={s} value={s}>
-                  {STAGE_NO[s]} {STAGE_LABEL[s]}
+                  {STAGE_NO[s]} {stageLabel(s)}
                 </option>
               ))}
             </select>
@@ -172,10 +183,10 @@ export default function Deals() {
                   <div className="border-b border-ink-200 px-3.5 py-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[15px] font-semibold text-navy-900">
-                        {STAGE_NO[st]} {STAGE_LABEL[st]}
+                        {STAGE_NO[st]} {stageLabel(st)}
                       </span>
                     </div>
-                    <div className="mt-0.5 text-[12px] leading-snug text-ink-400">{STAGE_DEF[st]}</div>
+                    <div className="mt-0.5 text-[12px] leading-snug text-ink-400">{stageDef(st)}</div>
                     <div className="tnum mt-1.5 text-[12.5px] text-ink-500">
                       {items.length}件 ・ 広告料 {man(sum)}/月
                     </div>
@@ -295,6 +306,7 @@ export default function Deals() {
       )}
 
       <DealFormModal open={creating} onClose={() => { setCreating(false); if (params.get("new")) setParams({}); }} onSaved={(id) => nav(`/deals/${id}`)} />
+      <StageSettings open={stageOpen} onClose={() => setStageOpen(false)} />
     </>
   );
 }

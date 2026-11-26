@@ -1,14 +1,18 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { useStageText } from "../lib/stages";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { ChevronRight, CircleAlert, Clock, Link2 } from "lucide-react";
 import { useStore, staffName } from "../store";
-import { ME_ID, OPEN_STAGES, ORG, STAFF, STAGE_LABEL, STAGE_NO, type Stage } from "../data/seed";
+import { CHANNELS, ME_ID, OPEN_STAGES, ORG, STAFF, STAGE_NO, type Stage } from "../data/seed";
 import { useLoad } from "../lib/useLoad";
 import { addMonthKey, fmtDate, fmtDateTime, fmtMonth, thisMonth, todayISO, yen } from "../lib/format";
 import {
   DEFAULT_PLAN,
   baseDateOf,
+  byChannel,
+  cumulative,
+  targetsOf,
   childrenOf,
   liveCancels,
   parentOf,
@@ -40,7 +44,7 @@ const me = STAFF.find((s) => s.id === ME_ID)!;
 const defaultScope = (r: Role): Scope =>
   r === "rep" ? { kind: "rep", id: ME_ID } : r === "office" ? { kind: "office", name: me.branch } : r === "area" ? { kind: "area", name: me.area } : { kind: "all" };
 
-type Drill = { title: string; sub?: string; items: Line["items"] } | { title: string; sub?: string; orders: string[] } | { title: string; sub?: string; deals: string[] };
+export type Drill = { title: string; sub?: string; items: Line["items"] } | { title: string; sub?: string; orders: string[] } | { title: string; sub?: string; deals: string[] };
 
 export default function Report() {
   const loading = useLoad(550);
@@ -62,6 +66,9 @@ export default function Report() {
   const snap = useMemo(() => snapshot(orders, deals, scope, month), [orders, deals, scope, month]);
   const cols = useMemo(() => threeMonths(orders, deals, scope, opt, base), [orders, deals, scope, opt, base]);
   const reps = useMemo(() => new Set(repsIn(scope)), [scope]);
+  const cum = useMemo(() => cumulative(orders, scope, base), [orders, scope, base]);
+  const tgt = useMemo(() => targetsOf(orders, scope, month), [orders, scope, month]);
+  const channels = useMemo(() => byChannel(orders, deals, scope, CHANNELS, month), [orders, deals, scope, month]);
   const waiting = orders.filter((o) => reps.has(o.repId) && !o.kikakuNo);
   const lastSync = orders.reduce((m, o) => (o.syncedAt && o.syncedAt > m ? o.syncedAt : m), "");
   const overdueDeals = deals.filter((d) => reps.has(d.repId) && OPEN_STAGES.includes(d.stage) && d.expectedClose && d.expectedClose < todayISO());
@@ -183,7 +190,7 @@ export default function Report() {
           {waiting.length > 0 && (
             <Link to="/orders?tab=waiting" className="inline-flex items-center gap-1 text-warn-700 hover:underline">
               <CircleAlert size={12} />
-              企画と連携待ち {waiting.length}件(集計には含めています)
+              工事指示へ登録待ち {waiting.length}件(集計には含めています)
             </Link>
           )}
         </div>
@@ -215,6 +222,35 @@ export default function Report() {
           過去の月を表示しています。今月・来月・再来月の予定と実績は「今月」を選ぶと表示されます。過去の月の予定は、月末の状態を残す仕組みが必要です。 <QTag id="Q09" />
         </Card>
       )}
+
+      {/* 累計広告料と目標 */}
+      <Card className="mb-6 overflow-hidden">
+        <CardHeader
+          title="累計広告料と目標"
+          sub={`期は3月始まり(今期 ${cum.fiscal})。累計広告料 = その時点で掲載が続いている広告料(月額)の合計`}
+          right={<Pill tone="warn">ご確認</Pill>}
+        />
+        <div className="grid gap-px bg-ink-100 sm:grid-cols-2 xl:grid-cols-4">
+          <Stat label="累計広告料(月額)" value={yen(cum.now)} sub={`${cum.count}件${cum.missing ? `(金額未入力 ${cum.missing}件)` : ""}`} />
+          <Stat label="期首からの純増" value={signedYen(cum.netSinceStart)} tone={cum.netSinceStart >= 0 ? "ok" : "bad"} sub={`期首(3月1日)の累計 ${yen(cum.atStart)}`} />
+          {isCurrent ? (
+            <>
+              <Stat label="今月の新規契約 / 目標" value={yen(cols[0].orderActual.amount ?? 0)} sub={`目標 ${yen(tgt.ordered)} ・ 達成率 ${rate(cols[0].orderActual.amount ?? 0, tgt.ordered)}`} />
+              <Stat
+                label="今月の純増 / 目標"
+                value={signedYen(cols[0].netActual ?? 0)}
+                tone={(cols[0].netActual ?? 0) >= 0 ? "ok" : "bad"}
+                sub={`目標 ${yen(tgt.net)} ・ 達成率 ${rate(cols[0].netActual ?? 0, tgt.net)} ・ 月末の見通し ${signedYen(cols[0].netPlan)}`}
+              />
+            </>
+          ) : (
+            <Stat label="目標と達成率" value="—" sub="今月を選ぶと表示します" />
+          )}
+        </div>
+        <div className="border-t border-ink-100 px-5 py-2.5 text-[12.5px] leading-relaxed text-ink-500">
+          目標は、所長・部長が月ごとに入力する想定です(このデモでは、直近6か月の平均から作った仮の数字)。累計広告料は、工事指示システムの企画(設置済み・解約)から自動で集計します。
+        </div>
+      </Card>
 
       {/* 件数・金額 */}
       <Card data-tour="report-snap" className="mb-6 overflow-hidden">
@@ -251,6 +287,35 @@ export default function Report() {
           </table>
         </div>
         <div className="border-t border-ink-100 px-5 py-2.5 text-[12.5px] text-ink-500">同じ月に契約締結して設置した案件は「今月の契約締結」と「今月設置」の両方に出ます。区分同士の合計は足しません。</div>
+      </Card>
+
+      {/* 獲得経路ごと */}
+      <Card className="mb-6 overflow-hidden">
+        <CardHeader title="獲得経路ごとの集計" sub={`進行中の見込案件と、${fmtMonth(month)}の契約締結を、見込案件の登録時に選んだ獲得経路で分けています`} right={<QTag id="Q04" />} />
+        <div className="thin-scroll overflow-x-auto">
+          <table className="w-full min-w-[640px] text-[14.5px]">
+            <thead className={tableHeadCls}>
+              <tr>
+                <th className={thCls}>獲得経路</th>
+                <th className={thCls + " text-right"}>見込案件(進行中)</th>
+                <th className={thCls + " text-right"}>広告料(月額)</th>
+                <th className={thCls + " text-right"}>契約締結({Number(month.slice(5))}月)</th>
+                <th className={thCls + " text-right"}>広告料(月額)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {channels.map((r) => (
+                <tr key={r.channel} className="border-b border-ink-100 last:border-0">
+                  <td className="px-4 py-2.5 text-ink-900">{r.channel}</td>
+                  <td className="tnum px-4 py-2.5 text-right">{r.prospectCount}件</td>
+                  <td className="tnum px-4 py-2.5 text-right text-ink-700">{yen(r.prospectAd)}</td>
+                  <td className="tnum px-4 py-2.5 text-right font-medium text-navy-900">{r.orderedCount}件</td>
+                  <td className="tnum px-4 py-2.5 text-right">{yen(r.orderedAd)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       {/* 内訳 */}
@@ -301,7 +366,7 @@ export default function Report() {
       </Card>
 
       <p className="text-[12px] leading-relaxed text-ink-400">
-        金額はすべて税抜。広告料は月額、地代は年額として扱っています(確認中)。順位・累計・12ヶ月の推移、月次の報告事項・気付きは、次の段階で検討します(Q10)。
+        金額はすべて税抜。広告料は月額、地代は年額として扱っています(確認中)。順位・12ヶ月の推移、月次の報告事項・気付きは、次の段階で検討します(Q10)。
       </p>
 
       <DrillDrawer drill={drill} onClose={() => setDrill(null)} />
@@ -311,6 +376,7 @@ export default function Report() {
 
 // ---------------- 予定の数え方(Q12) ----------------
 function PlanOptionsBar({ opt, onChange }: { opt: PlanOptions; onChange: (o: PlanOptions) => void }) {
+  const { label: stageLabel } = useStageText();
   const toggle = (s: Stage) => onChange({ ...opt, stages: opt.stages.includes(s) ? opt.stages.filter((x) => x !== s) : [...opt.stages, s] });
   return (
     <div className="flex flex-col gap-2.5 border-b border-ink-100 bg-ink-50/60 px-5 py-3 text-[13px] text-ink-600 xl:flex-row xl:items-center xl:gap-5">
@@ -330,7 +396,7 @@ function PlanOptionsBar({ opt, onChange }: { opt: PlanOptions; onChange: (o: Pla
         {OPEN_STAGES.map((s) => (
           <label key={s} className="inline-flex min-h-9 items-center gap-1.5 rounded border border-ink-200 bg-white px-2 py-1">
             <input type="checkbox" className="h-4 w-4 accent-[oklch(29.5%_0.047_262)]" checked={opt.stages.includes(s)} onChange={() => toggle(s)} />
-            <span title={STAGE_LABEL[s]}>
+            <span title={stageLabel(s)}>
               {STAGE_NO[s]} {s}
             </span>
           </label>
@@ -345,7 +411,7 @@ function PlanOptionsBar({ opt, onChange }: { opt: PlanOptions; onChange: (o: Pla
 }
 
 // ---------------- 3ヶ月の表(3ヶ月比較の表示仕様シート) ----------------
-function ThreeMonthTable({ cols, onDrill }: { cols: MonthCol[]; onDrill: (d: Drill) => void }) {
+export function ThreeMonthTable({ cols, onDrill }: { cols: MonthCol[]; onDrill: (d: Drill) => void }) {
   const label = (m: string, i: number) => `${["今月", "来月", "再来月"][i]}(${Number(m.slice(5))}月)`;
   const cell = (l: Line, title: string, neg = false): ReactNode =>
     l.amount === null ? (
@@ -497,7 +563,7 @@ function Breakdown({ scopes, month, opt, onOpen }: { scopes: Scope[]; month: str
 }
 
 // ---------------- 明細(数字の元になった案件) ----------------
-function DrillDrawer({ drill, onClose }: { drill: Drill | null; onClose: () => void }) {
+export function DrillDrawer({ drill, onClose }: { drill: Drill | null; onClose: () => void }) {
   const nav = useNavigate();
   const orders = useStore((s) => s.orders);
   const deals = useStore((s) => s.deals);
@@ -513,7 +579,7 @@ function DrillDrawer({ drill, onClose }: { drill: Drill | null; onClose: () => v
         key: it.id + i,
         to: o ? `/orders/${o.id}` : `/deals/${d?.id}`,
         name: cname((o ?? d)!.customerId),
-        sub: `${staffName((o ?? d)!.repId)}${o ? " ・ " + (o.kikakuNo ?? "連携待ち") : " ・ 見込案件"}`,
+        sub: `${staffName((o ?? d)!.repId)}${o ? " ・ " + (o.kikakuNo ?? "登録待ち") : " ・ 見込案件"}`,
         date: it.date,
         amount: it.amount,
         note: it.note,
@@ -522,7 +588,7 @@ function DrillDrawer({ drill, onClose }: { drill: Drill | null; onClose: () => v
   if (drill && "orders" in drill)
     rows = drill.orders.map((id) => {
       const o = orders.find((x) => x.id === id)!;
-      return { key: id, to: `/orders/${id}`, name: cname(o.customerId), sub: `${staffName(o.repId)} ・ ${o.kikakuNo ?? "連携待ち"}`, date: o.actualInstallDate ?? o.orderDate, amount: o.adFee };
+      return { key: id, to: `/orders/${id}`, name: cname(o.customerId), sub: `${staffName(o.repId)} ・ ${o.kikakuNo ?? "登録待ち"}`, date: o.actualInstallDate ?? o.orderDate, amount: o.adFee };
     });
   if (drill && "deals" in drill)
     rows = drill.deals.map((id) => {
@@ -565,3 +631,15 @@ function DrillDrawer({ drill, onClose }: { drill: Drill | null; onClose: () => v
   );
 }
 
+
+const rate = (v: number, t: number) => (t > 0 ? `${Math.round((v / t) * 100)}%` : "—");
+
+function Stat({ label, value, sub, tone }: { label: string; value: string; sub: string; tone?: "ok" | "bad" }) {
+  return (
+    <div className="bg-white px-5 py-4">
+      <div className="text-[13px] text-ink-600">{label}</div>
+      <div className={"tnum mt-1.5 font-serif text-[24px] leading-none font-semibold " + (tone === "ok" ? "text-ok-700" : tone === "bad" ? "text-bad-700" : "text-navy-900")}>{value}</div>
+      <div className="tnum mt-2 text-[12px] leading-relaxed text-ink-500">{sub}</div>
+    </div>
+  );
+}

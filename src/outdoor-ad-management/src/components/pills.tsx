@@ -1,4 +1,5 @@
-import { STAGE_LABEL, STAGE_NO, type CustomerStatus, type HandoverStatus, type Rank, type Stage } from "../data/seed";
+import { STAGE_NO, type CustomerStatus, type HandoverStatus, type Rank, type Stage } from "../data/seed";
+import { useStageText } from "../lib/stages";
 import type { ContractState } from "../lib/domain";
 import type { Phase } from "../lib/report";
 import { Pill, type Tone } from "./ui";
@@ -10,12 +11,15 @@ const STAGE_TONE: Record<Stage, Tone> = {
   契約締結: "ok",
   失注: "bad",
 };
-export const StagePill = ({ stage, full }: { stage: Stage; full?: boolean }) => (
-  <Pill tone={STAGE_TONE[stage]}>
-    {STAGE_NO[stage] && <span className="mr-0.5">{STAGE_NO[stage]}</span>}
-    {full ? STAGE_LABEL[stage] : stage === "失注" ? "見送り・失注" : stage}
-  </Pill>
-);
+export function StagePill({ stage, full }: { stage: Stage; full?: boolean }) {
+  const { label } = useStageText();
+  return (
+    <Pill tone={STAGE_TONE[stage]}>
+      {STAGE_NO[stage] && <span className="mr-0.5">{STAGE_NO[stage]}</span>}
+      {full ? label(stage) : stage === "失注" ? "見送り・失注" : stage}
+    </Pill>
+  );
+}
 
 const PHASE_TONE: Record<Phase, Tone> = { "未設置案件": "navy", 設置済: "ok", 解約済: "gray" };
 export const PhasePill = ({ phase }: { phase: Phase }) => <Pill tone={PHASE_TONE[phase]}>{phase}</Pill>;

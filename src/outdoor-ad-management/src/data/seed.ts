@@ -126,6 +126,17 @@ export const STAGE_DEF: Record<Stage, string> = {
   契約締結: "契約締結日が登録されている。",
   失注: "見送り・失注として終了した。進行中の見込案件から除外する。",
 };
+export type OpenStage = "面談予定" | "提案済み" | "最終調整中";
+export interface StageText {
+  label: string;
+  def: string;
+}
+/** 見込案件の段階の、初期の名前と基準(営業部で変えられる) */
+export const DEFAULT_STAGE_TEXT: Record<OpenStage, StageText> = {
+  面談予定: { label: STAGE_LABEL.面談予定, def: STAGE_DEF.面談予定 },
+  提案済み: { label: STAGE_LABEL.提案済み, def: STAGE_DEF.提案済み },
+  最終調整中: { label: STAGE_LABEL.最終調整中, def: STAGE_DEF.最終調整中 },
+};
 /** 旧デモ(仮押さえ・契約締結登録)との互換用。画面には表示しない */
 export const STAGE_PROB: Record<Stage, number> = { 面談予定: 20, 提案済み: 50, 最終調整中: 80, 契約締結: 100, 失注: 0 };
 
@@ -139,6 +150,19 @@ export const HEIGHT_CLASSES: HeightClass[] = ["4m以下", "4m超"];
 export type Channel = "営業開拓" | "コールセンター" | "電話・LP問い合わせ" | "紹介" | "その他";
 export const CHANNELS: Channel[] = ["営業開拓", "コールセンター", "電話・LP問い合わせ", "紹介", "その他"];
 export const FACE_COUNT_LABEL: Record<number, string> = { 1: "片面", 2: "両面", 3: "三面", 4: "四面" };
+
+/** 企画の種類(工事指示システム)。新しいシステムで企画を作り、確定したら工事指示システムへ登録する */
+export type KikakuType = "新規新設" | "既存新規" | "投資" | "メンテナンス" | "クライアント解約" | "土地解約";
+/** 契約締結のときに作る企画の種類 */
+export const ORDER_KIKAKU_TYPES: KikakuType[] = ["新規新設", "既存新規", "投資", "メンテナンス"];
+export const KIKAKU_TYPE_DEF: Record<KikakuType, string> = {
+  新規新設: "新しく看板を設けて掲出する",
+  既存新規: "今ある看板に、新しいクライアントの広告を掲出する",
+  投資: "当社の投資で看板を設ける",
+  メンテナンス: "看板の補修・張り替えなど",
+  クライアント解約: "クライアントとの契約を解約する",
+  土地解約: "地主との土地契約を解約する",
+};
 
 /** 見込案件・契約締結で共通の、看板と金額の項目(項目定義 I03〜I08・I16〜I18) */
 export interface SignSpec {
@@ -208,8 +232,10 @@ export interface Attachment {
 }
 export interface Order extends SignSpec {
   id: string;
-  /** 企画番号(工事指示システム)。null=連携待ち */
+  /** 企画番号(工事指示システム)。null=工事指示システムへの登録待ち */
   kikakuNo: string | null;
+  /** 企画の種類。未設定の古いデータは看板の区分から判断する */
+  kikakuType?: KikakuType;
   syncedAt: string | null;
   dealId?: string;
   customerId: string;

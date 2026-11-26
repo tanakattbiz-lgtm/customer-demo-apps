@@ -4,10 +4,10 @@ import { addDays, format } from "date-fns";
 import { toast } from "sonner";
 import { Camera, FileText, Image as ImageIcon, Link2, Paperclip, X } from "lucide-react";
 import { useStore } from "../store";
-import type { Attachment, Deal } from "../data/seed";
+import { KIKAKU_TYPE_DEF, ORDER_KIKAKU_TYPES, type Attachment, type Deal, type KikakuType } from "../data/seed";
 import { fakeApi } from "../lib/fakeApi";
 import { todayISO, yen } from "../lib/format";
-import { Button, Field, Modal, errCls, inputCls } from "./ui";
+import { Button, Field, Modal, Segmented, errCls, inputCls } from "./ui";
 import { QTag, SourceTag } from "./tags";
 
 type NewFile = Omit<Attachment, "id" | "uploadedAt" | "by">;
@@ -64,6 +64,7 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
   const nav = useNavigate();
   const registerOrder = useStore((s) => s.registerOrder);
   const [f, setF] = useState({ orderDate: "", planned: "", ad: "", makeup: "", rent: "", kikakuNo: "", boardName: "" });
+  const [kType, setKType] = useState<KikakuType>("新規新設");
   const [files, setFiles] = useState<NewFile[]>([]);
   const [touched, setTouched] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -79,6 +80,7 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
       kikakuNo: "",
       boardName: "",
     });
+    setKType(deal.investment ? "投資" : deal.signType === "既存の看板に掲出" ? "既存新規" : "新規新設");
     setFiles([]);
     setTouched(false);
   }, [open, deal]);
@@ -87,7 +89,6 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
     orderDate: !f.orderDate ? "契約締結日を選択してください" : f.orderDate > todayISO() ? "契約締結日に未来の日付は入れられません" : "",
     planned: f.planned && f.planned < f.orderDate ? "設置予定日は契約締結日以降にしてください" : "",
     ad: n(f.ad) === null ? "広告料を入力してください(契約締結時までに確定)" : !(n(f.ad)! >= 0) ? "0以上の金額を入力してください" : "",
-    kikakuNo: f.kikakuNo && !/^\d{9}$/.test(f.kikakuNo) ? "企画番号は9桁の数字です(先頭の0も入れます)" : "",
     boardName: !f.boardName.trim() ? "設置場所(媒体)を入力してください" : "",
   };
   const err = (k: keyof typeof errs) => (touched ? errs[k] : "");
@@ -97,19 +98,21 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
     setBusy(true);
     await fakeApi(null, 650);
     const id = registerOrder(deal.id, {
+      kikakuType: kType,
       orderDate: f.orderDate,
       plannedInstallDate: f.planned || null,
       adFee: n(f.ad),
       makeupFee: n(f.makeup),
       landRent: n(f.rent),
-      kikakuNo: f.kikakuNo || null,
+      kikakuNo: null,
       boardName: f.boardName.trim(),
       attachments: files,
     });
+    const no = useStore.getState().orders.find((o) => o.id === id)?.kikakuNo;
     setBusy(false);
     onClose();
-    toast.success("契約締結として登録しました", {
-      description: f.kikakuNo ? `企画番号 ${f.kikakuNo} と紐づけました。設置・解約は工事指示システムから自動で反映されます。` : "工事指示システムの企画と紐づくまで「連携待ち」と表示されます。",
+    toast.success(`企画を作成し、工事指示システムに登録しました(企画番号 ${no})`, {
+      description: "このあとの承認・デザイン・工事・施工完了は、工事指示システムから自動で反映されます。",
       action: { label: "契約締結の画面を開く", onClick: () => nav(`/orders/${id}`) },
     });
   };
@@ -117,8 +120,8 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
     <Modal
       open={open}
       onClose={onClose}
-      title="契約締結を登録"
-      sub="この見込案件の内容を引き継いで、契約締結として登録します"
+      title="契約締結を登録(企画を作成)"
+      sub="この見込案件の内容を引き継いで企画を作り、工事指示システムへ登録します"
       width={640}
       footer={
         <>
@@ -126,7 +129,7 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
             キャンセル
           </Button>
           <Button data-tour="order-submit" onClick={submit} loading={busy}>
-            契約締結として登録する
+            企画を確定して登録する
           </Button>
         </>
       }
@@ -135,15 +138,15 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
         <div className="flex gap-3 rounded-md border border-navy-100 bg-navy-50 px-4 py-3 text-[13.5px] leading-relaxed text-navy-800">
           <Link2 size={16} className="mt-0.5 shrink-0" />
           <div>
-            契約締結後の情報(企画番号・契約締結日・設置日・解約)は、<span className="font-semibold">工事指示システムの「企画」から自動で取り込む</span>想定です。
-            同じ内容を2回入力しないよう、ここでは企画と紐づけるだけにしています。 <QTag id="Q06" />
+            ここで作った企画は、<span className="font-semibold">確定するとその場で工事指示システムに登録</span>され、企画番号が付きます。
+            工事指示システムに同じ内容を入れ直す必要はありません。承認・デザイン・工事・施工完了は、工事指示システムから自動で反映されます。
           </div>
         </div>
+        <Field label="企画の種類" required hint={KIKAKU_TYPE_DEF[kType]}>
+          <Segmented value={kType} onChange={(v) => setKType(v as KikakuType)} items={ORDER_KIKAKU_TYPES.map((t) => ({ value: t, label: t }))} />
+        </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="企画番号(工事指示システム)" error={err("kikakuNo")} hint="空欄なら、企画が登録された時点で自動で紐づきます(連携待ち)">
-            <input className={inputCls + " tnum" + (err("kikakuNo") ? errCls : "")} inputMode="numeric" maxLength={9} placeholder="例: 000184321" value={f.kikakuNo} onChange={(e) => setF({ ...f, kikakuNo: e.target.value.replace(/\D/g, "") })} />
-          </Field>
-          <Field label="設置場所(媒体)" required error={err("boardName")}>
+          <Field label="設置場所(媒体)" required error={err("boardName")} hint="既存の看板は、工事指示システムの媒体から選ぶ想定です">
             <input data-tour="order-board" className={inputCls + (err("boardName") ? errCls : "")} placeholder="例: 国道2号 西本町交差点" value={f.boardName} onChange={(e) => setF({ ...f, boardName: e.target.value })} />
           </Field>
           <Field label="契約締結日" required error={err("orderDate")}>
@@ -170,7 +173,7 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
             </Field>
           </div>
           <p className="mt-1.5 text-[12.5px] text-ink-500">
-            企画と紐づいた後は、企画の金額で上書きされる想定です(どちらを正とするかは確認中)。
+            この金額で企画を登録します。登録した後に変わった場合は、工事指示システムの金額を正とします。
             {n(f.ad) !== null && <span className="tnum ml-1">広告料 {yen(n(f.ad)!)}/月</span>}
           </p>
         </div>

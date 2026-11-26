@@ -287,3 +287,124 @@ export const yenK = (n: number) => {
 };
 export const signedYen = (n: number) => (n > 0 ? "+" : n < 0 ? "−" : "±") + "¥" + Math.abs(Math.round(n)).toLocaleString("ja-JP");
 export const ratioPct = (r: number | null) => (r === null ? "計算不可" : (r * 100).toFixed(1) + "%");
+
+// ======================= 累計広告料・期・目標(営業部のExcelで追っている数字) =======================
+/** 期は3月始まり。基準日を含む期の初日(yyyy-MM-dd) */
+export function fiscalStart(base = todayISO()): string {
+  const y = Number(base.slice(0, 4));
+  const m = Number(base.slice(5, 7));
+  return `${m >= 3 ? y : y - 1}-03-01`;
+}
+/** 期の名前(例: 2026年3月〜2027年2月) */
+export function fiscalLabel(base = todayISO()): string {
+  const s = fiscalStart(base);
+  const y = Number(s.slice(0, 4));
+  return `${y}年3月〜${y + 1}年2月`;
+}
+const dayBefore = (iso: string) => format(new Date(new Date(iso + "T00:00:00").getTime() - 86400000), "yyyy-MM-dd");
+
+/**
+ * 累計広告料: 基準日の時点で、設置済みで掲載が続いている広告料(月額)の合計。
+ * 一部解約は減った額だけ引き、全部の解約は外す。
+ */
+export function runningAd(orders: Order[], reps: Set<string>, base = todayISO()): { amount: number; count: number; missing: number } {
+  let amount = 0;
+  let count = 0;
+  let missing = 0;
+  orders
+    .filter((o) => reps.has(o.repId) && o.actualInstallDate && o.actualInstallDate <= base)
+    .forEach((o) => {
+      const done = liveCancels(o).filter((c) => c.actualDate && c.actualDate <= base);
+      if (done.some((c) => !c.partial)) return;
+      count++;
+      if (o.adFee === null) {
+        missing++;
+        return;
+      }
+      amount += Math.max(0, o.adFee - done.reduce((s, c) => s + c.fee, 0));
+    });
+  return { amount, count, missing };
+}
+
+export interface Cumulative {
+  fiscal: string;
+  now: number;
+  count: number;
+  missing: number;
+  atStart: number;
+  /** 期首からの純増(累計広告料の増減) */
+  netSinceStart: number;
+}
+export function cumulative(orders: Order[], scope: Scope, base = todayISO()): Cumulative {
+  const reps = new Set(repsIn(scope));
+  const now = runningAd(orders, reps, base);
+  const start = runningAd(orders, reps, dayBefore(fiscalStart(base)));
+  return { fiscal: fiscalLabel(base), now: now.amount, count: now.count, missing: now.missing, atStart: start.amount, netSinceStart: now.amount - start.amount };
+}
+
+/** 月ごとの実績(過去月の平均から、デモ用の目標を作るため) */
+function monthActuals(orders: Order[], reps: Set<string>, m: string) {
+  const mine = orders.filter((o) => reps.has(o.repId));
+  const ordered = mine.filter((o) => inMonth(o.orderDate, m)).reduce((s, o) => s + (o.adFee ?? 0), 0);
+  const installed = mine.filter((o) => inMonth(o.actualInstallDate, m)).reduce((s, o) => s + (o.adFee ?? 0), 0);
+  const cancelled = mine.reduce((s, o) => s + liveCancels(o).filter((c) => inMonth(c.actualDate, m)).reduce((t, c) => t + c.fee, 0), 0);
+  return { ordered, installed, net: installed - cancelled };
+}
+const round10k = (v: number) => Math.max(10000, Math.round(v / 10000) * 10000);
+
+export interface Targets {
+  /** 新規契約(契約締結)の広告料の目標(月額) */
+  ordered: number;
+  /** 純増の目標(月額) */
+  net: number;
+}
+/**
+ * 目標(月)。本番は所長・部長が入力する想定。
+ * デモでは、担当者ごとに直近6か月の平均の1.1倍を仮の目標にし、表示する範囲で足している。
+ */
+export function targetsOf(orders: Order[], scope: Scope, month = thisMonth()): Targets {
+  return repsIn(scope).reduce(
+    (t, id) => {
+      const reps = new Set([id]);
+      const past = [1, 2, 3, 4, 5, 6].map((i) => monthActuals(orders, reps, addMonthKey(month, -i)));
+      const avg = (k: "ordered" | "net") => past.reduce((s, x) => s + x[k], 0) / past.length;
+      return { ordered: t.ordered + round10k(avg("ordered") * 1.1), net: t.net + round10k(Math.max(avg("net"), avg("ordered") * 0.3) * 1.1) };
+    },
+    { ordered: 0, net: 0 },
+  );
+}
+
+// ======================= 獲得経路ごとの集計 =======================
+export interface ChannelRow {
+  channel: string;
+  prospectCount: number;
+  prospectAd: number;
+  orderedCount: number;
+  orderedAd: number;
+}
+export function byChannel(orders: Order[], deals: Deal[], scope: Scope, channels: string[], month = thisMonth()): ChannelRow[] {
+  const reps = new Set(repsIn(scope));
+  const base = baseDateOf(month);
+  const rows = new Map<string, ChannelRow>();
+  const row = (c: string | null) => {
+    const k = c ?? "未入力";
+    if (!rows.has(k)) rows.set(k, { channel: k, prospectCount: 0, prospectAd: 0, orderedCount: 0, orderedAd: 0 });
+    return rows.get(k)!;
+  };
+  channels.forEach((c) => row(c));
+  deals
+    .filter((d) => reps.has(d.repId) && OPEN_STAGES.includes(d.stage))
+    .forEach((d) => {
+      const r = row(d.channel);
+      r.prospectCount++;
+      r.prospectAd += d.monthlyBudget ?? 0;
+    });
+  orders
+    .filter((o) => reps.has(o.repId) && inMonth(o.orderDate, month) && o.orderDate <= base)
+    .forEach((o) => {
+      const r = row(o.channel);
+      r.orderedCount++;
+      r.orderedAd += o.adFee ?? 0;
+    });
+  return [...rows.values()].filter((r) => channels.includes(r.channel) || r.prospectCount + r.orderedCount > 0);
+}

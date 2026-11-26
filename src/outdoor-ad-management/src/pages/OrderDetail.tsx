@@ -7,6 +7,7 @@ import { FACE_COUNT_LABEL, STAFF } from "../data/seed";
 import { fakeApi } from "../lib/fakeApi";
 import { fmtDate, fmtDateTime, todayISO, yen } from "../lib/format";
 import { installOverdue, liveCancels, pendingCancel, phaseOf } from "../lib/report";
+import { kikakuSteps, kikakuTypeOf } from "../lib/kikaku";
 import { Button, Card, CardHeader, Confirm, EmptyState, Field, Modal, Pill, errCls, inputCls } from "../components/ui";
 import { PhasePill } from "../components/pills";
 import { QTag, SourceTag } from "../components/tags";
@@ -81,15 +82,14 @@ export default function OrderDetail() {
     toast.success(msg, { description: desc });
   };
 
-  const steps = [
+  const ks = kikakuSteps(order);
+  const cancelDate = ph === "解約済" ? liveCancels(order).find((c) => !c.partial && c.actualDate)?.actualDate ?? null : pc?.plannedDate ?? null;
+  const flow: { label: string; date: string | null; done: boolean }[] = [
     { label: "契約締結", date: order.orderDate, done: true },
-    { label: "設置", date: order.actualInstallDate ?? order.plannedInstallDate, done: !!order.actualInstallDate, plan: !order.actualInstallDate },
-    {
-      label: "解約",
-      date: ph === "解約済" ? liveCancels(order).find((c) => !c.partial && c.actualDate)?.actualDate ?? null : pc?.plannedDate ?? null,
-      done: ph === "解約済",
-      plan: !!pc,
-    },
+    ...(ks.length
+      ? ks.map((k) => ({ label: k.label, date: k.date ?? k.planned ?? null, done: !!k.date }))
+      : [{ label: "企画を登録", date: null, done: false }]),
+    { label: "解約", date: cancelDate, done: ph === "解約済" },
   ];
 
   return (
@@ -110,7 +110,8 @@ export default function OrderDetail() {
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[14px] text-ink-500">
             {ph && <PhasePill phase={ph} />}
             {pc && ph === "設置済" && <Pill tone="bad">{pc.partial ? "一部解約予定" : "解約予定"}</Pill>}
-            {!order.kikakuNo && <Pill tone="warn">企画と連携待ち</Pill>}
+            {!order.kikakuNo && <Pill tone="warn">工事指示へ登録待ち</Pill>}
+            {order.kikakuNo && <Pill tone="navy">企画 {kikakuTypeOf(order)}</Pill>}
             {order.legacy && <Pill tone="gray">新システム導入前からの契約</Pill>}
             <span>
               担当 {staffName(order.repId)}({rep?.branch})
@@ -137,24 +138,24 @@ export default function OrderDetail() {
           <div className="min-w-0 flex-1 text-[15px] leading-relaxed text-ink-900">
             {!order.kikakuNo ? (
               <>
-                <span className="font-semibold">工事指示システムの企画と、まだ紐づいていません。</span>
-                企画が登録されると、企画番号・契約締結日・金額が自動で入ります。
+                <span className="font-semibold">工事指示システムへの企画の登録が、まだ終わっていません。</span>
+                工事指示システムにつながらなかったときは、ここに残り、つながった時点で登録し直します。営業の方の入力はそのまま残ります。
               </>
             ) : (
               <>
                 <span className="font-semibold">設置の完了待ちです。</span>
-                製造部が施工完了を登録すると、設置日が自動で入り「設置済」になります。
+                工事指示システムで施工完了が登録されると、設置日が自動で入り「設置済」になります。
                 {installOverdue(order) && <span className="ml-1 font-medium text-bad-600">設置予定日を過ぎています。</span>}
               </>
             )}
             <div className="mt-1 flex items-center gap-1.5 text-[12.5px] text-ink-500">
-              このデモでは、右のボタンで連携の結果を再現できます。 <QTag id="Q06" />
+              このデモでは、右のボタンで工事指示システムとのやり取りを再現できます。
             </div>
           </div>
           {!order.kikakuNo ? (
-            <Button loading={busy === "sync"} onClick={() => run("sync", () => syncOrder(order.id), "工事指示システムから企画を取り込みました", "企画番号が紐づきました")}>
+            <Button loading={busy === "sync"} onClick={() => run("sync", () => syncOrder(order.id), "工事指示システムに企画を登録しました", "企画番号が付きました")}>
               <RefreshCw size={14} />
-              企画を取り込む(デモ)
+              登録し直す(デモ)
             </Button>
           ) : (
             <Button
@@ -168,21 +169,20 @@ export default function OrderDetail() {
         </div>
       )}
 
-      {/* 流れ */}
+      {/* 企画の進み具合(工事指示システムから読み戻す) */}
       <Card className="mb-6 px-5 py-4">
-        <div className="mb-3 flex items-center gap-1.5 text-[14px] font-semibold text-navy-900">
-          見込案件 → 契約締結 → 設置 → 解約 <span className="text-[12.5px] font-normal text-ink-500">(1つの案件として引き継ぎ)</span>
+        <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] font-semibold text-navy-900">
+          企画の進み具合
+          <span className="text-[12.5px] font-normal text-ink-500">企画の登録から後は、工事指示システムの記録を自動で表示します</span>
         </div>
-        <ol className="grid grid-cols-3 gap-2">
-          {steps.map((s) => (
-            <li key={s.label} className={"rounded-md border px-3 py-2.5 " + (s.done ? "border-navy-200 bg-navy-50" : s.plan && s.date ? "border-dashed border-navy-300" : "border-ink-200")}>
-              <div className="flex items-center gap-1.5 text-[14px] font-semibold text-navy-900">
-                {s.done ? <Check size={14} /> : <span className="h-3.5 w-3.5 rounded-full border border-ink-300" />}
+        <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
+          {flow.map((s) => (
+            <li key={s.label} className={"rounded-md border px-3 py-2.5 " + (s.done ? "border-navy-200 bg-navy-50" : s.date ? "border-dashed border-navy-300" : "border-ink-200")}>
+              <div className="flex items-center gap-1.5 text-[13.5px] font-semibold text-navy-900">
+                {s.done ? <Check size={14} className="shrink-0" /> : <span className="h-3.5 w-3.5 shrink-0 rounded-full border border-ink-300" />}
                 {s.label}
               </div>
-              <div className="tnum mt-1 text-[13px] text-ink-600">
-                {s.date ? (s.done ? fmtDate(s.date) : `予定 ${fmtDate(s.date)}`) : "—"}
-              </div>
+              <div className="tnum mt-1 text-[12.5px] text-ink-600">{s.date ? (s.done ? fmtDate(s.date) : `予定 ${fmtDate(s.date)}`) : "—"}</div>
             </li>
           ))}
         </ol>
@@ -202,7 +202,10 @@ export default function OrderDetail() {
             />
             <div className="px-5 py-2">
               <Row label="企画番号" src="link">
-                {order.kikakuNo ? <span className="tnum">{order.kikakuNo}</span> : <Pill tone="warn">連携待ち</Pill>}
+                {order.kikakuNo ? <span className="tnum">{order.kikakuNo}</span> : <Pill tone="warn">登録待ち</Pill>}
+              </Row>
+              <Row label="企画の種類" src="input">
+                {kikakuTypeOf(order)}
               </Row>
               <Row label="契約締結日" src="link">
                 <span className="tnum">{fmtDate(order.orderDate)}</span>

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -10,6 +10,7 @@ import { fmtDateTime, thisMonth, yen } from "../lib/format";
 import { DEFAULT_PLAN, forecast12, repsIn, scopeKey, signedYen, snapshot, threeMonths, type Scope } from "../lib/report";
 import { Card, CardHeader, Help, PageHeader, Skeleton, tableHeadCls, thCls } from "../components/ui";
 import { QTag } from "../components/tags";
+import { DrillDrawer, ThreeMonthTable, type Drill } from "./Report";
 
 const C_NAVY = "#22314A";
 const C_MID = "#6F7F9C";
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const orders = useStore((s) => s.orders);
   const deals = useStore((s) => s.deals);
   const cur = thisMonth();
+  const [drill, setDrill] = useState<Drill | null>(null);
 
   const d = useMemo(() => {
     const snap = snapshot(orders, deals, ALL, cur);
@@ -69,15 +71,15 @@ export default function Dashboard() {
         </span>
       </div>
 
-      {/* KPI */}
-      <div data-tour="kpi" className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-ink-200 bg-ink-200 lg:grid-cols-3 xl:grid-cols-6">
-        <Kpi loading={loading} label="今月の新規契約" help="今月、契約締結日が入った案件の件数と、広告料(月額・税抜)の合計です。" value={`${d.snap.ordered.agg.count}`} unit="件" sub={`広告料 ${yen(d.snap.ordered.agg.ad)}/月`} />
-        <Kpi loading={loading} label="設置 実績" help="今月、設置日(実績)が入った案件の広告料です。純増減の増える側です。" value={manY(c0.installActual.amount ?? 0)} unit="円" sub={`${c0.installActual.count}件`} />
-        <Kpi loading={loading} label="解約 実績" help="今月、解約日(実績)が入った解約の広告料です。純増減の減る側です。" value={manY(c0.cancelActual.amount ?? 0)} unit="円" sub={`${c0.cancelActual.count}件`} />
-        <Kpi loading={loading} label="純増減 実績" help="設置実績 − 解約実績。今日までの途中の数字です。" value={manSigned(c0.netActual ?? 0)} unit="円" sub="今月(今日まで)" tone={(c0.netActual ?? 0) >= 0 ? "ok" : "bad"} />
-        <Kpi loading={loading} label="純増減 予定" help="設置予定 − 解約予定。今月の実績に、月末までの残りの予定を足した見通しです。" value={manSigned(c0.netPlan)} unit="円" sub="今月の月全体の見通し" tone={c0.netPlan >= 0 ? "ok" : "bad"} />
-        <Kpi loading={loading} label="未設置案件" help="契約締結済みで、まだ設置していない案件です。これから設置広告料になります。" value={`${d.snap.backlog.agg.count}`} unit="件" sub={`広告料 ${yen(d.snap.backlog.agg.ad)}/月`} />
-      </div>
+      {/* 営業部全体:今月・来月・再来月(横に月を並べる) */}
+      <Card data-tour="kpi" className="mb-6 overflow-hidden">
+        <CardHeader
+          title="営業部全体 今月・来月・再来月(広告料・月額・税抜)"
+          sub={`新規契約 ${d.snap.ordered.agg.count}件(今月)・未設置案件 ${d.snap.backlog.agg.count}件 ${yen(d.snap.backlog.agg.ad)}/月。数字を押すと、もとになった案件が出ます`}
+          right={<QTag id="Q14" />}
+        />
+        {loading ? <Skeleton className="m-5 h-64" /> : <ThreeMonthTable cols={d.cols} onDrill={setDrill} />}
+      </Card>
 
       {/* エリア別 */}
       <Card className="mb-6 overflow-hidden">
@@ -214,14 +216,14 @@ export default function Dashboard() {
           </div>
         </Card>
       </div>
+      <DrillDrawer drill={drill} onClose={() => setDrill(null)} />
       <p className="text-[12px] leading-relaxed text-ink-400">
-        KGI・KPIの定義・目標値・計上時点は別途決めます。順位・累計・12ヶ月の推移は次の段階で検討します(Q10)。旧デモの「稼働率・売上見込み」は、今回のご要望に出てこないため外しました。
+        累計広告料・目標と達成率・獲得経路ごとの集計は「営業報告」で見られます。KGI・KPIの定義・目標値・計上時点は別途決めます。順位・12ヶ月の推移は次の段階で検討します(Q10)。旧デモの「稼働率・売上見込み」は、今回のご要望に出てこないため外しました。
       </p>
     </>
   );
 }
 
-const manSigned = (v: number) => (v > 0 ? "+" : v < 0 ? "−" : "±") + manY(Math.abs(v));
 
 function Legend({ color, label }: { color: string; label: string }) {
   return (
@@ -234,26 +236,6 @@ function Legend({ color, label }: { color: string; label: string }) {
 
 function Net({ v }: { v: number }) {
   return <span className={"tnum font-semibold " + (v > 0 ? "text-ok-700" : v < 0 ? "text-bad-700" : "text-ink-700")}>{signedYen(v)}</span>;
-}
-
-function Kpi({ label, help, value, unit, sub, loading, tone }: { label: string; help?: string; value: string; unit: string; sub: string; loading: boolean; tone?: "ok" | "bad" }) {
-  return (
-    <div className="bg-white px-5 py-4">
-      <div className="flex items-center gap-1 text-[13px] text-ink-600">
-        {label}
-        {help && <Help label={label} text={help} />}
-      </div>
-      {loading ? (
-        <Skeleton className="mt-2 h-8 w-20" />
-      ) : (
-        <div className="mt-1.5 flex items-baseline gap-1">
-          <span className={"tnum font-serif text-[26px] leading-none font-semibold " + (tone === "ok" ? "text-ok-700" : tone === "bad" ? "text-bad-700" : "text-navy-900")}>{value}</span>
-          <span className="text-[13px] text-ink-500">{unit}</span>
-        </div>
-      )}
-      <div className="tnum mt-2 text-[12px] text-ink-500">{sub}</div>
-    </div>
-  );
 }
 
 type TipProps = { active?: boolean; label?: string; payload?: { dataKey: string; value: number; color?: string; fill?: string }[]; names: Record<string, string>; total?: boolean; signed?: boolean };

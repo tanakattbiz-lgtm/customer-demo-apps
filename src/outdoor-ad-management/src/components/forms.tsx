@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useStageText } from "../lib/stages";
 import { addDays, format } from "date-fns";
 import { toast } from "sonner";
 import { useStore, uid } from "../store";
@@ -13,8 +14,6 @@ import {
   OPEN_STAGES,
   SIGN_TYPES,
   STAFF,
-  STAGE_DEF,
-  STAGE_LABEL,
   STAGE_NO,
   type Channel,
   type HeightClass,
@@ -402,6 +401,7 @@ export function DealFormModal({
   customerId?: string;
   onSaved?: (id: string) => void;
 }) {
+  const { label: stageLabel, def: stageDef } = useStageText();
   const customers = useStore((s) => s.customers);
   const deals = useStore((s) => s.deals);
   const saveDeal = useStore((s) => s.saveDeal);
@@ -598,7 +598,7 @@ export function DealFormModal({
           <ChoiceButtons
             value={f.stage}
             onChange={(v) => v && set("stage")(v)}
-            items={OPEN_STAGES.map((s) => ({ value: s, label: `${STAGE_NO[s]} ${STAGE_LABEL[s]}`, sub: STAGE_DEF[s] }))}
+            items={OPEN_STAGES.map((s) => ({ value: s, label: `${STAGE_NO[s]} ${stageLabel(s)}`, sub: stageDef(s) }))}
           />
           <div className="mt-3 grid gap-3 sm:grid-cols-[220px_1fr] sm:items-end">
             <Field label="契約締結予定日" error={err("expectedClose")}>

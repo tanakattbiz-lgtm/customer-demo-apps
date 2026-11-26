@@ -76,7 +76,7 @@ export default function Orders() {
         description="契約締結した案件を、設置・解約まで1件ずつ追いかけます。企画番号・設置日・解約日は、工事指示システムの「企画」から自動で入る想定です。"
         guide={[
           "見込案件で「契約締結を登録」を押すと、ここに「未設置案件」として並びます。",
-          "工事指示システムで企画が登録されると企画番号が紐づき、製造部の施工完了で「設置済」になります。",
+          "契約締結のときに作った企画は、その場で工事指示システムに登録され、企画番号が付きます。工事指示システムで施工完了が登録されると「設置済」になります。",
           "解約の連絡を受けたら、案件を開いて「解約予定を登録」を押します。一部の面だけの解約もできます。",
         ]}
       />
@@ -104,7 +104,7 @@ export default function Orders() {
             { value: "installed", label: "設置済", count: counts("installed") },
             { value: "cancelPlan", label: "解約予定あり", count: counts("cancelPlan") },
             { value: "cancelled", label: "解約済", count: counts("cancelled") },
-            { value: "waiting", label: "連携待ち", count: counts("waiting") },
+            { value: "waiting", label: "登録待ち", count: counts("waiting") },
             { value: "all", label: "すべて", count: scoped.length },
           ]}
         />
@@ -164,7 +164,7 @@ export default function Orders() {
                 <tbody>
                   {sorted.slice((page - 1) * PER, page * PER).map((o) => (
                     <tr key={o.id} onClick={() => nav(`/orders/${o.id}`)} className="cursor-pointer border-b border-ink-100 transition last:border-0 hover:bg-navy-50/50">
-                      <td className="px-4 py-3">{o.kikakuNo ? <span className="tnum text-ink-800">{o.kikakuNo}</span> : <Pill tone="warn">連携待ち</Pill>}</td>
+                      <td className="px-4 py-3">{o.kikakuNo ? <span className="tnum text-ink-800">{o.kikakuNo}</span> : <Pill tone="warn">登録待ち</Pill>}</td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-navy-900">{cmap.get(o.customerId)?.company}</div>
                         <div className="text-[12.5px] text-ink-500">

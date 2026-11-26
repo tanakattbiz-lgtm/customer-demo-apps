@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
-import { CalendarCheck2, CalendarClock, Phone, PencilLine } from "lucide-react";
+import { CalendarCheck2, CalendarClock, CalendarPlus, Phone, PencilLine } from "lucide-react";
 import { useStore, staffName } from "../store";
 import { ME_ID, OPEN_STAGES, type Deal } from "../data/seed";
 import { useLoad } from "../lib/useLoad";
 import { daysFromToday, fmtDateJa, man, relDay } from "../lib/format";
 import { ActivityModal, NextActionModal } from "../components/forms";
+import { gcalUrl } from "../lib/gcal";
 import { Button, Card, EmptyState, PageHeader, Pill, Segmented, Skeleton } from "../components/ui";
 import { StagePill } from "../components/pills";
 
@@ -55,6 +56,7 @@ export default function FollowUps() {
           "「期限超過」(赤字)の項目から順に対応してください。",
           "対応したら「対応を記録」を押し、話した内容を書きます。",
           "記録の画面で、次の予定日と内容も一緒に決められます。",
+          "「Googleカレンダーに追加」で、次の対応を自分のカレンダーに入れられます(本番では自動で反映する形も選べます)。",
         ]}
         actions={
           <Segmented
@@ -176,7 +178,15 @@ export default function FollowUps() {
                               )}
                             </div>
                           </div>
-                          <div className="flex shrink-0 gap-2">
+                          <div className="flex shrink-0 flex-wrap gap-2">
+                            {d.nextAction && (
+                              <a href={gcalUrl(`${c?.company ?? ""} ${d.nextAction.content}`, d.nextAction.date, `見込案件: ${d.title}`)} target="_blank" rel="noreferrer">
+                                <Button variant="ghost" size="sm">
+                                  <CalendarPlus size={13} />
+                                  Googleカレンダーに追加
+                                </Button>
+                              </a>
+                            )}
                             <Button variant="outline" size="sm" onClick={() => setEditFor(d)}>
                               <CalendarClock size={13} />
                               日程変更
