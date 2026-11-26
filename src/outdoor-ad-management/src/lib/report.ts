@@ -4,7 +4,7 @@
  */
 import { endOfMonth, format } from "date-fns";
 import { ORG, STAFF, OPEN_STAGES, type Deal, type Order, type Stage } from "../data/seed";
-import { addMonthKey, keyToDate, thisMonth, todayISO } from "./format";
+import { addMonthKey, keyToDate, monthsBetween, thisMonth, todayISO } from "./format";
 
 // ======================= 表示範囲 =======================
 export type Scope =
@@ -407,4 +407,21 @@ export function byChannel(orders: Order[], deals: Deal[], scope: Scope, channels
       r.orderedAd += o.adFee ?? 0;
     });
   return [...rows.values()].filter((r) => channels.includes(r.channel) || r.prospectCount + r.orderedCount > 0);
+}
+
+/**
+ * 指定した月から3か月分の列(経営ダッシュボードの月切り替え用)。
+ * 過去の月は月末で締めた数字、今月は今日までの途中、来月以降は予定。
+ */
+export function monthCols(orders: Order[], deals: Deal[], scope: Scope, start: string, opt: PlanOptions = DEFAULT_PLAN): MonthCol[] {
+  const cur = thisMonth();
+  const fwd = threeMonths(orders, deals, scope, opt);
+  return [0, 1, 2].map((i) => {
+    const m = addMonthKey(start, i);
+    if (m > cur) {
+      const k = monthsBetween(cur, m) - 1;
+      return fwd[Math.min(k, 2)];
+    }
+    return threeMonths(orders, deals, scope, opt, baseDateOf(m))[0];
+  });
 }

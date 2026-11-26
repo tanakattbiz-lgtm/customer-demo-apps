@@ -2,13 +2,13 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ChevronRight, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { useStore } from "../store";
-import { ORG, STAFF } from "../data/seed";
+import { CHANNELS, ORG, STAFF } from "../data/seed";
 import { useLoad } from "../lib/useLoad";
-import { fmtDateTime, thisMonth, yen } from "../lib/format";
-import { DEFAULT_PLAN, forecast12, repsIn, scopeKey, signedYen, snapshot, threeMonths, type Scope } from "../lib/report";
-import { Card, CardHeader, Help, PageHeader, Skeleton, tableHeadCls, thCls } from "../components/ui";
+import { addMonthKey, fmtDate, fmtDateTime, fmtMonth, thisMonth, yen } from "../lib/format";
+import { baseDateOf, byChannel, forecast12, monthCols, repsIn, scopeKey, signedYen, snapshot, type Scope } from "../lib/report";
+import { Button, Card, CardHeader, Help, PageHeader, Skeleton, inputCls, tableHeadCls, thCls } from "../components/ui";
 import { QTag } from "../components/tags";
 import { DrillDrawer, ThreeMonthTable, type Drill } from "./Report";
 
@@ -29,17 +29,21 @@ export default function Dashboard() {
   const deals = useStore((s) => s.deals);
   const cur = thisMonth();
   const [drill, setDrill] = useState<Drill | null>(null);
+  const [month, setMonth] = useState(cur);
+  const months = Array.from({ length: 13 }, (_, i) => addMonthKey(cur, -i));
+  const isCur = month === cur;
 
   const d = useMemo(() => {
-    const snap = snapshot(orders, deals, ALL, cur);
-    const cols = threeMonths(orders, deals, ALL, DEFAULT_PLAN);
+    const snap = snapshot(orders, deals, ALL, month);
+    const cols = monthCols(orders, deals, ALL, month);
     const areas = ORG.map((a) => {
       const s: Scope = { kind: "area", name: a.area };
-      return { s, name: a.area, snap: snapshot(orders, deals, s, cur), cols: threeMonths(orders, deals, s, DEFAULT_PLAN) };
+      return { s, name: a.area, snap: snapshot(orders, deals, s, month), cols: monthCols(orders, deals, s, month) };
     });
     const fc = forecast12(orders, deals, ALL).map((r) => ({ ...r, label: `${Number(r.month.slice(5))}月` }));
-    return { snap, cols, areas, fc };
-  }, [orders, deals, cur]);
+    const ch = byChannel(orders, deals, ALL, CHANNELS, month);
+    return { snap, cols, areas, fc, ch };
+  }, [orders, deals, month]);
   const lastSync = orders.reduce((m, o) => (o.syncedAt && o.syncedAt > m ? o.syncedAt : m), "");
   const c0 = d.cols[0];
   const areaChart = d.areas.map((a) => ({
@@ -58,10 +62,33 @@ export default function Dashboard() {
         title="経営ダッシュボード"
         description="部長・社長向けに、営業部全体とエリアごとの新規獲得・設置・解約・純増減を一覧します。数字は営業の入力と工事指示システムの企画から自動で集計します。"
       />
+      <Card className="mb-4 flex flex-wrap items-center gap-3 px-4 py-3">
+        <span className="text-[13px] font-medium text-ink-600">表示する月</span>
+        <Button variant="outline" size="sm" onClick={() => setMonth(addMonthKey(month, -1))} disabled={month <= months[months.length - 1]} aria-label="前の月">
+          <ChevronLeft size={14} />
+        </Button>
+        <select className={inputCls + " w-44!"} value={month} onChange={(e) => setMonth(e.target.value)}>
+          {months.map((m) => (
+            <option key={m} value={m}>
+              {fmtMonth(m)}
+              {m === cur ? "(今月)" : ""}
+            </option>
+          ))}
+        </select>
+        <Button variant="outline" size="sm" onClick={() => setMonth(addMonthKey(month, 1))} disabled={isCur} aria-label="次の月">
+          <ChevronRight size={14} />
+        </Button>
+        {!isCur && (
+          <Button variant="ghost" size="sm" onClick={() => setMonth(cur)}>
+            今月に戻る
+          </Button>
+        )}
+        <span className="text-[12.5px] text-ink-500">選んだ月から3か月分を並べます。過去の月は月末で締めた数字です</span>
+      </Card>
       <div className="mb-5 flex flex-wrap gap-x-5 gap-y-1 text-[12.5px] text-ink-500">
         <span className="inline-flex items-center gap-1">
           <Clock size={12} />
-          集計基準 <span className="tnum text-ink-800">{format(new Date(), "yyyy/MM/dd HH:mm")}</span>
+          集計基準 <span className="tnum text-ink-800">{isCur ? format(new Date(), "yyyy/MM/dd HH:mm") : fmtDate(baseDateOf(month)) + "(月末)"}</span>
         </span>
         <span>
           工事指示システム 最終連携 <span className="tnum text-ink-800">{lastSync ? fmtDateTime(lastSync) : "—"}</span>
@@ -74,16 +101,16 @@ export default function Dashboard() {
       {/* 営業部全体:今月・来月・再来月(横に月を並べる) */}
       <Card data-tour="kpi" className="mb-6 overflow-hidden">
         <CardHeader
-          title="営業部全体 今月・来月・再来月(広告料・月額・税抜)"
-          sub={`新規契約 ${d.snap.ordered.agg.count}件(今月)・未設置案件 ${d.snap.backlog.agg.count}件 ${yen(d.snap.backlog.agg.ad)}/月。数字を押すと、もとになった案件が出ます`}
+          title={`営業部全体 ${fmtMonth(month)}から3か月(広告料・月額・税抜)`}
+          sub={`新規契約 ${d.snap.ordered.agg.count}件(${Number(month.slice(5))}月)・未設置案件 ${d.snap.backlog.agg.count}件 ${yen(d.snap.backlog.agg.ad)}/月(${isCur ? "今日" : "月末"}時点)。数字を押すと、もとになった案件が出ます`}
           right={<QTag id="Q14" />}
         />
-        {loading ? <Skeleton className="m-5 h-64" /> : <ThreeMonthTable cols={d.cols} onDrill={setDrill} />}
+        {loading ? <Skeleton className="m-5 h-64" /> : <ThreeMonthTable cols={d.cols} onDrill={setDrill} monthLabels />}
       </Card>
 
       {/* エリア別 */}
       <Card className="mb-6 overflow-hidden">
-        <CardHeader title="エリア別の状況(今月・広告料は月額・税抜)" sub="行を押すと、営業所別 → 担当者別の内訳に進みます" right={<QTag id="Q07" />} />
+        <CardHeader title={`エリア別の状況(${fmtMonth(month)}・広告料は月額・税抜)`} sub="行を押すと、営業所別 → 担当者別の内訳に進みます" right={<QTag id="Q07" />} />
         <div className="thin-scroll overflow-x-auto">
           <table className="w-full min-w-[900px] text-[14.5px]">
             <thead className={tableHeadCls}>
@@ -143,6 +170,35 @@ export default function Dashboard() {
                 ))}
                 <td />
               </tr>
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* 獲得経路ごと */}
+      <Card className="mb-6 overflow-hidden">
+        <CardHeader title={`獲得経路ごとの集計(営業部全体・${fmtMonth(month)})`} sub="LP・問い合わせ・コールセンターなど、見込案件の登録時に選んだ獲得経路で分けています" right={<QTag id="Q04" />} />
+        <div className="thin-scroll overflow-x-auto">
+          <table className="w-full min-w-[640px] text-[14.5px]">
+            <thead className={tableHeadCls}>
+              <tr>
+                <th className={thCls}>獲得経路</th>
+                <th className={thCls + " text-right"}>見込案件(今日時点で進行中)</th>
+                <th className={thCls + " text-right"}>広告料(月額)</th>
+                <th className={thCls + " text-right"}>契約締結({Number(month.slice(5))}月)</th>
+                <th className={thCls + " text-right"}>広告料(月額)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {d.ch.map((r) => (
+                <tr key={r.channel} className="border-b border-ink-100 last:border-0">
+                  <td className="px-4 py-2.5 text-ink-900">{r.channel}</td>
+                  <td className="tnum px-4 py-2.5 text-right">{r.prospectCount}件</td>
+                  <td className="tnum px-4 py-2.5 text-right text-ink-700">{yen(r.prospectAd)}</td>
+                  <td className="tnum px-4 py-2.5 text-right font-medium text-navy-900">{r.orderedCount}件</td>
+                  <td className="tnum px-4 py-2.5 text-right">{yen(r.orderedAd)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

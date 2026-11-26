@@ -297,7 +297,7 @@ export default function Report() {
             <thead className={tableHeadCls}>
               <tr>
                 <th className={thCls}>獲得経路</th>
-                <th className={thCls + " text-right"}>見込案件(進行中)</th>
+                <th className={thCls + " text-right"}>見込案件(今日時点で進行中)</th>
                 <th className={thCls + " text-right"}>広告料(月額)</th>
                 <th className={thCls + " text-right"}>契約締結({Number(month.slice(5))}月)</th>
                 <th className={thCls + " text-right"}>広告料(月額)</th>
@@ -411,8 +411,9 @@ function PlanOptionsBar({ opt, onChange }: { opt: PlanOptions; onChange: (o: Pla
 }
 
 // ---------------- 3ヶ月の表(3ヶ月比較の表示仕様シート) ----------------
-export function ThreeMonthTable({ cols, onDrill }: { cols: MonthCol[]; onDrill: (d: Drill) => void }) {
-  const label = (m: string, i: number) => `${["今月", "来月", "再来月"][i]}(${Number(m.slice(5))}月)`;
+export function ThreeMonthTable({ cols, onDrill, monthLabels }: { cols: MonthCol[]; onDrill: (d: Drill) => void; monthLabels?: boolean }) {
+  const label = (m: string, i: number) =>
+    monthLabels ? `${Number(m.slice(0, 4))}年${Number(m.slice(5))}月${m === thisMonth() ? "(今月)" : ""}` : `${["今月", "来月", "再来月"][i]}(${Number(m.slice(5))}月)`;
   const cell = (l: Line, title: string, neg = false): ReactNode =>
     l.amount === null ? (
       <span className="text-ink-400">未到来</span>
@@ -446,7 +447,8 @@ export function ThreeMonthTable({ cols, onDrill }: { cols: MonthCol[]; onDrill: 
             {cols.map((c, i) => (
               <th key={c.month} className={thCls + " text-right"}>
                 {label(c.month, i)}
-                {i === 0 && <span className="block text-[11px] font-normal text-ink-400">実績は今日までの途中</span>}
+                {(monthLabels ? c.month === thisMonth() : i === 0) && <span className="block text-[11px] font-normal text-ink-400">実績は今日までの途中</span>}
+                {monthLabels && c.month < thisMonth() && <span className="block text-[11px] font-normal text-ink-400">月末で締めた数字</span>}
               </th>
             ))}
           </tr>
