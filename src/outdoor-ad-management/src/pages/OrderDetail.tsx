@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Check, ClipboardList, Download, FileText, Image as ImageIcon, Link2, RefreshCw, Trash2, Undo2, Wrench } from "lucide-react";
+import { ArrowLeft, Check, ClipboardList, Download, FileText, Image as ImageIcon, Link2, Trash2, Undo2 } from "lucide-react";
 import { useStore, staffName } from "../store";
 import { FACE_COUNT_LABEL, STAFF } from "../data/seed";
 import { fakeApi } from "../lib/fakeApi";
@@ -29,18 +29,14 @@ export default function OrderDetail() {
   const { id } = useParams();
   const order = useStore((s) => s.orders.find((o) => o.id === id));
   const customer = useStore((s) => s.customers.find((c) => c.id === order?.customerId));
-  const syncOrder = useStore((s) => s.syncOrder);
-  const installOrder = useStore((s) => s.installOrder);
   const planCancel = useStore((s) => s.planCancel);
   const withdrawCancel = useStore((s) => s.withdrawCancel);
-  const confirmCancel = useStore((s) => s.confirmCancel);
   const addAttachments = useStore((s) => s.addAttachments);
   const removeAttachment = useStore((s) => s.removeAttachment);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [withdrawId, setWithdrawId] = useState<string | null>(null);
   const [removeId, setRemoveId] = useState<string | null>(null);
   const [tax, setTax] = useState(false);
-  const [busy, setBusy] = useState("");
 
   if (!order || !customer)
     return (
@@ -74,13 +70,6 @@ export default function OrderDetail() {
       </span>
     );
   const rep = STAFF.find((s) => s.id === order.repId);
-  const run = async (key: string, fn: () => void, msg: string, desc?: string) => {
-    setBusy(key);
-    await fakeApi(null, 700);
-    fn();
-    setBusy("");
-    toast.success(msg, { description: desc });
-  };
 
   const ks = kikakuSteps(order);
   const cancelDate = ph === "解約済" ? liveCancels(order).find((c) => !c.partial && c.actualDate)?.actualDate ?? null : pc?.plannedDate ?? null;
@@ -132,40 +121,28 @@ export default function OrderDetail() {
         </div>
       </div>
 
-      {/* 連携の状態(デモでは手動で取り込みを再現) */}
+      {/* 連携の状態(すべて自動。営業の方の操作は要らない) */}
       {(!order.kikakuNo || (!order.actualInstallDate && ph === "未設置案件")) && (
-        <div className="mb-6 flex flex-col gap-3 rounded-lg border border-warn-300 bg-warn-50 px-5 py-4 sm:flex-row sm:items-center">
+        <div
+          className={
+            "mb-6 flex items-start gap-3 rounded-lg border px-5 py-4 " + (!order.kikakuNo ? "border-warn-300 bg-warn-50" : "border-navy-100 bg-navy-50/60")
+          }
+        >
+          <Link2 size={16} className="mt-1 shrink-0 text-navy-600" />
           <div className="min-w-0 flex-1 text-[15px] leading-relaxed text-ink-900">
             {!order.kikakuNo ? (
               <>
-                <span className="font-semibold">工事指示システムへの企画の登録が、まだ終わっていません。</span>
-                工事指示システムにつながらなかったときは、ここに残り、つながった時点で登録し直します。営業の方の入力はそのまま残ります。
+                <span className="font-semibold">工事指示システムにつながらなかったため、企画の登録を待っています。</span>
+                つながった時点で自動で登録し直し、企画番号が付きます。操作は要りません。営業の方の入力はそのまま残ります。
               </>
             ) : (
               <>
                 <span className="font-semibold">設置の完了待ちです。</span>
-                工事指示システムで施工完了が登録されると、設置日が自動で入り「設置済」になります。
+                工事指示システムで施工完了が登録されると、設置日が自動で入り「設置済」になります。操作は要りません。
                 {installOverdue(order) && <span className="ml-1 font-medium text-bad-600">設置予定日を過ぎています。</span>}
               </>
             )}
-            <div className="mt-1 flex items-center gap-1.5 text-[12.5px] text-ink-500">
-              このデモでは、右のボタンで工事指示システムとのやり取りを再現できます。
-            </div>
           </div>
-          {!order.kikakuNo ? (
-            <Button loading={busy === "sync"} onClick={() => run("sync", () => syncOrder(order.id), "工事指示システムに企画を登録しました", "企画番号が付きました")}>
-              <RefreshCw size={14} />
-              登録し直す(デモ)
-            </Button>
-          ) : (
-            <Button
-              loading={busy === "install"}
-              onClick={() => run("install", () => installOrder(order.id, todayISO()), "施工完了を取り込みました", "設置日に本日が入り「設置済」になりました。今月の設置実績に加算されます。")}
-            >
-              <Wrench size={14} />
-              施工完了を取り込む(デモ)
-            </Button>
-          )}
         </div>
       )}
 
@@ -272,23 +249,15 @@ export default function OrderDetail() {
                         <span className="tnum ml-auto text-[15px] font-semibold text-navy-900">−{yen(c.fee)}/月</span>
                       </div>
                       <div className="tnum mt-1.5 grid gap-x-4 gap-y-0.5 text-[13px] text-ink-600 sm:grid-cols-2">
+                        <span>解約の企画番号 {c.kikakuNo ?? "—"}</span>
                         <span>解約予定日 {c.plannedDate ? fmtDate(c.plannedDate) : "—"}</span>
                         <span>解約日(実績) {done ? fmtDate(c.actualDate!) : "—"}</span>
                         <span>WF番号 {c.wfNo ?? "未提出"}</span>
                         <span>理由 {c.reason}</span>
                       </div>
                       {!c.withdrawn && !done && (
-                        <div className="mt-2.5 flex flex-wrap gap-2">
-                          <Button
-                            size="sm"
-                            loading={busy === c.id}
-                            onClick={() =>
-                              run(c.id, () => confirmCancel(order.id, c.id, c.plannedDate! < todayISO() ? c.plannedDate! : todayISO()), "解約の実績を取り込みました", "WFの承認済みとして、解約日(実績)が入りました。")
-                            }
-                          >
-                            <Link2 size={13} />
-                            WFの承認を取り込む(デモ)
-                          </Button>
+                        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                          <span className="text-[12.5px] text-ink-500">解約日(実績)は、工事指示システムから自動で入ります</span>
                           <Button size="sm" variant="ghost" onClick={() => setWithdrawId(c.id)}>
                             <Undo2 size={13} />
                             予定を撤回
@@ -401,7 +370,7 @@ export default function OrderDetail() {
         onSubmit={async (v) => {
           await fakeApi(null, 500);
           planCancel(order.id, v);
-          toast.success("解約予定を登録しました", { description: "解約日(実績)は、WFの承認後に自動で入る想定です。それまでは予定として集計されます。" });
+          toast.success("解約の企画を作成し、工事指示システムに登録しました", { description: "解約日(実績)は、工事指示システムから自動で入ります。それまでは予定として集計されます。" });
         }}
       />
       <Confirm
@@ -471,8 +440,8 @@ function CancelModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="解約予定を登録"
-      sub="解約の連絡を受けた時点で登録します(WFの提出前でも登録できます)"
+      title="解約予定を登録(解約の企画を作成)"
+      sub="解約の連絡を受けた時点で登録します。登録すると、解約の企画がその場で工事指示システムに登録されます"
       width={520}
       footer={
         <>

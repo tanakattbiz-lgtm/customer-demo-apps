@@ -222,6 +222,8 @@ export interface CancelEvent {
   wfNo: string | null;
   withdrawn: boolean;
   registeredAt: string;
+  /** 解約の企画(クライアント解約)の企画番号。登録すると工事指示システムへ自動で登録される */
+  kikakuNo?: string | null;
 }
 export interface Attachment {
   id: string;

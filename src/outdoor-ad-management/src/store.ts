@@ -89,6 +89,8 @@ interface State extends SeedData {
   // 契約締結〜設置〜解約
   registerOrder: (dealId: string, input: OrderInput) => string;
   syncOrder: (id: string, kikakuNo?: string) => void;
+  /** 登録待ちの企画を、工事指示システムへ自動で登録し直す(つながった時点で。件数を返す) */
+  retryWaiting: () => number;
   installOrder: (id: string, date: string) => void;
   planCancel: (id: string, input: { plannedDate: string; fee: number; partial: boolean; reason: string }) => void;
   withdrawCancel: (orderId: string, cancelId: string) => void;
@@ -330,8 +332,7 @@ export const useStore = create<State>()(
         const id = uid("o");
         const at = now();
         // 確定したら、その場で工事指示システムへ企画を登録する(デモでは企画番号を採番して再現)
-        const maxNo = s.orders.reduce((m, o) => Math.max(m, Number(o.kikakuNo ?? 0)), 0);
-        const kikakuNo = input.kikakuNo ?? String(maxNo + 1).padStart(9, "0");
+        const kikakuNo = input.kikakuNo ?? String(nextKikakuNo(s.orders)).padStart(9, "0");
         const order: Order = {
           id,
           kikakuNo,
@@ -378,22 +379,37 @@ export const useStore = create<State>()(
             ),
           };
         }),
+      retryWaiting: () => {
+        const s = get();
+        const waiting = s.orders.filter((o) => !o.kikakuNo);
+        if (!waiting.length) return 0;
+        let no = nextKikakuNo(s.orders);
+        const at = now();
+        const nos = new Map(waiting.map((o) => [o.id, String(no++).padStart(9, "0")]));
+        set({ orders: s.orders.map((o) => (nos.has(o.id) ? { ...o, kikakuNo: nos.get(o.id)!, syncedAt: at } : o)) });
+        return waiting.length;
+      },
       installOrder: (id, date) =>
         set((s) => ({ orders: s.orders.map((o) => (o.id === id ? { ...o, actualInstallDate: date, syncedAt: now() } : o)) })),
       planCancel: (id, input) =>
-        set((s) => ({
-          orders: s.orders.map((o) =>
-            o.id === id
-              ? {
-                  ...o,
-                  cancels: [
-                    ...o.cancels,
-                    { id: uid("x"), plannedDate: input.plannedDate, actualDate: null, fee: input.fee, partial: input.partial, reason: input.reason, wfNo: null, withdrawn: false, registeredAt: todayISO() },
-                  ],
-                }
-              : o,
-          ),
-        })),
+        set((s) => {
+          // 解約予定を登録したら、解約の企画を作り、その場で工事指示システムへ登録する(デモでは企画番号を採番して再現)
+          const kikakuNo = String(nextKikakuNo(s.orders)).padStart(9, "0");
+          return {
+            orders: s.orders.map((o) =>
+              o.id === id
+                ? {
+                    ...o,
+                    syncedAt: now(),
+                    cancels: [
+                      ...o.cancels,
+                      { id: uid("x"), plannedDate: input.plannedDate, actualDate: null, fee: input.fee, partial: input.partial, reason: input.reason, wfNo: null, withdrawn: false, registeredAt: todayISO(), kikakuNo },
+                    ],
+                  }
+                : o,
+            ),
+          };
+        }),
       withdrawCancel: (orderId, cancelId) =>
         set((s) => ({
           orders: s.orders.map((o) =>
@@ -439,6 +455,16 @@ export const useStore = create<State>()(
     },
   ),
 );
+
+/** 次の企画番号(契約締結の企画と解約の企画で通し番号) */
+function nextKikakuNo(orders: Order[]): number {
+  let m = 0;
+  for (const o of orders) {
+    m = Math.max(m, Number(o.kikakuNo ?? 0));
+    for (const c of o.cancels) m = Math.max(m, Number(c.kikakuNo ?? 0));
+  }
+  return m + 1;
+}
 
 export const staffName = (id: string) => STAFF.find((s) => s.id === id)?.name ?? "—";
 export { uid, now };

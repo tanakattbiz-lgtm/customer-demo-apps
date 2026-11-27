@@ -199,7 +199,7 @@ export default function Home() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-[16px] font-medium text-ink-900">工事指示システムへの企画の登録が終わっていない契約締結が {waiting.length}件あります</div>
-                  <div className="text-[14px] text-ink-500">企画が登録されると、自動で企画番号が入ります</div>
+                  <div className="text-[14px] text-ink-500">工事指示システムにつながった時点で自動で登録し直し、企画番号が入ります。操作は要りません</div>
                 </div>
                 <Button variant="outline" onClick={() => nav("/orders?tab=waiting")}>
                   一覧を見る

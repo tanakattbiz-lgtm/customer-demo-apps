@@ -84,6 +84,24 @@ export default function Layout({ children }: { children: ReactNode }) {
       return () => clearTimeout(t);
     }
   }, [seen, active, startTour]);
+  // 工事指示システムへの登録待ちは、つながった時点で自動で登録し直す(操作は要らない)。
+  // デモでは、開いてしばらくしてから「つながった」ことにして再現する
+  const retryWaiting = useStore((s) => s.retryWaiting);
+  useEffect(() => {
+    const tick = () => {
+      const n = retryWaiting();
+      if (n > 0)
+        toast.success(`工事指示システムに、登録待ちの企画 ${n}件を自動で登録しました`, {
+          description: "企画番号が付きました。営業の方の操作は要りません。",
+        });
+    };
+    const first = setTimeout(tick, 20000);
+    const every = setInterval(tick, 60000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(every);
+    };
+  }, [retryWaiting]);
   const current = nav.flatMap((g) => g.items).find((i) => (i.end ? loc.pathname === i.to : loc.pathname.startsWith(i.to)));
 
   return (
