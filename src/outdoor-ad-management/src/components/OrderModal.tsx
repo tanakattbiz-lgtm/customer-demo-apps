@@ -66,6 +66,7 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
   const [f, setF] = useState({ orderDate: "", planned: "", ad: "", makeup: "", rent: "", kikakuNo: "", boardName: "" });
   const [kType, setKType] = useState<KikakuType>("新規新設");
   const [files, setFiles] = useState<NewFile[]>([]);
+  const [landFiles, setLandFiles] = useState<NewFile[]>([]);
   const [touched, setTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -82,6 +83,7 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
     });
     setKType(deal.investment ? "投資" : deal.signType === "既存の看板に掲出" ? "既存新規" : "新規新設");
     setFiles([]);
+    setLandFiles([]);
     setTouched(false);
   }, [open, deal]);
   const n = (v: string) => (v.trim() === "" ? null : Number(v));
@@ -106,7 +108,7 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
       landRent: n(f.rent),
       kikakuNo: null,
       boardName: f.boardName.trim(),
-      attachments: files,
+      attachments: [...files.map((f) => ({ ...f, doc: "掲出契約書" as const })), ...landFiles.map((f) => ({ ...f, doc: "土地契約書" as const }))],
     });
     const no = useStore.getState().orders.find((o) => o.id === id)?.kikakuNo;
     setBusy(false);
@@ -187,6 +189,18 @@ export default function OrderModal({ open, onClose, deal }: { open: boolean; onC
             sample="屋外広告物掲出契約書_署名済.pdf"
             onAdd={(x) => setFiles((p) => [...p, ...x])}
             onRemove={(i) => setFiles((p) => p.filter((_, j) => j !== i))}
+          />
+        </div>
+        <div>
+          <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[14.5px] font-semibold text-navy-900">
+            土地契約書(スキャン) <SourceTag kind="input" compact />
+            <span className="ml-auto text-[12px] font-normal text-ink-500">地主との契約がある場合</span>
+          </div>
+          <ScanPicker
+            files={landFiles}
+            sample="土地契約書_署名済.pdf"
+            onAdd={(x) => setLandFiles((p) => [...p, ...x])}
+            onRemove={(i) => setLandFiles((p) => p.filter((_, j) => j !== i))}
           />
         </div>
       </div>

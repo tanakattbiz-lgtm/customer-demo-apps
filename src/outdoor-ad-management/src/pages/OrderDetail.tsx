@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Check, ClipboardList, Download, FileText, Image as ImageIcon, Link2, Trash2, Undo2 } from "lucide-react";
 import { useStore, staffName } from "../store";
-import { FACE_COUNT_LABEL, STAFF, channelGroup, industryLabel } from "../data/seed";
+import { CONTRACT_DOCS, FACE_COUNT_LABEL, STAFF, channelGroup, industryLabel } from "../data/seed";
 import { fakeApi } from "../lib/fakeApi";
 import { fmtDate, fmtDateTime, todayISO, yen } from "../lib/format";
 import { installOverdue, liveCancels, pendingCancel, phaseOf } from "../lib/report";
@@ -33,6 +33,8 @@ export default function OrderDetail() {
   const planCancel = useStore((s) => s.planCancel);
   const withdrawCancel = useStore((s) => s.withdrawCancel);
   const addAttachments = useStore((s) => s.addAttachments);
+  const setInstallDate = useStore((s) => s.setInstallDate);
+  const setBillingStart = useStore((s) => s.setBillingStart);
   const removeAttachment = useStore((s) => s.removeAttachment);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [withdrawId, setWithdrawId] = useState<string | null>(null);
@@ -197,8 +199,44 @@ export default function OrderDetail() {
               <Row label="設置予定日" src="input">
                 <span className="tnum">{order.plannedInstallDate ? fmtDate(order.plannedInstallDate) : "—"}</span>
               </Row>
-              <Row label="設置日(実績)" src="link">
-                {order.actualInstallDate ? <span className="tnum">{fmtDate(order.actualInstallDate)}</span> : <span className="text-ink-400">未設置(製造部の施工完了で自動)</span>}
+              <Row label="看板設置日" src="link">
+                <input
+                  type="date"
+                  className={inputCls + " max-w-52"}
+                  value={order.actualInstallDate ?? ""}
+                  onChange={(e) => {
+                    setInstallDate(order.id, e.target.value || null);
+                    toast.success(e.target.value ? "看板設置日を保存しました" : "看板設置日を空欄にしました", {
+                      description: order.billingManual ? "広告料請求開始日は、手で入れた日のまま変えていません。" : "広告料請求開始日にも同じ日付が入りました。",
+                    });
+                  }}
+                />
+                <div className="mt-1 text-[12.5px] text-ink-500">クライアントの広告面を取り付けた日</div>
+                <div className="text-[12px] text-ink-400">工事指示システムと連携する場合は、施工完了日から自動で入ります</div>
+              </Row>
+              <Row label="広告料請求開始日" src="input">
+                <input
+                  type="date"
+                  className={inputCls + " max-w-52"}
+                  value={order.billingStartDate ?? ""}
+                  onChange={(e) => {
+                    setBillingStart(order.id, e.target.value || null);
+                    toast.success(e.target.value ? "広告料請求開始日を保存しました" : "広告料請求開始日を看板設置日に合わせました");
+                  }}
+                />
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-[12.5px] text-ink-500">
+                  {order.billingManual ? (
+                    <>
+                      <Pill tone="warn">手で設定</Pill>
+                      看板設置日を変えても、この日付のままです
+                      <button className="text-navy-700 underline" onClick={() => setBillingStart(order.id, null)}>
+                        看板設置日に合わせる
+                      </button>
+                    </>
+                  ) : (
+                    <span>通常は看板設置日と同じ日が自動で入ります。違う場合は、ここを直接変えます(設置前に請求が始まる場合も、ここだけ先に入れられます)</span>
+                  )}
+                </div>
               </Row>
               <Row label="営業担当者" src="link">
                 {staffName(order.repId)}
@@ -312,47 +350,54 @@ export default function OrderDetail() {
             </div>
           </Card>
 
-          <Card>
-            <CardHeader title="屋外広告物掲出契約書" sub="スキャンデータ(PDF・画像)" right={<QTag id="Q16" />} />
-            <div className="space-y-2 px-5 py-4">
-              {order.attachments.length > 0 && (
-                <div className="overflow-hidden rounded-md border border-ink-200">
-                  {order.attachments.map((f) => (
-                    <div key={f.id} className="flex min-h-12 items-center gap-2.5 border-b border-ink-100 px-3.5 py-2 last:border-0">
-                      {f.kind === "image" ? <ImageIcon size={16} className="text-navy-600" /> : <FileText size={16} className="text-navy-600" />}
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-[14px] text-ink-900">{f.name}</div>
-                        <div className="tnum text-[12px] text-ink-400">
-                          {fmtDate(f.uploadedAt)} ・ {f.by}
+          {CONTRACT_DOCS.map(({ doc, label, party }) => {
+            const files = order.attachments.filter((f) => (f.doc ?? "掲出契約書") === doc);
+            return (
+              <Card key={doc}>
+                <CardHeader title={label} sub={`${party} ・ スキャンデータ(PDF・画像)`} right={<QTag id="Q16" />} />
+                <div className="space-y-2 px-5 py-4">
+                  {files.length > 0 ? (
+                    <div className="overflow-hidden rounded-md border border-ink-200">
+                      {files.map((f) => (
+                        <div key={f.id} className="flex min-h-12 items-center gap-2.5 border-b border-ink-100 px-3.5 py-2 last:border-0">
+                          {f.kind === "image" ? <ImageIcon size={16} className="text-navy-600" /> : <FileText size={16} className="text-navy-600" />}
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-[14px] text-ink-900">{f.name}</div>
+                            <div className="tnum text-[12px] text-ink-400">
+                              {fmtDate(f.uploadedAt)} ・ {f.by}
+                            </div>
+                          </div>
+                          <button
+                            className="grid h-9 w-9 place-items-center rounded text-ink-400 hover:bg-ink-100 hover:text-navy-900"
+                            aria-label="ダウンロード"
+                            onClick={() => toast("このデモでは、ダウンロードは省略しています", { description: "本番では、営業担当者と管理部など権限のある人が、案件ごとに確認・ダウンロードできます。" })}
+                          >
+                            <Download size={15} />
+                          </button>
+                          <button className="grid h-9 w-9 place-items-center rounded text-ink-400 hover:bg-ink-100 hover:text-bad-600" aria-label="削除" onClick={() => setRemoveId(f.id)}>
+                            <Trash2 size={15} />
+                          </button>
                         </div>
-                      </div>
-                      <button
-                        className="grid h-9 w-9 place-items-center rounded text-ink-400 hover:bg-ink-100 hover:text-navy-900"
-                        aria-label="開く"
-                        onClick={() => toast("このデモでは、ファイルの表示は省略しています", { description: "本番では、権限のある人だけが開ける形で表示します。" })}
-                      >
-                        <Download size={15} />
-                      </button>
-                      <button className="grid h-9 w-9 place-items-center rounded text-ink-400 hover:bg-ink-100 hover:text-bad-600" aria-label="削除" onClick={() => setRemoveId(f.id)}>
-                        <Trash2 size={15} />
-                      </button>
+                      ))}
                     </div>
-                  ))}
+                  ) : (
+                    <div className="rounded-md border border-ink-200 px-4 py-4 text-center text-[13.5px] text-ink-500">まだ添付されていません</div>
+                  )}
+                  <ScanPicker
+                    hideList
+                    files={[]}
+                    sample={`${order.kikakuNo ?? "新規"}_${label}.pdf`}
+                    onAdd={(x) => {
+                      addAttachments(order.id, x.map((f) => ({ ...f, doc })));
+                      toast.success(`${label}を${x.length}件添付しました`);
+                    }}
+                    onRemove={() => {}}
+                  />
+                  <div className="text-[12px] text-ink-400">管理部の方は、案件ごとにここで確認・ダウンロードできます。</div>
                 </div>
-              )}
-              {order.attachments.length === 0 && <div className="rounded-md border border-ink-200 px-4 py-4 text-center text-[13.5px] text-ink-500">まだ添付されていません</div>}
-              <ScanPicker
-                hideList
-                files={[]}
-                sample={`${order.kikakuNo ?? "新規"}_屋外広告物掲出契約書.pdf`}
-                onAdd={(x) => {
-                  addAttachments(order.id, x);
-                  toast.success(`${x.length}件のファイルを添付しました`);
-                }}
-                onRemove={() => {}}
-              />
-            </div>
-          </Card>
+              </Card>
+            );
+          })}
 
           <Card>
             <CardHeader title="クライアント" />

@@ -97,6 +97,10 @@ interface State extends SeedData {
   /** 登録待ちの企画を、工事指示システムへ自動で登録し直す(つながった時点で。件数を返す) */
   retryWaiting: () => number;
   installOrder: (id: string, date: string) => void;
+  /** 看板設置日を入れる・直す。広告料請求開始日を手で入れていなければ、同じ日を入れる */
+  setInstallDate: (id: string, date: string | null) => void;
+  /** 広告料請求開始日を手で入れる。空にすると看板設置日に合わせる */
+  setBillingStart: (id: string, date: string | null) => void;
   planCancel: (id: string, input: { plannedDate: string; fee: number; partial: boolean; reason: string }) => void;
   withdrawCancel: (orderId: string, cancelId: string) => void;
   confirmCancel: (orderId: string, cancelId: string, actualDate: string) => void;
@@ -426,7 +430,19 @@ export const useStore = create<State>()(
         return waiting.length;
       },
       installOrder: (id, date) =>
-        set((s) => ({ orders: s.orders.map((o) => (o.id === id ? { ...o, actualInstallDate: date, syncedAt: now() } : o)) })),
+        set((s) => ({
+          orders: s.orders.map((o) => (o.id === id ? { ...o, actualInstallDate: date, billingStartDate: o.billingManual ? o.billingStartDate : date, syncedAt: now() } : o)),
+        })),
+      setInstallDate: (id, date) =>
+        set((s) => ({
+          orders: s.orders.map((o) => (o.id === id ? { ...o, actualInstallDate: date, billingStartDate: o.billingManual ? o.billingStartDate : date } : o)),
+        })),
+      setBillingStart: (id, date) =>
+        set((s) => ({
+          orders: s.orders.map((o) =>
+            o.id === id ? (date ? { ...o, billingStartDate: date, billingManual: true } : { ...o, billingStartDate: o.actualInstallDate, billingManual: false }) : o,
+          ),
+        })),
       planCancel: (id, input) =>
         set((s) => {
           // 解約予定を登録したら、解約の企画を作り、その場で工事指示システムへ登録する(デモでは企画番号を採番して再現)
@@ -483,7 +499,7 @@ export const useStore = create<State>()(
       };
     },
     {
-      name: "outdoor-ad-management-v8",
+      name: "outdoor-ad-management-v9",
       // 前日以前に生成したサンプルデータが未変更のまま残っていれば、今日の日付で作り直す
       onRehydrateStorage: () => (state) => {
         if (state && !state.touched && state.seededOn !== todayISO()) state.reset();

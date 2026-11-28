@@ -344,14 +344,26 @@ export interface CancelEvent {
   /** 解約の企画(クライアント解約)の企画番号。登録すると工事指示システムへ自動で登録される */
   kikakuNo?: string | null;
 }
+/** 添付する契約書の種類(契約書ごとに添付欄を分ける) */
+export type ContractDoc = "掲出契約書" | "土地契約書";
+export const CONTRACT_DOCS: { doc: ContractDoc; label: string; party: string }[] = [
+  { doc: "掲出契約書", label: "屋外広告物掲出契約書", party: "クライアントとの契約" },
+  { doc: "土地契約書", label: "土地契約書", party: "地主との契約" },
+];
 export interface Attachment {
   id: string;
   name: string;
   kind: "pdf" | "image";
   uploadedAt: string;
   by: string;
+  /** どの契約書か(省略時は屋外広告物掲出契約書) */
+  doc?: ContractDoc;
 }
 export interface Order extends SignSpec {
+  /** 広告料請求開始日。通常は看板設置日と同じ日が自動で入る */
+  billingStartDate?: string | null;
+  /** 広告料請求開始日を手で入れたか(手で入れた日は、看板設置日を変えても保つ) */
+  billingManual?: boolean;
   /** 見込案件を登録した日(見込案件の登録から契約締結までの日数を出すため) */
   prospectCreatedAt?: string | null;
   id: string;
@@ -1146,11 +1158,18 @@ export function createSeed(): SeedData {
       orderDate: iso(orderDate),
       plannedInstallDate: iso(planned),
       actualInstallDate: actual ? iso(actual) : null,
+      billingStartDate: actual ? iso(actual) : null,
+      billingManual: false,
       adFee: fee,
       cancels: [],
       attachments:
         !legacy && rnd() < 0.78
-          ? [{ id: `f${orders.length + 1}`, name: `${kikakuNo ?? "新規"}_屋外広告物掲出契約書.pdf`, kind: "pdf", uploadedAt: iso(orderDate), by: rep.name }]
+          ? [
+              { id: `f${orders.length + 1}`, name: `${kikakuNo ?? "新規"}_屋外広告物掲出契約書.pdf`, kind: "pdf", uploadedAt: iso(orderDate), by: rep.name, doc: "掲出契約書" },
+              ...(sp.landType === "土地を新規に確保"
+                ? [{ id: `fl${orders.length + 1}`, name: `${kikakuNo ?? "新規"}_土地契約書.pdf`, kind: "pdf" as const, uploadedAt: iso(orderDate), by: rep.name, doc: "土地契約書" as const }]
+                : []),
+            ]
           : [],
       legacy,
       notes: "",
