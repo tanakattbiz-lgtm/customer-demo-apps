@@ -187,9 +187,10 @@ export default function OrderDetail() {
               </Row>
               <Row label="契約締結日" src="link">
                 <span className="tnum">{fmtDate(order.orderDate)}</span>
-                {sourceDeal && (
+                {(order.prospectCreatedAt ?? sourceDeal?.createdAt) && (
                   <span className="tnum ml-2 text-[12.5px] text-ink-500">
-                    見込案件の登録({fmtDate(sourceDeal.createdAt)})から {Math.max(0, Math.round((new Date(order.orderDate).getTime() - new Date(sourceDeal.createdAt).getTime()) / 86400000))}日
+                    見込案件の登録({fmtDate((order.prospectCreatedAt ?? sourceDeal?.createdAt)!)})から{" "}
+                    {Math.max(0, Math.round((new Date(order.orderDate).getTime() - new Date((order.prospectCreatedAt ?? sourceDeal?.createdAt)!).getTime()) / 86400000))}日
                   </span>
                 )}
               </Row>

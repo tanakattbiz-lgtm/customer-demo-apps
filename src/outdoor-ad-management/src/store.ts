@@ -340,6 +340,7 @@ export const useStore = create<State>()(
         const kikakuNo = input.kikakuNo ?? String(nextKikakuNo(s.orders)).padStart(9, "0");
         const order: Order = {
           id,
+          prospectCreatedAt: deal.createdAt,
           kikakuNo,
           kikakuType: input.kikakuType,
           syncedAt: at,
@@ -454,7 +455,7 @@ export const useStore = create<State>()(
       };
     },
     {
-      name: "outdoor-ad-management-v5",
+      name: "outdoor-ad-management-v6",
       // 前日以前に生成したサンプルデータが未変更のまま残っていれば、今日の日付で作り直す
       onRehydrateStorage: () => (state) => {
         if (state && !state.touched && state.seededOn !== todayISO()) state.reset();

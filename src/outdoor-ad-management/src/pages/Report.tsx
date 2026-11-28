@@ -83,8 +83,8 @@ export default function Report() {
   // 見込案件の登録から契約締結までの日数(この月に契約締結したもの)
   const leadDays = snap.ordered.orders
     .map((o) => {
-      const d = deals.find((x) => x.id === o.dealId);
-      return d ? Math.max(0, Math.round((new Date(o.orderDate).getTime() - new Date(d.createdAt).getTime()) / 86400000)) : null;
+      const start = o.prospectCreatedAt ?? deals.find((x) => x.id === o.dealId)?.createdAt;
+      return start ? Math.max(0, Math.round((new Date(o.orderDate).getTime() - new Date(start).getTime()) / 86400000)) : null;
     })
     .filter((v): v is number => v !== null);
   const avgLeadDays = leadDays.length ? Math.round(leadDays.reduce((s, v) => s + v, 0) / leadDays.length) : null;

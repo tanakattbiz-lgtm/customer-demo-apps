@@ -259,6 +259,8 @@ export interface Attachment {
   by: string;
 }
 export interface Order extends SignSpec {
+  /** 見込案件を登録した日(見込案件の登録から契約締結までの日数を出すため) */
+  prospectCreatedAt?: string | null;
   id: string;
   /** 企画番号(工事指示システム)。null=工事指示システムへの登録待ち */
   kikakuNo: string | null;
@@ -1024,6 +1026,7 @@ export function createSeed(): SeedData {
     const cu = pick(advertisers);
     return {
       id: `o${String(orders.length + 1).padStart(4, "0")}`,
+      prospectCreatedAt: legacy ? null : iso(subDays(orderDate, int(10, 120))),
       kikakuNo,
       syncedAt: waiting ? null : format(addDays(orderDate, 1) > today ? setMinutes(setHours(today, 8), 0) : setHours(addDays(orderDate, 1), 8), "yyyy-MM-dd'T'HH:mm:ss"),
       customerId: cu.id,
