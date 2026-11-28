@@ -224,7 +224,7 @@ function CustomerDrawer({ customer, onClose, onEdit }: { customer?: Customer; on
         open={!!c}
         onClose={onClose}
         title={c?.company}
-        sub={c && `${c.industry} ・ ${c.area} ・ 獲得経路: ${c.source}`}
+        sub={c && `${c.industry} ・ ${c.area} ・ 商談のきっかけ: ${c.source}`}
         footer={
           c && (
             <>

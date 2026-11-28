@@ -5,9 +5,9 @@ import type { Phase } from "../lib/report";
 import { Pill, type Tone } from "./ui";
 
 const STAGE_TONE: Record<Stage, Tone> = {
-  面談予定: "gray",
-  提案済み: "navy",
-  最終調整中: "solid",
+  商談初期: "gray",
+  具体提案中: "navy",
+  契約最終調整: "solid",
   契約締結: "ok",
   失注: "bad",
 };

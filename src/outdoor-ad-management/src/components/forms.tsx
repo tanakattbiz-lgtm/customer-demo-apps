@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useStageText } from "../lib/stages";
-import { addDays, format } from "date-fns";
+import { addDays, endOfMonth, format } from "date-fns";
 import { toast } from "sonner";
 import { useStore, uid } from "../store";
 import {
   ACTIVITY_TYPES,
   AREAS,
   CHANNELS,
+  CHANNEL_GROUPS,
+  CONTRACT_KINDS,
+  MIKOMI_DEF,
+  AGENCY_NOTE,
+  channelGroup,
+  channelNeedsNote,
+  channelNoteLabel,
+  type ContractKind,
   FACE_COUNT_LABEL,
   HEIGHT_CLASSES,
   LAND_TYPES,
@@ -408,7 +416,7 @@ export function DealFormModal({
   const blank = {
     customerId: "",
     title: "",
-    stage: "面談予定" as Stage,
+    stage: "商談初期" as Stage,
     monthlyBudget: "",
     makeupFee: "",
     landRent: "",
@@ -424,7 +432,9 @@ export function DealFormModal({
     heightClass: null as HeightClass | null,
     signType: null as SignType | null,
     landType: null as LandType | null,
-    channel: "営業開拓" as Channel | null,
+    channel: "飛び込み訪問" as Channel | null,
+    channelNote: "",
+    contractKind: "新規" as ContractKind | null,
     investment: false,
     notes: "",
   };
@@ -455,6 +465,8 @@ export function DealFormModal({
             signType: deal.signType,
             landType: deal.landType,
             channel: deal.channel,
+            channelNote: deal.channelNote ?? "",
+            contractKind: deal.contractKind ?? "新規",
             investment: deal.investment,
             notes: deal.notes,
           }
@@ -475,7 +487,8 @@ export function DealFormModal({
     monthlyBudget: neg(ad) ? "0以上の金額を入力してください" : "",
     makeupFee: neg(makeup) ? "0以上の金額を入力してください" : "",
     landRent: neg(rent) ? "0以上の金額を入力してください" : "",
-    expectedClose: !f.noClose && !f.expectedClose ? "契約締結予定日を選択するか「未定」を選んでください" : "",
+    expectedClose: !f.noClose && !f.expectedClose ? "契約予定月を選択するか「未定」を選んでください" : "",
+    channelNote: channelNeedsNote(f.channel) && !f.channelNote.trim() ? `${channelNoteLabel(f.channel)}を入力してください` : "",
     size: (f.widthMm && !(Number(f.widthMm) > 0)) || (f.heightMm && !(Number(f.heightMm) > 0)) ? "寸法は正の数(mm)で入力してください" : "",
   };
   const invalid = Object.values(errs).some(Boolean);
@@ -512,6 +525,8 @@ export function DealFormModal({
       signType: f.signType,
       landType: f.landType,
       channel: f.channel,
+      channelNote: channelNeedsNote(f.channel) ? f.channelNote.trim() : "",
+      contractKind: f.contractKind,
       investment: f.investment,
       notes: f.notes.trim(),
       nextAction: deal ? deal.nextAction : f.nextDate && f.nextContent.trim() ? { date: f.nextDate, content: f.nextContent.trim() } : null,
@@ -579,30 +594,64 @@ export function DealFormModal({
             </Field>
             <div>
               <div className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium text-ink-600">
-                案件獲得経路 <QTag id="Q04" />
+                商談のきっかけ
+                <span className="text-[12px] font-normal text-ink-400">大分類: {channelGroup(f.channel)}(自動)</span>
               </div>
               <select className={inputCls} value={f.channel ?? ""} onChange={(e) => set("channel")((e.target.value || null) as Channel | null)}>
-                {CHANNELS.map((c) => (
-                  <option key={c}>{c}</option>
+                {CHANNEL_GROUPS.map((g) => (
+                  <optgroup key={g.group} label={g.group}>
+                    {g.items.map((c) => (
+                      <option key={c}>{c}</option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
+              <p className="mt-1 text-[12px] leading-relaxed text-ink-400">今回の商談につながった、最初のきっかけを選びます。LPの問い合わせのあとコールセンターが対応した場合は「LPからの問い合わせ」です。</p>
+              {channelNeedsNote(f.channel) && (
+                <input
+                  className={inputCls + " mt-2" + (err("channelNote") ? errCls : "")}
+                  placeholder={channelNoteLabel(f.channel)}
+                  value={f.channelNote}
+                  onChange={(e) => set("channelNote")(e.target.value)}
+                />
+              )}
+              {err("channelNote") && <div className="mt-1 text-[12.5px] text-bad-600">{err("channelNote")}</div>}
+            </div>
+            <div>
+              <div className="mb-1.5 text-[13px] font-medium text-ink-600">契約区分・案件の種類</div>
+              <Segmented value={f.contractKind ?? "新規"} onChange={(v) => set("contractKind")(v as ContractKind)} items={CONTRACT_KINDS.map((k) => ({ value: k, label: k }))} />
+              <p className="mt-1 text-[12px] leading-relaxed text-ink-400">追加注文は「追加」にします(きっかけとは別)。</p>
               <label className="mt-2 flex items-center gap-2 text-[14px] text-ink-700">
                 <input type="checkbox" className="h-5 w-5 accent-[oklch(29.5%_0.047_262)]" checked={f.investment} onChange={(e) => set("investment")(e.target.checked)} />
-                投資看板の案件(獲得経路とは別に記録)
+                投資看板の案件
               </label>
             </div>
           </div>
         </Sec>
 
         <Sec title="見込案件の段階" q={["Q02"]}>
+          <div className="mb-3 rounded-md border border-navy-100 bg-navy-50/60 px-3.5 py-2.5 text-[13px] leading-relaxed text-navy-800">
+            <span className="font-semibold">見込案件とは：</span>
+            {MIKOMI_DEF}
+            <details className="mt-1">
+              <summary className="cursor-pointer text-[12.5px] text-navy-600">広告代理店経由の案件の場合</summary>
+              <div className="mt-1 text-[12.5px]">{AGENCY_NOTE}</div>
+            </details>
+          </div>
           <ChoiceButtons
             value={f.stage}
             onChange={(v) => v && set("stage")(v)}
             items={OPEN_STAGES.map((s) => ({ value: s, label: `${STAGE_NO[s]} ${stageLabel(s)}`, sub: stageDef(s) }))}
           />
           <div className="mt-3 grid gap-3 sm:grid-cols-[220px_1fr] sm:items-end">
-            <Field label="契約締結予定日" error={err("expectedClose")}>
-              <input type="date" className={inputCls} value={f.noClose ? "" : f.expectedClose} disabled={f.noClose} onChange={ev("expectedClose")} />
+            <Field label="契約予定月" error={err("expectedClose")} hint="段階とは別に、いつ契約できそうかを月で入れます">
+              <input
+                type="month"
+                className={inputCls}
+                value={f.noClose ? "" : f.expectedClose.slice(0, 7)}
+                disabled={f.noClose}
+                onChange={(e) => set("expectedClose")(e.target.value ? format(endOfMonth(new Date(e.target.value + "-01T00:00:00")), "yyyy-MM-dd") : "")}
+              />
             </Field>
             <label className="flex min-h-11 items-center gap-2 text-[14px] text-ink-700">
               <input type="checkbox" className="h-5 w-5 accent-[oklch(29.5%_0.047_262)]" checked={f.noClose} onChange={(e) => set("noClose")(e.target.checked)} />
@@ -613,7 +662,7 @@ export function DealFormModal({
 
         <Sec title="金額(税抜)" q={["Q05"]}>
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="広告料(月額)" error={err("monthlyBudget")}>
+            <Field label="広告料(月額)" error={err("monthlyBudget")} hint="年払いは12で割った月額を入れます。折半の案件は、クライアント担当者が全額を入れます">
               <MoneyInput value={f.monthlyBudget} onChange={set("monthlyBudget")} invalid={!!err("monthlyBudget")} />
             </Field>
             <Field label="化粧料" error={err("makeupFee")}>
@@ -721,7 +770,7 @@ export function CustomerFormModal({
     area: "大阪" as Area,
     rank: "B" as Rank,
     status: "契約前" as CustomerStatus,
-    source: "営業開拓",
+    source: "飛び込み",
     repId: ME_ID,
     memo: "",
   };
@@ -820,7 +869,7 @@ export function CustomerFormModal({
             ))}
           </select>
         </Field>
-        <Field label="獲得経路">
+        <Field label="商談のきっかけ">
           <select className={inputCls} value={f.source} onChange={set("source")}>
             {CHANNELS.map((r) => (
               <option key={r}>{r}</option>

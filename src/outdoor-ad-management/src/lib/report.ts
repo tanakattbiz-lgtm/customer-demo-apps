@@ -3,7 +3,7 @@
  * すべて「同じ元データ(見込案件・契約締結)」から計算し、担当者・営業所・エリアで絞るだけにする(R11)。
  */
 import { endOfMonth, format } from "date-fns";
-import { ORG, STAFF, OPEN_STAGES, type Deal, type Order, type Stage } from "../data/seed";
+import { ORG, STAFF, OPEN_STAGES, channelGroup, type Deal, type Order, type Stage } from "../data/seed";
 import { addMonthKey, keyToDate, monthsBetween, thisMonth, todayISO } from "./format";
 
 // ======================= 表示範囲 =======================
@@ -154,7 +154,7 @@ export interface PlanOptions {
   /** 設置予定に、未契約の見込案件を含めるか(Q12) */
   prospectInstall: boolean;
 }
-export const DEFAULT_PLAN: PlanOptions = { mode: "whole", stages: ["面談予定", "提案済み", "最終調整中"], prospectInstall: false };
+export const DEFAULT_PLAN: PlanOptions = { mode: "whole", stages: ["商談初期", "具体提案中", "契約最終調整"], prospectInstall: false };
 
 export interface Line {
   /** 実績(未到来の月は null) */
@@ -374,6 +374,32 @@ export function targetsOf(orders: Order[], scope: Scope, month = thisMonth()): T
   );
 }
 
+/** 3か月平均の設置広告料(対象月の前の3か月の設置実績の平均。現場の個人広告料進捗管理表と同じ考え方) */
+export function install3mAvg(orders: Order[], scope: Scope, month = thisMonth()): number {
+  const reps = new Set(repsIn(scope));
+  const sum = [1, 2, 3].reduce((s, i) => s + monthActuals(orders, reps, addMonthKey(month, -i)).installed, 0);
+  return Math.round(sum / 3);
+}
+
+export interface RankRow {
+  repId: string;
+  amount: number;
+}
+/** 上位3名(月報の「数字の大きい人3名」を自動で)。新規契約(契約締結)と設置の広告料で並べる */
+export function topReps(orders: Order[], scope: Scope, month = thisMonth(), base = todayISO()): { ordered: RankRow[]; installed: RankRow[] } {
+  const ids = repsIn(scope);
+  const top = (f: (o: Order) => boolean) =>
+    ids
+      .map((id) => ({ repId: id, amount: orders.filter((o) => o.repId === id && f(o)).reduce((s, o) => s + (o.adFee ?? 0), 0) }))
+      .filter((r) => r.amount > 0)
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 3);
+  return {
+    ordered: top((o) => inMonth(o.orderDate, month) && o.orderDate <= base),
+    installed: top((o) => inMonth(o.actualInstallDate, month) && o.actualInstallDate! <= base),
+  };
+}
+
 // ======================= 獲得経路ごとの集計 =======================
 export interface ChannelRow {
   channel: string;
@@ -395,14 +421,14 @@ export function byChannel(orders: Order[], deals: Deal[], scope: Scope, channels
   deals
     .filter((d) => reps.has(d.repId) && OPEN_STAGES.includes(d.stage))
     .forEach((d) => {
-      const r = row(d.channel);
+      const r = row(channelGroup(d.channel));
       r.prospectCount++;
       r.prospectAd += d.monthlyBudget ?? 0;
     });
   orders
     .filter((o) => reps.has(o.repId) && inMonth(o.orderDate, month) && o.orderDate <= base)
     .forEach((o) => {
-      const r = row(o.channel);
+      const r = row(channelGroup(o.channel));
       r.orderedCount++;
       r.orderedAd += o.adFee ?? 0;
     });

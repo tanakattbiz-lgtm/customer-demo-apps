@@ -21,11 +21,11 @@ import {
   Users,
 } from "lucide-react";
 import { useStore, staffName } from "../store";
-import { FACE_COUNT_LABEL, OPEN_STAGES, STAGE_NO, type ActivityType, type Stage } from "../data/seed";
+import { FACE_COUNT_LABEL, OPEN_STAGES, STAGE_NO, channelGroup, type ActivityType, type Stage } from "../data/seed";
 import { fakeApi } from "../lib/fakeApi";
 import { useLoad } from "../lib/useLoad";
 import { contractState, faceLookup, handoverOf, holdActive } from "../lib/domain";
-import { daysFromToday, fmtDate, fmtDateJa, fmtDateTime, fmtPeriod, relDay, todayISO, yen } from "../lib/format";
+import { daysFromToday, fmtDate, fmtDateJa, fmtDateTime, fmtMonth, fmtPeriod, relDay, todayISO, yen } from "../lib/format";
 import { ActivityModal, DealFormModal, NextActionModal } from "../components/forms";
 import OrderModal from "../components/OrderModal";
 import { QTag, SourceTag } from "../components/tags";
@@ -123,7 +123,7 @@ export default function DealDetail() {
               広告料 <span className="font-semibold text-navy-900">{money(deal.monthlyBudget, "/月")}</span>
             </span>
             <span>担当 {staffName(deal.repId)}</span>
-            <span className="tnum">契約締結予定 {deal.expectedClose ? fmtDate(deal.expectedClose) : "未定"}</span>
+            <span className="tnum">契約予定月 {deal.expectedClose ? fmtMonth(deal.expectedClose.slice(0, 7)) : "未定"}</span>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -218,8 +218,8 @@ export default function DealDetail() {
             variant="outline"
             onClick={async () => {
               await fakeApi(null, 250);
-              setStage(deal.id, "面談予定");
-              toast.success("見込案件を再開しました", { description: "段階は「① 責任者との面談予定あり」に戻しました。" });
+              setStage(deal.id, "商談初期");
+              toast.success("見込案件を再開しました", { description: "段階は「① 商談初期」に戻しました。" });
             }}
           >
             見込案件を再開する
@@ -401,9 +401,10 @@ export default function DealDetail() {
               <div className="mt-4 mb-2 text-[12.5px] font-semibold tracking-wide text-ink-500">その他</div>
               <DL
                 items={[
-                  ["獲得経路", (deal.channel ?? "—") + (deal.investment ? "(投資看板)" : "")],
+                  ["商談のきっかけ", deal.channel ? `${channelGroup(deal.channel)} / ${deal.channel}${deal.channelNote ? `(${deal.channelNote})` : ""}` : "—"],
+                  ["契約区分・種類", `${deal.contractKind ?? "—"}${deal.investment ? " ・ 投資看板" : ""}`],
                   ["業種", customer.industry],
-                  ["契約締結予定日", deal.expectedClose ? <span className="tnum">{fmtDate(deal.expectedClose)}</span> : "未定"],
+                  ["契約予定月", deal.expectedClose ? <span className="tnum">{fmtMonth(deal.expectedClose.slice(0, 7))}</span> : "未定"],
                   ["登録日", <span className="tnum">{fmtDate(deal.createdAt)}</span>],
                   ["備考", deal.notes || "—"],
                 ]}
@@ -628,14 +629,14 @@ function NextStep({
   let tone = "border-navy-200 bg-navy-50";
   if (stage === "失注") return null;
   if (isOpen) {
-    if (stage === "最終調整中" || hasHold) {
+    if (stage === "契約最終調整" || hasHold) {
       msg = "契約条件を最終調整しています。契約締結が決まったら「契約締結を登録」を押して、契約締結日と金額を確定してください。";
       action = { label: "契約締結を登録", onClick: onClose };
-    } else if (stage === "面談予定") {
-      msg = "責任者との面談が終わったら、話した内容を「対応を記録」で残し、提案が済んだら段階を「② 提案済み」にします。";
+    } else if (stage === "商談初期") {
+      msg = "決裁者との商談が進んだら、話した内容を「対応を記録」で残し、掲載場所・広告料を提案したら段階を「② 具体提案中」にします。";
       action = { label: "対応を記録する", onClick: onLog };
     } else {
-      msg = "提案した内容への反応を記録してください。掲載の意向が確認できたら、段階を「③ 最終調整中」にします。";
+      msg = "提案した内容への反応を記録してください。決裁者の掲載意向と、主な条件への合意が確認できたら、段階を「③ 契約最終調整」にします(回答待ちだけでは進めません)。";
       action = { label: "対応を記録する", onClick: onLog };
       void onFind;
     }

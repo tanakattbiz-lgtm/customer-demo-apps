@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Check, ClipboardList, Download, FileText, Image as ImageIcon, Link2, Trash2, Undo2 } from "lucide-react";
 import { useStore, staffName } from "../store";
-import { FACE_COUNT_LABEL, STAFF } from "../data/seed";
+import { FACE_COUNT_LABEL, STAFF, channelGroup } from "../data/seed";
 import { fakeApi } from "../lib/fakeApi";
 import { fmtDate, fmtDateTime, todayISO, yen } from "../lib/format";
 import { installOverdue, liveCancels, pendingCancel, phaseOf } from "../lib/report";
@@ -297,8 +297,9 @@ export default function OrderDetail() {
               <Row label="土地の区分" src="input">
                 {order.landType ?? "—"}
               </Row>
-              <Row label="獲得経路" src="input">
-                {order.channel ?? "—"}
+              <Row label="商談のきっかけ" src="input">
+                {order.channel ? `${channelGroup(order.channel)} / ${order.channel}${order.channelNote ? `(${order.channelNote})` : ""}` : "—"}
+                {order.contractKind && <Pill tone="gray" className="ml-2">{order.contractKind}</Pill>}
                 {order.investment && <Pill tone="navy" className="ml-2">投資看板</Pill>}
               </Row>
             </div>

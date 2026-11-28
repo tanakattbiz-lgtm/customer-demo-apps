@@ -79,6 +79,9 @@ interface State extends SeedData {
   /** 見込案件の段階の名前と基準(営業部で変えられる) */
   stageText: Record<OpenStage, StageText>;
   setStageText: (t: Record<OpenStage, StageText>) => void;
+  /** 月報の報告事項・気付き(表示範囲×月ごと。キーは「範囲|yyyy-MM」) */
+  comments: Record<string, string>;
+  setComment: (key: string, text: string) => void;
   // 顧客
   saveCustomer: (c: Customer) => void;
   removeCustomer: (id: string) => void;
@@ -138,6 +141,8 @@ export const useStore = create<State>()(
       touched: false,
       stageText: DEFAULT_STAGE_TEXT,
       setStageText: (t) => set({ stageText: t }),
+      comments: {},
+      setComment: (key, text) => set((s) => ({ comments: { ...s.comments, [key]: text } })),
 
       saveCustomer: (c) =>
         set((s) => ({
@@ -358,6 +363,8 @@ export const useStore = create<State>()(
           signType: deal.signType,
           landType: deal.landType,
           channel: deal.channel,
+          channelNote: deal.channelNote ?? "",
+          contractKind: deal.contractKind ?? null,
           investment: deal.investment,
           makeupFee: input.makeupFee,
           landRent: input.landRent,
@@ -443,11 +450,11 @@ export const useStore = create<State>()(
           orders: s.orders.map((o) => (o.id === orderId ? { ...o, attachments: o.attachments.filter((f) => f.id !== fileId) } : o)),
         })),
 
-      reset: () => rawSet({ ...createSeed(), live: emptyLive(), seededOn: todayISO(), touched: false, stageText: DEFAULT_STAGE_TEXT }),
+      reset: () => rawSet({ ...createSeed(), live: emptyLive(), seededOn: todayISO(), touched: false, stageText: DEFAULT_STAGE_TEXT, comments: {} }),
       };
     },
     {
-      name: "outdoor-ad-management-v4",
+      name: "outdoor-ad-management-v5",
       // 前日以前に生成したサンプルデータが未変更のまま残っていれば、今日の日付で作り直す
       onRehydrateStorage: () => (state) => {
         if (state && !state.touched && state.seededOn !== todayISO()) state.reset();

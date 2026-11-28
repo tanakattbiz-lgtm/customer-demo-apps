@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { ChevronRight, CircleAlert, Clock, Link2 } from "lucide-react";
 import { useStore, staffName } from "../store";
-import { CHANNELS, ME_ID, OPEN_STAGES, ORG, STAFF, STAGE_NO, type Stage } from "../data/seed";
+import { CHANNEL_GROUP_NAMES, ME_ID, OPEN_STAGES, ORG, STAFF, STAGE_NO, type Stage } from "../data/seed";
 import { useLoad } from "../lib/useLoad";
 import { addMonthKey, fmtDate, fmtDateTime, fmtMonth, thisMonth, todayISO, yen } from "../lib/format";
 import {
@@ -12,7 +12,9 @@ import {
   baseDateOf,
   byChannel,
   cumulative,
+  install3mAvg,
   targetsOf,
+  topReps,
   childrenOf,
   liveCancels,
   parentOf,
@@ -30,7 +32,7 @@ import {
   type PlanOptions,
   type Scope,
 } from "../lib/report";
-import { Card, CardHeader, Drawer, Help, PageHeader, Pill, Segmented, Skeleton, inputCls, tableHeadCls, thCls } from "../components/ui";
+import { Card, CardHeader, Drawer, Help, PageHeader, Pill, Segmented, Skeleton, inputCls, tableHeadCls, textareaCls, thCls } from "../components/ui";
 import { QTag } from "../components/tags";
 
 type Role = "rep" | "office" | "area" | "all";
@@ -68,7 +70,12 @@ export default function Report() {
   const reps = useMemo(() => new Set(repsIn(scope)), [scope]);
   const cum = useMemo(() => cumulative(orders, scope, base), [orders, scope, base]);
   const tgt = useMemo(() => targetsOf(orders, scope, month), [orders, scope, month]);
-  const channels = useMemo(() => byChannel(orders, deals, scope, CHANNELS, month), [orders, deals, scope, month]);
+  const channels = useMemo(() => byChannel(orders, deals, scope, CHANNEL_GROUP_NAMES, month), [orders, deals, scope, month]);
+  const avg3 = useMemo(() => install3mAvg(orders, scope, month), [orders, scope, month]);
+  const ranks = useMemo(() => topReps(orders, scope, month, base), [orders, scope, month, base]);
+  const commentKey = `${scopeKey(scope)}|${month}`;
+  const comment = useStore((s) => s.comments[commentKey] ?? "");
+  const setComment = useStore((s) => s.setComment);
   const waiting = orders.filter((o) => reps.has(o.repId) && !o.kikakuNo);
   const lastSync = orders.reduce((m, o) => (o.syncedAt && o.syncedAt > m ? o.syncedAt : m), "");
   const overdueDeals = deals.filter((d) => reps.has(d.repId) && OPEN_STAGES.includes(d.stage) && d.expectedClose && d.expectedClose < todayISO());
@@ -210,8 +217,8 @@ export default function Report() {
           )}
           {overdueDeals.length > 0 && (
             <div className="border-t border-ink-100 px-5 py-2.5 text-[12.5px] text-warn-700">
-              契約締結予定日を過ぎた見込案件が {overdueDeals.length}件あります(契約締結予定には含めていません)。
-              <button className="ml-1 underline" onClick={() => setDrill({ title: "契約締結予定日を過ぎた見込案件", deals: overdueDeals.map((d) => d.id) })}>
+              契約予定月を過ぎた見込案件が {overdueDeals.length}件あります(契約締結予定には含めていません)。
+              <button className="ml-1 underline" onClick={() => setDrill({ title: "契約予定月を過ぎた見込案件", deals: overdueDeals.map((d) => d.id) })}>
                 一覧を見る
               </button>
             </div>
@@ -230,9 +237,10 @@ export default function Report() {
           sub={`期は3月始まり(今期 ${cum.fiscal})。累計広告料 = その時点で掲載が続いている広告料(月額)の合計`}
           right={<Pill tone="warn">ご確認</Pill>}
         />
-        <div className="grid gap-px bg-ink-100 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-px bg-ink-100 sm:grid-cols-2 xl:grid-cols-5">
           <Stat label="累計広告料(月額)" value={yen(cum.now)} sub={`${cum.count}件${cum.missing ? `(金額未入力 ${cum.missing}件)` : ""}`} />
           <Stat label="期首からの純増" value={signedYen(cum.netSinceStart)} tone={cum.netSinceStart >= 0 ? "ok" : "bad"} sub={`期首(3月1日)の累計 ${yen(cum.atStart)}`} />
+          <Stat label="3か月平均の設置広告料" value={yen(avg3)} sub={`${fmtMonth(addMonthKey(month, -3))}〜${fmtMonth(addMonthKey(month, -1))}の設置実績の平均`} />
           {isCurrent ? (
             <>
               <Stat label="今月の新規契約 / 目標" value={yen(cols[0].orderActual.amount ?? 0)} sub={`目標 ${yen(tgt.ordered)} ・ 達成率 ${rate(cols[0].orderActual.amount ?? 0, tgt.ordered)}`} />
@@ -286,17 +294,22 @@ export default function Report() {
             </tbody>
           </table>
         </div>
-        <div className="border-t border-ink-100 px-5 py-2.5 text-[12.5px] text-ink-500">同じ月に契約締結して設置した案件は「今月の契約締結」と「今月設置」の両方に出ます。区分同士の合計は足しません。</div>
+        <div className="border-t border-ink-100 px-5 py-2.5 text-[12.5px] leading-relaxed text-ink-500">
+          同じ月に契約締結して設置した案件は「今月の契約締結」と「今月設置」の両方に出ます。区分同士の合計は足しません。
+          <span className="block">
+            数え方は今の月報と同じです：契約締結・設置は、その月の1日〜末日のもの(前月・翌月は含めない)。年払いの広告料は12で割った月額。折半の案件は、クライアント担当者に全額を計上します。
+          </span>
+        </div>
       </Card>
 
-      {/* 獲得経路ごと */}
+      {/* 商談のきっかけごと */}
       <Card className="mb-6 overflow-hidden">
-        <CardHeader title="獲得経路ごとの集計" sub={`進行中の見込案件と、${fmtMonth(month)}の契約締結を、見込案件の登録時に選んだ獲得経路で分けています`} right={<QTag id="Q04" />} />
+        <CardHeader title="商談のきっかけごとの集計" sub={`進行中の見込案件と、${fmtMonth(month)}の契約締結を、きっかけの大分類で分けています`} right={<QTag id="Q04" />} />
         <div className="thin-scroll overflow-x-auto">
           <table className="w-full min-w-[640px] text-[14.5px]">
             <thead className={tableHeadCls}>
               <tr>
-                <th className={thCls}>獲得経路</th>
+                <th className={thCls}>商談のきっかけ</th>
                 <th className={thCls + " text-right"}>見込案件(今日時点で進行中)</th>
                 <th className={thCls + " text-right"}>広告料(月額)</th>
                 <th className={thCls + " text-right"}>契約締結({Number(month.slice(5))}月)</th>
@@ -326,6 +339,58 @@ export default function Report() {
             sub={isCurrent ? "今月の数字。行を押すと、さらに細かい内訳に進みます" : "行を押すと、さらに細かい内訳に進みます"}
           />
           <Breakdown scopes={children} month={month} opt={opt} onOpen={setScope} />
+        </Card>
+      )}
+
+      {/* 上位3名(月報の「数字の大きい人3名」を自動で) */}
+      {scope.kind !== "rep" && (
+        <Card className="mb-6 overflow-hidden">
+          <CardHeader title={`上位3名(${fmtMonth(month)})`} sub="月報に手で書いていた「数字の大きい人3名」を、自動で出します" />
+          <div className="grid gap-px bg-ink-100 sm:grid-cols-2">
+            {(
+              [
+                ["新規契約(契約締結)", ranks.ordered],
+                ["設置", ranks.installed],
+              ] as const
+            ).map(([label, rows]) => (
+              <div key={label} className="bg-white px-5 py-4">
+                <div className="mb-2 text-[13px] font-medium text-ink-600">{label}の広告料</div>
+                {rows.length === 0 ? (
+                  <div className="text-[13.5px] text-ink-400">この月はまだありません</div>
+                ) : (
+                  <ol className="space-y-1.5">
+                    {rows.map((r, i) => (
+                      <li key={r.repId} className="flex items-center gap-2.5 text-[14.5px]">
+                        <span className="tnum grid h-6 w-6 place-items-center rounded-full bg-navy-900 text-[12px] font-semibold text-white">{i + 1}</span>
+                        <span className="flex-1 text-ink-900">
+                          {staffName(r.repId)}
+                          <span className="ml-1.5 text-[12px] text-ink-400">{STAFF.find((x) => x.id === r.repId)?.branch}</span>
+                        </span>
+                        <span className="tnum font-medium text-navy-900">{yen(r.amount)}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* 月報の報告事項・気付き */}
+      {scope.kind !== "rep" && (
+        <Card className="mb-6 overflow-hidden">
+          <CardHeader title={`報告事項・気付き(${fmtMonth(month)})`} sub="月報のコメント欄の代わりです。数字は自動で出るので、ここには所見だけを書きます" />
+          <div className="px-5 py-4">
+            <textarea
+              className={textareaCls}
+              rows={3}
+              placeholder="例: 純増は目標に対して順調。受注が少ない担当者のフォローが今後の課題。"
+              value={comment}
+              onChange={(e) => setComment(commentKey, e.target.value)}
+            />
+            <div className="mt-1.5 text-[12px] text-ink-400">入力した内容は自動で保存され、上の役職の人も同じ画面で読めます。</div>
+          </div>
         </Card>
       )}
 
@@ -366,7 +431,7 @@ export default function Report() {
       </Card>
 
       <p className="text-[12px] leading-relaxed text-ink-400">
-        金額はすべて税抜。広告料は月額、地代は年額として扱っています(確認中)。順位・12ヶ月の推移、月次の報告事項・気付きは、次の段階で検討します(Q10)。
+        金額はすべて税抜。広告料は月額、地代は年額として扱っています(確認中)。
       </p>
 
       <DrillDrawer drill={drill} onClose={() => setDrill(null)} />
@@ -429,7 +494,7 @@ export function ThreeMonthTable({ cols, onDrill, monthLabels }: { cols: MonthCol
   const net = (v: number | null) =>
     v === null ? <span className="text-ink-400">未到来</span> : <span className={"tnum text-[16px] font-semibold " + (v > 0 ? "text-ok-700" : v < 0 ? "text-bad-700" : "text-ink-700")}>{signedYen(v)}</span>;
   const rows: { k: string; label: string; sub: string; render: (c: MonthCol, i: number) => ReactNode; strong?: boolean; group?: boolean }[] = [
-    { k: "op", label: "契約締結予定", sub: "見込案件の契約締結予定日", render: (c, i) => cell(c.orderPlan, `${label(c.month, i)} 契約締結予定`) },
+    { k: "op", label: "契約締結予定", sub: "見込案件の契約予定月", render: (c, i) => cell(c.orderPlan, `${label(c.month, i)} 契約締結予定`) },
     { k: "oa", label: "契約締結実績", sub: "契約締結日", render: (c, i) => cell(c.orderActual, `${label(c.month, i)} 契約締結実績`) },
     { k: "ip", label: "設置予定", sub: "設置予定日", render: (c, i) => cell(c.installPlan, `${label(c.month, i)} 設置予定`), group: true },
     { k: "ia", label: "設置実績", sub: "設置日(実績)", render: (c, i) => cell(c.installActual, `${label(c.month, i)} 設置実績`) },

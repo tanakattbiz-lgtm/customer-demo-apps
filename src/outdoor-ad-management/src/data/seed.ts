@@ -108,37 +108,43 @@ export interface Customer {
 }
 
 /** 見込案件の3段階(項目定義 P01〜P03 の仮案)+ 契約締結 + 見送り・失注 */
-export type Stage = "面談予定" | "提案済み" | "最終調整中" | "契約締結" | "失注";
-export const OPEN_STAGES: Stage[] = ["面談予定", "提案済み", "最終調整中"];
+export type Stage = "商談初期" | "具体提案中" | "契約最終調整" | "契約締結" | "失注";
+export const OPEN_STAGES: Stage[] = ["商談初期", "具体提案中", "契約最終調整"];
 export const STAGES: Stage[] = [...OPEN_STAGES, "契約締結", "失注"];
-export const STAGE_NO: Record<Stage, string> = { 面談予定: "①", 提案済み: "②", 最終調整中: "③", 契約締結: "", 失注: "" };
+export const STAGE_NO: Record<Stage, string> = { 商談初期: "①", 具体提案中: "②", 契約最終調整: "③", 契約締結: "", 失注: "" };
 export const STAGE_LABEL: Record<Stage, string> = {
-  面談予定: "責任者との面談予定あり",
-  提案済み: "責任者に提案済み",
-  最終調整中: "契約条件を最終調整中",
+  商談初期: "商談初期",
+  具体提案中: "具体提案中",
+  契約最終調整: "契約最終調整",
   契約締結: "契約締結",
   失注: "見送り・失注",
 };
 export const STAGE_DEF: Record<Stage, string> = {
-  面談予定: "判断できる責任者との訪問日時が決まっている。",
-  提案済み: "掲載内容・条件を責任者に具体的に提案済み。",
-  最終調整中: "掲載意向を確認し、金額・時期などを調整中。確約を意味しない。",
+  商談初期: "商談日時が決まっている、または掲載への関心を確認している状態。掲載場所や広告料など、具体的な条件はこれから詰める。",
+  具体提案中: "掲載場所・広告料などを提案し、クライアントが検討している状態。土地の確保や金額調整など、契約に必要な条件が残っている案件も含む。",
+  契約最終調整: "決裁者の掲載意向を確認し、主な条件に合意している状態。最終承認や契約手続きを待っている。「提案済み・回答待ち」だけではこの段階にしない。",
   契約締結: "契約締結日が登録されている。",
   失注: "見送り・失注として終了した。進行中の見込案件から除外する。",
 };
-export type OpenStage = "面談予定" | "提案済み" | "最終調整中";
+/** 見込案件の定義(営業部・エリア長の案 2026-11-28) */
+export const MIKOMI_DEF =
+  "決裁者、または決裁者につながる窓口と接点があり、具体的な商談を進めている、もしくは商談日時が決まっている案件。単に訪問した、資料を渡した、興味がありそうという段階は含めない。";
+/** 広告代理店経由の案件の決裁者の考え方 */
+export const AGENCY_NOTE =
+  "広告代理店経由の案件も、広告掲載を最終的に判断する方を「決裁者」とする。代理店の先のクライアントが判断する場合はそのクライアントの決裁者、代理店に契約の判断権限がある場合は代理店側の決裁者を基準にする。直接会っていなくても、代理店を通じて掲載意向や条件への合意を確認できれば、その内容で判断する。";
+export type OpenStage = "商談初期" | "具体提案中" | "契約最終調整";
 export interface StageText {
   label: string;
   def: string;
 }
 /** 見込案件の段階の、初期の名前と基準(営業部で変えられる) */
 export const DEFAULT_STAGE_TEXT: Record<OpenStage, StageText> = {
-  面談予定: { label: STAGE_LABEL.面談予定, def: STAGE_DEF.面談予定 },
-  提案済み: { label: STAGE_LABEL.提案済み, def: STAGE_DEF.提案済み },
-  最終調整中: { label: STAGE_LABEL.最終調整中, def: STAGE_DEF.最終調整中 },
+  商談初期: { label: STAGE_LABEL.商談初期, def: STAGE_DEF.商談初期 },
+  具体提案中: { label: STAGE_LABEL.具体提案中, def: STAGE_DEF.具体提案中 },
+  契約最終調整: { label: STAGE_LABEL.契約最終調整, def: STAGE_DEF.契約最終調整 },
 };
 /** 旧デモ(仮押さえ・契約締結登録)との互換用。画面には表示しない */
-export const STAGE_PROB: Record<Stage, number> = { 面談予定: 20, 提案済み: 50, 最終調整中: 80, 契約締結: 100, 失注: 0 };
+export const STAGE_PROB: Record<Stage, number> = { 商談初期: 20, 具体提案中: 50, 契約最終調整: 80, 契約締結: 100, 失注: 0 };
 
 // ---- 項目定義 I16〜I18 の選択肢(仮案) ----
 export type SignType = "看板を新設" | "既存の看板に掲出";
@@ -147,8 +153,24 @@ export type LandType = "土地を新規に確保" | "既存の土地" | "土地�
 export const LAND_TYPES: LandType[] = ["土地を新規に確保", "既存の土地", "土地なし(壁面・屋上)"];
 export type HeightClass = "4m以下" | "4m超";
 export const HEIGHT_CLASSES: HeightClass[] = ["4m以下", "4m超"];
-export type Channel = "営業開拓" | "コールセンター" | "電話・LP問い合わせ" | "紹介" | "その他";
-export const CHANNELS: Channel[] = ["営業開拓", "コールセンター", "電話・LP問い合わせ", "紹介", "その他"];
+/** 商談のきっかけ(営業部・エリア長の案 2026-11-28)。具体的なきっかけを1つ選ぶと、大分類は自動で決まる */
+export const CHANNEL_GROUPS = [
+  { group: "当社からの営業", items: ["飛び込み訪問", "営業担当者からの電話", "営業担当者からのメールや手紙", "コールセンターからの電話", "コールセンターからのメール", "その他の営業"] },
+  { group: "クライアントからの問い合わせ", items: ["電話での問い合わせ", "LPからの問い合わせ", "メールでの問い合わせ", "その他の問い合わせ"] },
+  { group: "紹介", items: ["既存クライアントからの紹介", "地主からの紹介", "その他の紹介"] },
+  { group: "その他", items: ["その他"] },
+] as const;
+export type Channel = (typeof CHANNEL_GROUPS)[number]["items"][number];
+export const CHANNELS: Channel[] = CHANNEL_GROUPS.flatMap((g) => [...g.items]) as Channel[];
+export const CHANNEL_GROUP_NAMES: string[] = CHANNEL_GROUPS.map((g) => g.group);
+/** きっかけから大分類を出す */
+export const channelGroup = (c: string | null | undefined): string => CHANNEL_GROUPS.find((g) => (g.items as readonly string[]).includes(c ?? ""))?.group ?? "その他";
+/** 紹介者名・内容の入力が要るきっかけ */
+export const channelNeedsNote = (c: string | null | undefined) => !!c && (c.startsWith("その他") || channelGroup(c) === "紹介");
+export const channelNoteLabel = (c: string | null | undefined) => (channelGroup(c) === "紹介" && c !== "その他の紹介" ? "紹介者名" : "具体的な内容");
+/** 契約区分(追加注文は、きっかけとは別にここで管理する) */
+export type ContractKind = "新規" | "追加";
+export const CONTRACT_KINDS: ContractKind[] = ["新規", "追加"];
 export const FACE_COUNT_LABEL: Record<number, string> = { 1: "片面", 2: "両面", 3: "三面", 4: "四面" };
 
 /** 企画の種類(工事指示システム)。新しいシステムで企画を作り、確定したら工事指示システムへ登録する */
@@ -173,7 +195,11 @@ export interface SignSpec {
   signType: SignType | null;
   landType: LandType | null;
   channel: Channel | null;
-  /** 投資看板(獲得経路とは別に持つ案。Q04) */
+  /** 紹介者名、または「その他」の具体的な内容 */
+  channelNote: string;
+  /** 契約区分(新規/追加) */
+  contractKind: ContractKind | null;
+  /** 投資看板(商談のきっかけとは別に、案件の種類として持つ) */
   investment: boolean;
   /** 化粧料(税抜)。null=未入力、0=0円 */
   makeupFee: number | null;
@@ -682,7 +708,7 @@ export function createSeed(): SeedData {
       area,
       rank: status === "取引中" ? pick(["A", "A", "B"] as Rank[]) : pick(["A", "B", "B", "C"] as Rank[]),
       status,
-      source: status === "取引中" ? pick(["営業開拓", "紹介", "営業開拓"]) : pick(SOURCES),
+      source: status === "取引中" ? pick(["既存クライアントからの紹介", "営業担当者からの電話", "電話での問い合わせ"]) : pick(SOURCES),
       repId,
       createdAt: iso(created),
       memo: "",
@@ -867,6 +893,8 @@ export function createSeed(): SeedData {
       signType: f() ? signType : null,
       landType: f() ? landType : null,
       channel: pick(CHANNELS),
+      channelNote: "",
+      contractKind: rnd() < 0.3 ? "追加" : "新規",
       investment: rnd() < 0.08,
       makeupFee: f() ? pick(MAKEUP) : null,
       landRent: landType === "土地を新規に確保" ? (fee !== null && f() ? rentFor(fee) : null) : 0,
@@ -878,8 +906,8 @@ export function createSeed(): SeedData {
   const activities: Activity[] = [];
   const prospects = customers.filter((c) => c.status === "商談中");
   const stagePlan: Stage[] = [
-    "最終調整中", "最終調整中", "最終調整中", "最終調整中", "提案済み", "提案済み", "提案済み", "提案済み", "提案済み",
-    "面談予定", "面談予定", "面談予定", "提案済み", "提案済み", "面談予定", "面談予定", "面談予定", "最終調整中", "提案済み", "面談予定",
+    "契約最終調整", "契約最終調整", "契約最終調整", "契約最終調整", "具体提案中", "具体提案中", "具体提案中", "具体提案中", "具体提案中",
+    "商談初期", "商談初期", "商談初期", "具体提案中", "具体提案中", "商談初期", "商談初期", "商談初期", "契約最終調整", "具体提案中", "商談初期",
   ];
   const addActivities = (cuId: string, dealId: string, repId: string, created: Date, n: number) => {
     for (let k = 0; k < n; k++) {
@@ -898,9 +926,9 @@ export function createSeed(): SeedData {
   };
   const mkDeal = (cu: Customer, stage: Stage, repId: string, i: number) => {
     const created = subDays(today, int(8, 75));
-    const filled = stage === "面談予定" ? 0.45 : stage === "提案済み" ? 0.8 : 0.97;
+    const filled = stage === "商談初期" ? 0.45 : stage === "具体提案中" ? 0.8 : 0.97;
     const fee = rnd() < filled + 0.08 ? pick(AD_FEES) : null;
-    const closeIn = stage === "最終調整中" ? int(0, 38) : stage === "提案済み" ? int(8, 70) : int(25, 95);
+    const closeIn = stage === "契約最終調整" ? int(0, 38) : stage === "具体提案中" ? int(8, 70) : int(25, 95);
     const naOffset = [-4, -2, -1, 0, 0, 0, 1, 1, 2, 3, 4, 5, 7, 9, 12][i % 15];
     const id = `d${String(deals.length + 1).padStart(3, "0")}`;
     deals.push({
@@ -910,7 +938,7 @@ export function createSeed(): SeedData {
       stage,
       monthlyBudget: fee,
       months: pick([6, 12, 12, 12, 24]),
-      expectedClose: stage === "面談予定" && rnd() < 0.3 ? "" : iso(biz(addDays(today, closeIn), 1)),
+      expectedClose: stage === "商談初期" && rnd() < 0.3 ? "" : iso(biz(addDays(today, closeIn), 1)),
       repId,
       nextAction:
         i % 11 === 10
@@ -925,7 +953,7 @@ export function createSeed(): SeedData {
   };
   const dealCustomers = [...prospects, ...advertisers.slice(0, 10)];
   dealCustomers.forEach((cu, i) => {
-    const stage: Stage = i < stagePlan.length ? stagePlan[i] : pick(["提案済み", "面談予定", "最終調整中"] as Stage[]);
+    const stage: Stage = i < stagePlan.length ? stagePlan[i] : pick(["具体提案中", "商談初期", "契約最終調整"] as Stage[]);
     const repId = i < 12 ? "u01" : cu.repId;
     mkDeal(cu, stage, repId, i);
     cu.repId = repId;
@@ -935,11 +963,11 @@ export function createSeed(): SeedData {
     const n = int(3, 6);
     for (let k = 0; k < n; k++) {
       const cu = pick(customers.filter((c) => c.status !== "休眠"));
-      mkDeal(cu, pick(["面談予定", "面談予定", "提案済み", "提案済み", "最終調整中"] as Stage[]), s.id, si * 7 + k);
+      mkDeal(cu, pick(["商談初期", "商談初期", "具体提案中", "具体提案中", "契約最終調整"] as Stage[]), s.id, si * 7 + k);
     }
   });
   // 重複訪問の例: 自分(u01)が進めているクライアントを、別の営業所の担当者も訪問予定
-  mkDeal(prospects[1], "面談予定", "u04", 5);
+  mkDeal(prospects[1], "商談初期", "u04", 5);
   // 見送り・失注の履歴も少し
   [advertisers[12], advertisers[13]].forEach((cu, i) => {
     deals.push({
@@ -1078,7 +1106,7 @@ export function createSeed(): SeedData {
   const busy = (faceId: string, a: string, b: string) =>
     contracts.some((c) => c.faceIds.includes(faceId) && c.startMonth <= b && (c.cancelMonth ?? c.endMonth) >= a) ||
     holds.some((h) => h.faceId === faceId && h.startMonth <= b && h.endMonth >= a);
-  const holdDeals = deals.filter((d) => d.stage === "最終調整中" || d.stage === "提案済み").slice(0, 10);
+  const holdDeals = deals.filter((d) => d.stage === "契約最終調整" || d.stage === "具体提案中").slice(0, 10);
   const allFaces = boards.filter((b) => b.installMonth <= cur).flatMap((b) => b.faces.map((f) => ({ b, f })));
   let fi = 3;
   holdDeals.forEach((d, i) => {

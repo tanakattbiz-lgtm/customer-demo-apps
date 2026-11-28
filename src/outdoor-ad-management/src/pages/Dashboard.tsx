@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { useStore } from "../store";
-import { CHANNELS, ORG, STAFF } from "../data/seed";
+import { CHANNEL_GROUP_NAMES, ORG, STAFF } from "../data/seed";
 import { useLoad } from "../lib/useLoad";
 import { addMonthKey, fmtDate, fmtDateTime, fmtMonth, thisMonth, yen } from "../lib/format";
 import { baseDateOf, byChannel, forecast12, monthCols, repsIn, scopeKey, signedYen, snapshot, type Scope } from "../lib/report";
@@ -41,7 +41,7 @@ export default function Dashboard() {
       return { s, name: a.area, snap: snapshot(orders, deals, s, month), cols: monthCols(orders, deals, s, month) };
     });
     const fc = forecast12(orders, deals, ALL).map((r) => ({ ...r, label: `${Number(r.month.slice(5))}月` }));
-    const ch = byChannel(orders, deals, ALL, CHANNELS, month);
+    const ch = byChannel(orders, deals, ALL, CHANNEL_GROUP_NAMES, month);
     return { snap, cols, areas, fc, ch };
   }, [orders, deals, month]);
   const lastSync = orders.reduce((m, o) => (o.syncedAt && o.syncedAt > m ? o.syncedAt : m), "");
@@ -175,14 +175,14 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {/* 獲得経路ごと */}
+      {/* 商談のきっかけごと */}
       <Card className="mb-6 overflow-hidden">
-        <CardHeader title={`獲得経路ごとの集計(営業部全体・${fmtMonth(month)})`} sub="LP・問い合わせ・コールセンターなど、見込案件の登録時に選んだ獲得経路で分けています" right={<QTag id="Q04" />} />
+        <CardHeader title={`商談のきっかけごとの集計(営業部全体・${fmtMonth(month)})`} sub="当社からの営業・クライアントからの問い合わせ・紹介など、見込案件の登録時に選んだきっかけの大分類で分けています" right={<QTag id="Q04" />} />
         <div className="thin-scroll overflow-x-auto">
           <table className="w-full min-w-[640px] text-[14.5px]">
             <thead className={tableHeadCls}>
               <tr>
-                <th className={thCls}>獲得経路</th>
+                <th className={thCls}>商談のきっかけ</th>
                 <th className={thCls + " text-right"}>見込案件(今日時点で進行中)</th>
                 <th className={thCls + " text-right"}>広告料(月額)</th>
                 <th className={thCls + " text-right"}>契約締結({Number(month.slice(5))}月)</th>
@@ -268,13 +268,13 @@ export default function Dashboard() {
           <div className="flex flex-wrap gap-4 px-5 pb-4 text-[12.5px] text-ink-500">
             <Legend color={C_NAVY} label="契約継続中(設置済・解約予定を差し引き)" />
             <Legend color={C_OK} label="未設置案件の設置予定(確定)" />
-            <Legend color={C_LIGHT} label="見込案件(契約締結予定日の翌月に設置と仮定)" />
+            <Legend color={C_LIGHT} label="見込案件(契約予定月の翌月に設置と仮定)" />
           </div>
         </Card>
       </div>
       <DrillDrawer drill={drill} onClose={() => setDrill(null)} />
       <p className="text-[12px] leading-relaxed text-ink-400">
-        累計広告料・目標と達成率・獲得経路ごとの集計は「営業報告」で見られます。KGI・KPIの定義・目標値・計上時点は別途決めます。順位・12ヶ月の推移は次の段階で検討します(Q10)。旧デモの「稼働率・売上見込み」は、今回のご要望に出てこないため外しました。
+        累計広告料・目標と達成率・商談のきっかけごとの集計は「営業報告」で見られます。KGI・KPIの定義・目標値・計上時点は別途決めます。12ヶ月の推移は次の段階で検討します(Q10)。旧デモの「稼働率・売上見込み」は、今回のご要望に出てこないため外しました。
       </p>
     </>
   );

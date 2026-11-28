@@ -136,7 +136,7 @@ const STEPS: Step[] = [
     kind: "intro",
     text: "契約条件の最終調整まで進んだ見込案件を、契約締結として登録する手順です。見込案件の内容を引き継いで企画を作り、確定するとその場で工事指示システムに登録します。",
     enter: (nav) => {
-      const d = useStore.getState().deals.find((x) => x.repId === ME_ID && x.stage === "最終調整中");
+      const d = useStore.getState().deals.find((x) => x.repId === ME_ID && x.stage === "契約最終調整");
       nav(d ? `/deals/${d.id}` : "/deals");
     },
   },

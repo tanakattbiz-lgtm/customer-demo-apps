@@ -6,7 +6,7 @@ import { Columns3, Handshake, List, Plus, Search, SearchX, Settings2 } from "luc
 import { useStore, staffName } from "../store";
 import { ME_ID, OPEN_STAGES, STAGE_NO, STAGES, type Deal, type Stage } from "../data/seed";
 import { useLoad } from "../lib/useLoad";
-import { daysFromToday, fmtDate, man, yen } from "../lib/format";
+import { daysFromToday, fmtDate, fmtMonth, man, yen } from "../lib/format";
 import { DealFormModal } from "../components/forms";
 import StageSettings from "../components/StageSettings";
 import {
@@ -212,7 +212,7 @@ export default function Deals() {
                                 ) : (
                                   <span className="tnum text-[15px] font-semibold text-ink-900">{man(d.monthlyBudget)}/月</span>
                                 )}
-                                <span className="tnum text-[12px] text-ink-500">{d.expectedClose ? `契約締結予定 ${d.expectedClose.slice(5).replace("-", "/")}` : "契約締結予定 未定"}</span>
+                                <span className="tnum text-[12px] text-ink-500">{d.expectedClose ? `契約予定 ${Number(d.expectedClose.slice(5, 7))}月` : "契約予定 未定"}</span>
                               </div>
                               <div className="mt-2 flex items-center justify-between border-t border-ink-100 pt-2">
                                 <span
@@ -260,7 +260,7 @@ export default function Deals() {
                       <SortTh label="クライアント / 案件" k="company" sort={sort} onSort={onSort} />
                       <SortTh label="段階" k="stage" sort={sort} onSort={onSort} />
                       <SortTh label="広告料(月額)" k="amount" sort={sort} onSort={onSort} className="text-right" />
-                      <SortTh label="契約締結予定" k="close" sort={sort} onSort={onSort} />
+                      <SortTh label="契約予定月" k="close" sort={sort} onSort={onSort} />
                       <SortTh label="次回対応" k="next" sort={sort} onSort={onSort} />
                       <th className={thCls}>担当</th>
                     </tr>
@@ -280,7 +280,7 @@ export default function Deals() {
                           <StagePill stage={d.stage} />
                         </td>
                         <td className="tnum px-4 py-3 text-right">{d.monthlyBudget === null ? <span className="text-warn-700">未入力</span> : yen(d.monthlyBudget)}</td>
-                        <td className="tnum px-4 py-3 text-ink-600">{d.expectedClose ? fmtDate(d.expectedClose) : "未定"}</td>
+                        <td className="tnum px-4 py-3 text-ink-600">{d.expectedClose ? fmtMonth(d.expectedClose.slice(0, 7)) : "未定"}</td>
                         <td className="px-4 py-3">
                           {d.nextAction ? (
                             <>
