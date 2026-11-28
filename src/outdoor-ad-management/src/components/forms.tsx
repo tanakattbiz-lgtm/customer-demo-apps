@@ -269,8 +269,45 @@ export function CustomerPicker({
   error?: boolean;
 }) {
   const customers = useStore((s) => s.customers);
+  const saveCustomer = useStore((s) => s.saveCustomer);
   const [q, setQ] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [nc, setNc] = useState({ company: "", industry: "", contact: "", phone: "", address: "" });
+  const [ncTouched, setNcTouched] = useState(false);
   const selected = customers.find((c) => c.id === value);
+  const startAdd = () => {
+    setNc({ company: q.trim(), industry: "", contact: "", phone: "", address: "" });
+    setNcTouched(false);
+    setAdding(true);
+  };
+  // 似た名前のクライアント(重複登録の注意)
+  const similar = nc.company.trim().length >= 2 ? customers.filter((c) => c.company.includes(nc.company.trim().replace(/^(株式会社|有限会社|医療法人)\s*/, ""))).slice(0, 3) : [];
+  const addNow = () => {
+    setNcTouched(true);
+    if (!nc.company.trim()) return;
+    const id = uid("c");
+    saveCustomer({
+      id,
+      createdAt: todayISO(),
+      company: nc.company.trim(),
+      industry: nc.industry,
+      contact: nc.contact.trim(),
+      contactTitle: "",
+      phone: nc.phone.trim(),
+      email: "",
+      address: nc.address.trim(),
+      area: "大阪",
+      rank: "B",
+      status: "商談中",
+      source: "",
+      repId: ME_ID,
+      memo: "",
+    } as Customer);
+    toast.success("クライアントを登録しました", { description: "残りの情報は、あとからクライアントの画面で足せます。" });
+    setAdding(false);
+    setQ("");
+    onChange(id);
+  };
   const list = useMemo(() => {
     const kw = q.trim();
     return [...customers]
@@ -294,6 +331,55 @@ export function CustomerPicker({
         )}
       </div>
     );
+  if (adding)
+    return (
+      <div className="rounded-md border border-navy-200 bg-navy-50/40 p-3.5">
+        <div className="mb-2.5 flex items-center justify-between">
+          <span className="text-[14px] font-semibold text-navy-900">新しいクライアントを登録</span>
+          <button type="button" onClick={() => setAdding(false)} className="rounded px-2 py-1 text-[13px] text-navy-700 hover:bg-white">
+            検索に戻る
+          </button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="会社名・屋号" required error={ncTouched && !nc.company.trim() ? "会社名・屋号を入力してください" : ""} className="sm:col-span-2">
+            <input className={inputCls} autoFocus placeholder="例: 株式会社なにわ住建" value={nc.company} onChange={(e) => setNc({ ...nc, company: e.target.value })} />
+          </Field>
+          <Field label="業種">
+            <select className={inputCls} value={nc.industry} onChange={(e) => setNc({ ...nc, industry: e.target.value })}>
+              <option value="">あとで入れる</option>
+              {INDUSTRIES.map((i) => (
+                <option key={i}>{i}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="先方担当者">
+            <input className={inputCls} placeholder="分かれば" value={nc.contact} onChange={(e) => setNc({ ...nc, contact: e.target.value })} />
+          </Field>
+          <Field label="電話番号">
+            <input className={inputCls + " tnum"} placeholder="分かれば" value={nc.phone} onChange={(e) => setNc({ ...nc, phone: e.target.value })} />
+          </Field>
+          <Field label="所在地・店舗">
+            <input className={inputCls} placeholder="分かれば" value={nc.address} onChange={(e) => setNc({ ...nc, address: e.target.value })} />
+          </Field>
+        </div>
+        {similar.length > 0 && (
+          <div className="mt-2.5 rounded-md border border-warn-300 bg-warn-50 px-3 py-2 text-[13px] text-warn-700">
+            似た名前のクライアントがあります。同じ会社なら、こちらを選んでください：
+            {similar.map((c) => (
+              <button key={c.id} type="button" onClick={() => { setAdding(false); onChange(c.id); }} className="ml-1.5 font-medium underline">
+                {c.company}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <span className="text-[12px] text-ink-500">会社名だけで登録できます。残りはあとから足せます。</span>
+          <Button size="sm" onClick={addNow}>
+            登録してこの見込案件に使う
+          </Button>
+        </div>
+      </div>
+    );
   return (
     <div>
       <input
@@ -304,9 +390,7 @@ export function CustomerPicker({
       />
       <div className="thin-scroll mt-1.5 max-h-52 overflow-y-auto rounded-md border border-ink-200">
         {list.length === 0 ? (
-          <div className="px-3 py-3 text-[13.5px] text-ink-500">
-            該当するクライアントがいません。新しいクライアントは「クライアント」の画面で登録してください。
-          </div>
+          <div className="px-3 py-3 text-[13.5px] text-ink-500">該当するクライアントがいません。</div>
         ) : (
           list.map((c) => (
             <button
@@ -326,6 +410,13 @@ export function CustomerPicker({
           ))
         )}
       </div>
+      <button
+        type="button"
+        onClick={startAdd}
+        className="mt-1.5 flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-navy-300 text-[14px] font-medium text-navy-700 hover:bg-navy-50"
+      >
+        ＋ {q.trim() ? `「${q.trim()}」を新しいクライアントとして登録` : "新しいクライアントを登録"}
+      </button>
     </div>
   );
 }
@@ -786,8 +877,8 @@ export function CustomerFormModal({
     setF((p) => ({ ...p, [k]: e.target.value }));
   const errs = {
     company: !f.company.trim() ? "会社名を入力してください" : "",
-    contact: !f.contact.trim() ? "担当者名を入力してください" : "",
-    phone: !f.phone.trim() ? "電話番号を入力してください" : !/^0\d{1,4}-?\d{1,4}-?\d{3,4}$/.test(f.phone.trim()) ? "電話番号の形式が正しくありません" : "",
+    contact: "",
+    phone: f.phone.trim() && !/^0\d{1,4}-?\d{1,4}-?\d{3,4}$/.test(f.phone.trim()) ? "電話番号の形式が正しくありません" : "",
     email: f.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email) ? "メールアドレスの形式が正しくありません" : "",
   };
   const err = (k: keyof typeof errs) => (touched ? errs[k] : "");
@@ -840,13 +931,13 @@ export function CustomerFormModal({
             ))}
           </select>
         </Field>
-        <Field label="先方担当者" required error={err("contact")}>
+        <Field label="先方担当者" error={err("contact")}>
           <input className={inputCls + (err("contact") ? errCls : "")} placeholder="例: 田中 浩二" value={f.contact} onChange={set("contact")} />
         </Field>
         <Field label="役職">
           <input className={inputCls} placeholder="例: 販促部 部長" value={f.contactTitle} onChange={set("contactTitle")} />
         </Field>
-        <Field label="電話番号" required error={err("phone")}>
+        <Field label="電話番号" error={err("phone")}>
           <input className={inputCls + " tnum" + (err("phone") ? errCls : "")} placeholder="06-1234-5678" value={f.phone} onChange={set("phone")} />
         </Field>
         <Field label="メールアドレス" error={err("email")}>
@@ -854,13 +945,6 @@ export function CustomerFormModal({
         </Field>
         <Field label="所在地" className="sm:col-span-2">
           <input className={inputCls} value={f.address} onChange={set("address")} />
-        </Field>
-        <Field label="ランク" hint="A: 契約締結確度・規模ともに高い">
-          <select className={inputCls} value={f.rank} onChange={set("rank")}>
-            {["A", "B", "C"].map((r) => (
-              <option key={r}>{r}</option>
-            ))}
-          </select>
         </Field>
         <Field label="状態">
           <select className={inputCls} value={f.status} onChange={set("status")}>
