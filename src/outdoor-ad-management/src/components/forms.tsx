@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useStageText } from "../lib/stages";
-import { addDays, endOfMonth, format } from "date-fns";
+import { addDays, format } from "date-fns";
 import { toast } from "sonner";
 import { useStore, uid } from "../store";
 import {
@@ -561,7 +561,7 @@ export function DealFormModal({
             investment: deal.investment,
             notes: deal.notes,
           }
-        : { ...blank, customerId: customerId ?? "", expectedClose: inDays(45), nextDate: inDays(3) },
+        : { ...blank, customerId: customerId ?? "", nextDate: inDays(3) },
     );
   }, [open, deal, customerId]);
   const set = <K extends keyof typeof f>(k: K) => (v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
@@ -578,7 +578,6 @@ export function DealFormModal({
     monthlyBudget: neg(ad) ? "0以上の金額を入力してください" : "",
     makeupFee: neg(makeup) ? "0以上の金額を入力してください" : "",
     landRent: neg(rent) ? "0以上の金額を入力してください" : "",
-    expectedClose: !f.noClose && !f.expectedClose ? "契約予定月を選択するか「未定」を選んでください" : "",
     channelNote: channelNeedsNote(f.channel) && !f.channelNote.trim() ? `${channelNoteLabel(f.channel)}を入力してください` : "",
     size: (f.widthMm && !(Number(f.widthMm) > 0)) || (f.heightMm && !(Number(f.heightMm) > 0)) ? "寸法は正の数(mm)で入力してください" : "",
   };
@@ -607,7 +606,7 @@ export function DealFormModal({
       makeupFee: makeup,
       landRent: rent,
       months: Number(f.months),
-      expectedClose: f.noClose ? "" : f.expectedClose,
+      expectedClose: f.expectedClose,
       repId: f.repId,
       widthMm: numOrNull(f.widthMm),
       heightMm: numOrNull(f.heightMm),
@@ -734,20 +733,23 @@ export function DealFormModal({
             onChange={(v) => v && set("stage")(v)}
             items={OPEN_STAGES.map((s) => ({ value: s, label: `${STAGE_NO[s]} ${stageLabel(s)}`, sub: stageDef(s) }))}
           />
-          <div className="mt-3 grid gap-3 sm:grid-cols-[220px_1fr] sm:items-end">
-            <Field label="契約予定月" error={err("expectedClose")} hint="段階とは別に、いつ契約できそうかを月で入れます">
-              <input
-                type="month"
-                className={inputCls}
-                value={f.noClose ? "" : f.expectedClose.slice(0, 7)}
-                disabled={f.noClose}
-                onChange={(e) => set("expectedClose")(e.target.value ? format(endOfMonth(new Date(e.target.value + "-01T00:00:00")), "yyyy-MM-dd") : "")}
-              />
+          <div className="mt-3 grid gap-3 sm:grid-cols-[220px_1fr] sm:items-start">
+            <Field label="契約締結予定日">
+              <input type="date" className={inputCls} value={f.expectedClose} onChange={ev("expectedClose")} />
             </Field>
-            <label className="flex min-h-11 items-center gap-2 text-[14px] text-ink-700">
-              <input type="checkbox" className="h-5 w-5 accent-[oklch(29.5%_0.047_262)]" checked={f.noClose} onChange={(e) => set("noClose")(e.target.checked)} />
-              まだ決まっていない(空欄で登録)
-            </label>
+            <div className="rounded-md bg-ink-50 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-ink-600">
+              {f.stage === "商談初期"
+                ? "商談初期：任意。分からなければ空欄で構いません。"
+                : f.stage === "具体提案中"
+                  ? "具体提案中：見通しが立った時点で入れます。"
+                  : "契約最終調整：入力・見直しが原則です。先方の回答待ちなどで分からなければ空欄も可。"}
+              <span className="mt-0.5 block text-ink-500">見通しであり確約ではありません。空欄の案件は「締結時期未定」として表示します。月ごとの集計は、この日付から自動で行います。</span>
+              {f.expectedClose && (
+                <button type="button" onClick={() => set("expectedClose")("")} className="mt-1 text-[12.5px] text-navy-700 underline">
+                  空欄に戻す
+                </button>
+              )}
+            </div>
           </div>
         </Sec>
 

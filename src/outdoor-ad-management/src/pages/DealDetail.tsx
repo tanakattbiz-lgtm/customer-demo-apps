@@ -25,7 +25,7 @@ import { FACE_COUNT_LABEL, OPEN_STAGES, STAGE_NO, channelGroup, type ActivityTyp
 import { fakeApi } from "../lib/fakeApi";
 import { useLoad } from "../lib/useLoad";
 import { contractState, faceLookup, handoverOf, holdActive } from "../lib/domain";
-import { daysFromToday, fmtDate, fmtDateJa, fmtDateTime, fmtMonth, fmtPeriod, relDay, todayISO, yen } from "../lib/format";
+import { daysFromToday, fmtDate, fmtDateJa, fmtDateTime, fmtPeriod, relDay, todayISO, yen } from "../lib/format";
 import { ActivityModal, DealFormModal, NextActionModal } from "../components/forms";
 import OrderModal from "../components/OrderModal";
 import { QTag, SourceTag } from "../components/tags";
@@ -123,7 +123,7 @@ export default function DealDetail() {
               広告料 <span className="font-semibold text-navy-900">{money(deal.monthlyBudget, "/月")}</span>
             </span>
             <span>担当 {staffName(deal.repId)}</span>
-            <span className="tnum">契約予定月 {deal.expectedClose ? fmtMonth(deal.expectedClose.slice(0, 7)) : "未定"}</span>
+            <span className="tnum">契約締結予定日 {deal.expectedClose ? fmtDate(deal.expectedClose) : "締結時期未定"}</span>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -404,7 +404,7 @@ export default function DealDetail() {
                   ["商談のきっかけ", deal.channel ? `${channelGroup(deal.channel)} / ${deal.channel}${deal.channelNote ? `(${deal.channelNote})` : ""}` : "—"],
                   ["契約区分・種類", `${deal.contractKind ?? "—"}${deal.investment ? " ・ 投資看板" : ""}`],
                   ["業種", customer.industry],
-                  ["契約予定月", deal.expectedClose ? <span className="tnum">{fmtMonth(deal.expectedClose.slice(0, 7))}</span> : "未定"],
+                  ["契約締結予定日", deal.expectedClose ? <span className="tnum">{fmtDate(deal.expectedClose)}</span> : "締結時期未定"],
                   ["登録日", <span className="tnum">{fmtDate(deal.createdAt)}</span>],
                   ["備考", deal.notes || "—"],
                 ]}

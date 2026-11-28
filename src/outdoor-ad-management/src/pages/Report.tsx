@@ -79,6 +79,15 @@ export default function Report() {
   const waiting = orders.filter((o) => reps.has(o.repId) && !o.kikakuNo);
   const lastSync = orders.reduce((m, o) => (o.syncedAt && o.syncedAt > m ? o.syncedAt : m), "");
   const overdueDeals = deals.filter((d) => reps.has(d.repId) && OPEN_STAGES.includes(d.stage) && d.expectedClose && d.expectedClose < todayISO());
+  const undecidedDeals = deals.filter((d) => reps.has(d.repId) && OPEN_STAGES.includes(d.stage) && !d.expectedClose);
+  // 見込案件の登録から契約締結までの日数(この月に契約締結したもの)
+  const leadDays = snap.ordered.orders
+    .map((o) => {
+      const d = deals.find((x) => x.id === o.dealId);
+      return d ? Math.max(0, Math.round((new Date(o.orderDate).getTime() - new Date(d.createdAt).getTime()) / 86400000)) : null;
+    })
+    .filter((v): v is number => v !== null);
+  const avgLeadDays = leadDays.length ? Math.round(leadDays.reduce((s, v) => s + v, 0) / leadDays.length) : null;
   const children = childrenOf(scope);
   const parent = parentOf(scope);
   const st = scope.kind === "rep" ? STAFF.find((x) => x.id === scope.id) : null;
@@ -215,10 +224,18 @@ export default function Report() {
               見込案件も含めた見通しは「設置予定に未契約の見込案件も含める」で確認できます。
             </div>
           )}
+          {undecidedDeals.length > 0 && (
+            <div className="border-t border-ink-100 px-5 py-2.5 text-[12.5px] text-ink-600">
+              契約締結予定日が空欄の見込案件(締結時期未定)が {undecidedDeals.length}件あります(契約締結予定には含めていません)。
+              <button className="ml-1 underline" onClick={() => setDrill({ title: "締結時期未定の見込案件", deals: undecidedDeals.map((d) => d.id) })}>
+                一覧を見る
+              </button>
+            </div>
+          )}
           {overdueDeals.length > 0 && (
             <div className="border-t border-ink-100 px-5 py-2.5 text-[12.5px] text-warn-700">
-              契約予定月を過ぎた見込案件が {overdueDeals.length}件あります(契約締結予定には含めていません)。
-              <button className="ml-1 underline" onClick={() => setDrill({ title: "契約予定月を過ぎた見込案件", deals: overdueDeals.map((d) => d.id) })}>
+              契約締結予定日を過ぎた見込案件が {overdueDeals.length}件あります(契約締結予定には含めていません)。
+              <button className="ml-1 underline" onClick={() => setDrill({ title: "契約締結予定日を過ぎた見込案件", deals: overdueDeals.map((d) => d.id) })}>
                 一覧を見る
               </button>
             </div>
@@ -297,6 +314,11 @@ export default function Report() {
         <div className="border-t border-ink-100 px-5 py-2.5 text-[12.5px] leading-relaxed text-ink-500">
           同じ月に契約締結して設置した案件は「今月の契約締結」と「今月設置」の両方に出ます。区分同士の合計は足しません。
           <span className="block">
+            {avgLeadDays !== null && (
+              <span className="mb-1 block text-ink-700">
+                {fmtMonth(month)}に契約締結した案件は、見込案件の登録から平均 <span className="tnum font-semibold">{avgLeadDays}日</span> で契約締結しています({leadDays.length}件)。
+              </span>
+            )}
             数え方は今の月報と同じです：契約締結・設置は、その月の1日〜末日のもの(前月・翌月は含めない)。年払いの広告料は12で割った月額。折半の案件は、クライアント担当者に全額を計上します。
           </span>
         </div>
@@ -494,7 +516,7 @@ export function ThreeMonthTable({ cols, onDrill, monthLabels }: { cols: MonthCol
   const net = (v: number | null) =>
     v === null ? <span className="text-ink-400">未到来</span> : <span className={"tnum text-[16px] font-semibold " + (v > 0 ? "text-ok-700" : v < 0 ? "text-bad-700" : "text-ink-700")}>{signedYen(v)}</span>;
   const rows: { k: string; label: string; sub: string; render: (c: MonthCol, i: number) => ReactNode; strong?: boolean; group?: boolean }[] = [
-    { k: "op", label: "契約締結予定", sub: "見込案件の契約予定月", render: (c, i) => cell(c.orderPlan, `${label(c.month, i)} 契約締結予定`) },
+    { k: "op", label: "契約締結予定", sub: "見込案件の契約締結予定日から自動で集計", render: (c, i) => cell(c.orderPlan, `${label(c.month, i)} 契約締結予定`) },
     { k: "oa", label: "契約締結実績", sub: "契約締結日", render: (c, i) => cell(c.orderActual, `${label(c.month, i)} 契約締結実績`) },
     { k: "ip", label: "設置予定", sub: "設置予定日", render: (c, i) => cell(c.installPlan, `${label(c.month, i)} 設置予定`), group: true },
     { k: "ia", label: "設置実績", sub: "設置日(実績)", render: (c, i) => cell(c.installActual, `${label(c.month, i)} 設置実績`) },

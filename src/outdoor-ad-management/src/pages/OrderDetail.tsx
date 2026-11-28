@@ -28,6 +28,7 @@ function Row({ label, src, children }: { label: string; src: "link" | "input"; c
 export default function OrderDetail() {
   const { id } = useParams();
   const order = useStore((s) => s.orders.find((o) => o.id === id));
+  const sourceDeal = useStore((s) => s.deals.find((d) => d.id === order?.dealId));
   const customer = useStore((s) => s.customers.find((c) => c.id === order?.customerId));
   const planCancel = useStore((s) => s.planCancel);
   const withdrawCancel = useStore((s) => s.withdrawCancel);
@@ -186,6 +187,11 @@ export default function OrderDetail() {
               </Row>
               <Row label="契約締結日" src="link">
                 <span className="tnum">{fmtDate(order.orderDate)}</span>
+                {sourceDeal && (
+                  <span className="tnum ml-2 text-[12.5px] text-ink-500">
+                    見込案件の登録({fmtDate(sourceDeal.createdAt)})から {Math.max(0, Math.round((new Date(order.orderDate).getTime() - new Date(sourceDeal.createdAt).getTime()) / 86400000))}日
+                  </span>
+                )}
               </Row>
               <Row label="設置予定日" src="input">
                 <span className="tnum">{order.plannedInstallDate ? fmtDate(order.plannedInstallDate) : "—"}</span>

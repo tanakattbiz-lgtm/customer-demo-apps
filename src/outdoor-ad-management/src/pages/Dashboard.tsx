@@ -268,7 +268,7 @@ export default function Dashboard() {
           <div className="flex flex-wrap gap-4 px-5 pb-4 text-[12.5px] text-ink-500">
             <Legend color={C_NAVY} label="契約継続中(設置済・解約予定を差し引き)" />
             <Legend color={C_OK} label="未設置案件の設置予定(確定)" />
-            <Legend color={C_LIGHT} label="見込案件(契約予定月の翌月に設置と仮定)" />
+            <Legend color={C_LIGHT} label="見込案件(契約締結予定日の翌月に設置と仮定)" />
           </div>
         </Card>
       </div>
