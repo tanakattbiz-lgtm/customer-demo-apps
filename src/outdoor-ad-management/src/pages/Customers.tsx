@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Building2, Plus, Search, SearchX } from "lucide-react";
 import { useStore, staffName } from "../store";
-import { ME_ID, OPEN_STAGES, type Customer, type CustomerStatus, type Rank } from "../data/seed";
+import { ME_ID, OPEN_STAGES, industryLabel, industryMajor, type Customer, type CustomerStatus, type Rank } from "../data/seed";
 import { useLoad } from "../lib/useLoad";
 import { fakeApi } from "../lib/fakeApi";
 import { contractState } from "../lib/domain";
@@ -66,7 +66,7 @@ export default function Customers() {
       (c) =>
         (!tab || c.status === tab) &&
         (!rank || c.rank === rank) &&
-        (!kw || c.company.includes(kw) || c.contact.includes(kw) || c.industry.includes(kw)),
+        (!kw || c.company.includes(kw) || c.contact.includes(kw) || (c.industry.includes(kw) || industryMajor(c.industry).includes(kw))),
     );
     const val = (c: Customer): string => (sort.key === "company" ? c.company : sort.key === "rank" ? c.rank : lastAct.get(c.id) ?? "");
     return list.sort((a, b) => val(a).localeCompare(val(b), "ja") * sort.dir);
@@ -166,7 +166,7 @@ export default function Customers() {
                         <td className="px-4 py-3">
                           <div className="font-medium text-navy-900">{c.company}</div>
                           <div className="text-[12.5px] text-ink-500">
-                            {c.industry} ・ {c.area}
+                            {industryLabel(c.industry)} ・ {c.area}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-ink-700">
@@ -224,7 +224,7 @@ function CustomerDrawer({ customer, onClose, onEdit }: { customer?: Customer; on
         open={!!c}
         onClose={onClose}
         title={c?.company}
-        sub={c && `${c.industry} ・ ${c.area} ・ 商談のきっかけ: ${c.source}`}
+        sub={c && `${industryLabel(c.industry)} ・ ${c.area} ・ 商談のきっかけ: ${c.source}`}
         footer={
           c && (
             <>

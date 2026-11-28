@@ -8,6 +8,9 @@ import {
   AREAS,
   CHANNELS,
   CHANNEL_GROUPS,
+  INDUSTRY_GROUPS,
+  industryLabel,
+  industryMajor,
   CONTRACT_KINDS,
   MIKOMI_DEF,
   AGENCY_NOTE,
@@ -321,7 +324,7 @@ export function CustomerPicker({
         <div className="min-w-0">
           <div className="truncate text-[15px] font-medium text-navy-900">{selected.company}</div>
           <div className="truncate text-[12.5px] text-ink-500">
-            {selected.industry} ・ {selected.address} ・ 担当 {STAFF.find((x) => x.id === selected.repId)?.name}
+            {industryLabel(selected.industry)} ・ {selected.address} ・ 担当 {STAFF.find((x) => x.id === selected.repId)?.name}
           </div>
         </div>
         {!disabled && (
@@ -345,12 +348,7 @@ export function CustomerPicker({
             <input className={inputCls} autoFocus placeholder="例: 株式会社なにわ住建" value={nc.company} onChange={(e) => setNc({ ...nc, company: e.target.value })} />
           </Field>
           <Field label="業種">
-            <select className={inputCls} value={nc.industry} onChange={(e) => setNc({ ...nc, industry: e.target.value })}>
-              <option value="">あとで入れる</option>
-              {INDUSTRIES.map((i) => (
-                <option key={i}>{i}</option>
-              ))}
-            </select>
+            <IndustrySelect value={nc.industry} onChange={(v) => setNc({ ...nc, industry: v })} />
           </Field>
           <Field label="先方担当者">
             <input className={inputCls} placeholder="分かれば" value={nc.contact} onChange={(e) => setNc({ ...nc, contact: e.target.value })} />
@@ -417,6 +415,25 @@ export function CustomerPicker({
       >
         ＋ {q.trim() ? `「${q.trim()}」を新しいクライアントとして登録` : "新しいクライアントを登録"}
       </button>
+    </div>
+  );
+}
+
+/** 業種の選択(中部門を1つ選ぶと、大部門は自動。空欄は「未確認」) */
+export function IndustrySelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <select className={inputCls} value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">未確認(あとで入れる)</option>
+        {INDUSTRY_GROUPS.map((g) => (
+          <optgroup key={g.major} label={g.major}>
+            {g.items.map((i) => (
+              <option key={i}>{i}</option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+      <div className="mt-1 text-[12px] text-ink-400">大部門: {value ? industryMajor(value) : "—"}(自動) ・ 広告を掲載する店舗・施設の主な事業内容で選びます</div>
     </div>
   );
 }
@@ -671,7 +688,7 @@ export function DealFormModal({
               <input className={inputCls + (err("title") ? errCls : "")} placeholder="例: 新店オープン告知" value={f.title} onChange={ev("title")} />
             </Field>
             <Field label="業種" hint="クライアントの情報から自動で入ります(業種マスター)">
-              <input className={inputCls + " bg-ink-50"} value={customer?.industry ?? ""} placeholder="クライアントを選ぶと入ります" readOnly />
+              <input className={inputCls + " bg-ink-50"} value={customer ? industryLabel(customer.industry) : ""} placeholder="クライアントを選ぶと入ります" readOnly />
             </Field>
             <Field label="営業担当者" hint={rep ? `所属: ${rep.area} / ${rep.branch}(自動)` : undefined}>
               <select className={inputCls} value={f.repId} onChange={ev("repId")}>
@@ -841,7 +858,6 @@ export function DealFormModal({
 }
 
 // =============== 顧客 作成・編集 ===============
-const INDUSTRIES = ["住宅・不動産", "医療", "自動車販売", "教育", "冠婚葬祭", "外食", "小売", "メーカー", "観光・宿泊", "士業", "介護・福祉", "サービス", "物流", "金融・保険"];
 export function CustomerFormModal({
   open,
   onClose,
@@ -854,7 +870,7 @@ export function CustomerFormModal({
   const saveCustomer = useStore((s) => s.saveCustomer);
   const blank = {
     company: "",
-    industry: "住宅・不動産",
+    industry: "",
     contact: "",
     contactTitle: "",
     phone: "",
@@ -920,11 +936,7 @@ export function CustomerFormModal({
           <input className={inputCls + (err("company") ? errCls : "")} placeholder="例: 株式会社なにわ住建" value={f.company} onChange={set("company")} />
         </Field>
         <Field label="業種">
-          <select className={inputCls} value={f.industry} onChange={set("industry")}>
-            {INDUSTRIES.map((i) => (
-              <option key={i}>{i}</option>
-            ))}
-          </select>
+          <IndustrySelect value={f.industry} onChange={(v) => setF((p) => ({ ...p, industry: v }))} />
         </Field>
         <Field label="エリア">
           <select className={inputCls} value={f.area} onChange={set("area")}>

@@ -455,7 +455,7 @@ export const useStore = create<State>()(
       };
     },
     {
-      name: "outdoor-ad-management-v6",
+      name: "outdoor-ad-management-v7",
       // 前日以前に生成したサンプルデータが未変更のまま残っていれば、今日の日付で作り直す
       onRehydrateStorage: () => (state) => {
         if (state && !state.touched && state.seededOn !== todayISO()) state.reset();

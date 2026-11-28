@@ -107,6 +107,85 @@ export interface Customer {
   memo: string;
 }
 
+/** 業種マスタ(営業業務スリム化PJ 2026-11-28)。大部門は日本標準産業分類(令和5年7月改定)、中部門は関西広告社独自。中部門を1つ選ぶと大部門は自動 */
+export const INDUSTRY_MASTER: { majorCode: string; major: string; code: string; name: string }[] = [
+  { majorCode: "A", major: "農業、林業", code: "A01", name: "農業・林業" },
+  { majorCode: "B", major: "漁業", code: "B01", name: "漁業" },
+  { majorCode: "C", major: "鉱業、採石業、砂利採取業", code: "C01", name: "鉱業・採石業・砂利採取業" },
+  { majorCode: "D", major: "建設業", code: "D01", name: "建設・建築" },
+  { majorCode: "D", major: "建設業", code: "D02", name: "リフォーム" },
+  { majorCode: "D", major: "建設業", code: "D03", name: "塗装" },
+  { majorCode: "D", major: "建設業", code: "D04", name: "解体" },
+  { majorCode: "D", major: "建設業", code: "D05", name: "電気・設備工事" },
+  { majorCode: "D", major: "建設業", code: "D99", name: "その他の建設業" },
+  { majorCode: "E", major: "製造業", code: "E01", name: "製造業" },
+  { majorCode: "F", major: "電気・ガス・熱供給・水道業", code: "F01", name: "電気・ガス・熱供給・水道業" },
+  { majorCode: "G", major: "情報通信業", code: "G01", name: "通信サービス" },
+  { majorCode: "G", major: "情報通信業", code: "G02", name: "IT・ソフトウェア・情報サービス" },
+  { majorCode: "G", major: "情報通信業", code: "G99", name: "その他の情報通信業" },
+  { majorCode: "H", major: "運輸業、郵便業", code: "H01", name: "運送・引越し" },
+  { majorCode: "H", major: "運輸業、郵便業", code: "H02", name: "タクシー・旅客運送" },
+  { majorCode: "H", major: "運輸業、郵便業", code: "H03", name: "倉庫" },
+  { majorCode: "H", major: "運輸業、郵便業", code: "H99", name: "その他の運輸業・郵便業" },
+  { majorCode: "I", major: "卸売業、小売業", code: "I01", name: "リユース・リサイクルショップ" },
+  { majorCode: "I", major: "卸売業、小売業", code: "I02", name: "自動車販売" },
+  { majorCode: "I", major: "卸売業、小売業", code: "I03", name: "その他の小売業" },
+  { majorCode: "I", major: "卸売業、小売業", code: "I04", name: "卸売業" },
+  { majorCode: "J", major: "金融業、保険業", code: "J01", name: "金融・保険" },
+  { majorCode: "K", major: "不動産業、物品賃貸業", code: "K01", name: "不動産売買・仲介" },
+  { majorCode: "K", major: "不動産業、物品賃貸業", code: "K02", name: "不動産賃貸・管理" },
+  { majorCode: "K", major: "不動産業、物品賃貸業", code: "K03", name: "駐車場" },
+  { majorCode: "K", major: "不動産業、物品賃貸業", code: "K04", name: "レンタカー・物品レンタル" },
+  { majorCode: "K", major: "不動産業、物品賃貸業", code: "K99", name: "その他の不動産業・物品賃貸業" },
+  { majorCode: "L", major: "学術研究、専門・技術サービス業", code: "L01", name: "広告代理店・広告業" },
+  { majorCode: "L", major: "学術研究、専門・技術サービス業", code: "L02", name: "士業事務所" },
+  { majorCode: "L", major: "学術研究、専門・技術サービス業", code: "L03", name: "コンサルティング" },
+  { majorCode: "L", major: "学術研究、専門・技術サービス業", code: "L04", name: "デザイン" },
+  { majorCode: "L", major: "学術研究、専門・技術サービス業", code: "L05", name: "写真館・撮影スタジオ" },
+  { majorCode: "L", major: "学術研究、専門・技術サービス業", code: "L99", name: "その他の専門・技術サービス" },
+  { majorCode: "M", major: "宿泊業、飲食サービス業", code: "M01", name: "飲食店・飲食サービス" },
+  { majorCode: "M", major: "宿泊業、飲食サービス業", code: "M02", name: "ホテル・旅館・その他宿泊施設" },
+  { majorCode: "N", major: "生活関連サービス業、娯楽業", code: "N01", name: "葬儀・葬祭" },
+  { majorCode: "N", major: "生活関連サービス業、娯楽業", code: "N02", name: "結婚式場・婚礼サービス" },
+  { majorCode: "N", major: "生活関連サービス業、娯楽業", code: "N03", name: "パチンコ・遊技場" },
+  { majorCode: "N", major: "生活関連サービス業、娯楽業", code: "N04", name: "フィットネス・ジム・スポーツ施設" },
+  { majorCode: "N", major: "生活関連サービス業、娯楽業", code: "N05", name: "理容室・美容室" },
+  { majorCode: "N", major: "生活関連サービス業、娯楽業", code: "N06", name: "エステ・ネイル等の美容サービス" },
+  { majorCode: "N", major: "生活関連サービス業、娯楽業", code: "N07", name: "ペット美容・ペットホテル" },
+  { majorCode: "N", major: "生活関連サービス業、娯楽業", code: "N08", name: "旅行・観光案内" },
+  { majorCode: "N", major: "生活関連サービス業、娯楽業", code: "N99", name: "その他の生活関連サービス・娯楽" },
+  { majorCode: "O", major: "教育、学習支援業", code: "O01", name: "学習塾・予備校" },
+  { majorCode: "O", major: "教育、学習支援業", code: "O02", name: "学校・各種スクール" },
+  { majorCode: "O", major: "教育、学習支援業", code: "O99", name: "その他の教育・学習支援" },
+  { majorCode: "P", major: "医療、福祉", code: "P01", name: "病院・診療所" },
+  { majorCode: "P", major: "医療、福祉", code: "P02", name: "歯科医院" },
+  { majorCode: "P", major: "医療、福祉", code: "P03", name: "整骨院・接骨院" },
+  { majorCode: "P", major: "医療、福祉", code: "P04", name: "その他の療術業（鍼灸・あん摩等）" },
+  { majorCode: "P", major: "医療、福祉", code: "P05", name: "介護・高齢者福祉" },
+  { majorCode: "P", major: "医療、福祉", code: "P06", name: "障害者福祉・児童福祉" },
+  { majorCode: "P", major: "医療、福祉", code: "P99", name: "その他の医療・福祉" },
+  { majorCode: "Q", major: "複合サービス事業", code: "Q01", name: "郵便局・協同組合等の複合サービス" },
+  { majorCode: "R", major: "サービス業（他に分類されないもの）", code: "R01", name: "自動車整備・修理" },
+  { majorCode: "R", major: "サービス業（他に分類されないもの）", code: "R02", name: "廃棄物収集・処理" },
+  { majorCode: "R", major: "サービス業（他に分類されないもの）", code: "R03", name: "建物清掃・管理・害虫駆除" },
+  { majorCode: "R", major: "サービス業（他に分類されないもの）", code: "R04", name: "人材派遣・職業紹介" },
+  { majorCode: "R", major: "サービス業（他に分類されないもの）", code: "R05", name: "警備" },
+  { majorCode: "R", major: "サービス業（他に分類されないもの）", code: "R06", name: "神社・寺院・その他宗教" },
+  { majorCode: "R", major: "サービス業（他に分類されないもの）", code: "R99", name: "その他の該当サービス" },
+  { majorCode: "S", major: "公務（他に分類されるものを除く）", code: "S01", name: "国・地方公共団体の行政機関" },
+  { majorCode: "T", major: "分類不能の産業", code: "T01", name: "事業内容を確認しても分類不能" },
+];
+/** 業種(中部門名)から大部門を出す。空欄は「未確認」 */
+export const industryMajor = (name: string | null | undefined): string => INDUSTRY_MASTER.find((x) => x.name === name)?.major ?? "";
+export const industryLabel = (name: string | null | undefined): string => (name ? `${industryMajor(name) ? industryMajor(name) + " / " : ""}${name}` : "未確認");
+/** 大部門ごとにまとめた一覧(選択肢用) */
+export const INDUSTRY_GROUPS: { major: string; items: string[] }[] = INDUSTRY_MASTER.reduce((acc, x) => {
+  const g = acc.find((y) => y.major === x.major);
+  if (g) g.items.push(x.name);
+  else acc.push({ major: x.major, items: [x.name] });
+  return acc;
+}, [] as { major: string; items: string[] }[]);
+
 /** 見込案件の3段階(項目定義 P01〜P03 の仮案)+ 契約締結 + 見送り・失注 */
 export type Stage = "商談初期" | "具体提案中" | "契約最終調整" | "契約締結" | "失注";
 export const OPEN_STAGES: Stage[] = ["商談初期", "具体提案中", "契約最終調整"];
@@ -692,7 +771,24 @@ export function createSeed(): SeedData {
 
   // ---- 顧客 ----
   const customers: Customer[] = [];
-  const mkCustomer = (name: string, industry: string, status: CustomerStatus, idx: number) => {
+  const OLD_TO_MIDDLE: Record<string, string> = {
+    サービス: "その他の生活関連サービス・娯楽",
+    メーカー: "製造業",
+    "介護・福祉": "介護・高齢者福祉",
+    "住宅・不動産": "不動産売買・仲介",
+    冠婚葬祭: "葬儀・葬祭",
+    医療: "病院・診療所",
+    士業: "士業事務所",
+    外食: "飲食店・飲食サービス",
+    小売: "その他の小売業",
+    教育: "学習塾・予備校",
+    物流: "運送・引越し",
+    自動車販売: "自動車販売",
+    "観光・宿泊": "ホテル・旅館・その他宿泊施設",
+    "金融・保険": "金融・保険",
+  };
+  const mkCustomer = (name: string, oldIndustry: string, status: CustomerStatus, idx: number) => {
+    const industry = OLD_TO_MIDDLE[oldIndustry] ?? oldIndustry;
     const area = pick(AREAS.slice(0, 3).concat(AREAS));
     const reps = AREA_REPS[area];
     // 自分(u01)の担当を多めに

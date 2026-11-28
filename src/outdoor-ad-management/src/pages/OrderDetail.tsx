@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Check, ClipboardList, Download, FileText, Image as ImageIcon, Link2, Trash2, Undo2 } from "lucide-react";
 import { useStore, staffName } from "../store";
-import { FACE_COUNT_LABEL, STAFF, channelGroup } from "../data/seed";
+import { FACE_COUNT_LABEL, STAFF, channelGroup, industryLabel } from "../data/seed";
 import { fakeApi } from "../lib/fakeApi";
 import { fmtDate, fmtDateTime, todayISO, yen } from "../lib/format";
 import { installOverdue, liveCancels, pendingCancel, phaseOf } from "../lib/report";
@@ -361,7 +361,7 @@ export default function OrderDetail() {
                 {customer.company}
               </Row>
               <Row label="業種" src="link">
-                {customer.industry}
+                {industryLabel(customer.industry)}
               </Row>
               <Row label="案件の備考" src="input">
                 {order.notes || "—"}

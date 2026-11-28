@@ -21,7 +21,7 @@ import {
   Users,
 } from "lucide-react";
 import { useStore, staffName } from "../store";
-import { FACE_COUNT_LABEL, OPEN_STAGES, STAGE_NO, channelGroup, type ActivityType, type Stage } from "../data/seed";
+import { FACE_COUNT_LABEL, OPEN_STAGES, STAGE_NO, channelGroup, industryLabel, type ActivityType, type Stage } from "../data/seed";
 import { fakeApi } from "../lib/fakeApi";
 import { useLoad } from "../lib/useLoad";
 import { contractState, faceLookup, handoverOf, holdActive } from "../lib/domain";
@@ -403,7 +403,7 @@ export default function DealDetail() {
                 items={[
                   ["商談のきっかけ", deal.channel ? `${channelGroup(deal.channel)} / ${deal.channel}${deal.channelNote ? `(${deal.channelNote})` : ""}` : "—"],
                   ["契約区分・種類", `${deal.contractKind ?? "—"}${deal.investment ? " ・ 投資看板" : ""}`],
-                  ["業種", customer.industry],
+                  ["業種", industryLabel(customer.industry)],
                   ["契約締結予定日", deal.expectedClose ? <span className="tnum">{fmtDate(deal.expectedClose)}</span> : "締結時期未定"],
                   ["登録日", <span className="tnum">{fmtDate(deal.createdAt)}</span>],
                   ["備考", deal.notes || "—"],
@@ -485,7 +485,7 @@ export default function DealDetail() {
               <DL
                 items={[
                   ["会社名", customer.company],
-                  ["業種", customer.industry],
+                  ["業種", industryLabel(customer.industry)],
                   ["先方担当", `${customer.contact}(${customer.contactTitle})`],
                   [
                     "電話",
