@@ -27,6 +27,8 @@ import {
   STAFF,
   STAGE_NO,
   type Channel,
+  type NextAction,
+  actionsOf,
   type HeightClass,
   type LandType,
   type SignType,
@@ -55,15 +57,19 @@ export function ActivityModal({
   customerId,
   dealId,
   title,
+  doneActionId,
 }: {
   open: boolean;
   onClose: () => void;
   customerId: string;
   dealId?: string;
   title?: string;
+  /** この記録で済みにする次回対応(省略時は一番早いもの) */
+  doneActionId?: string;
 }) {
   const addActivity = useStore((s) => s.addActivity);
   const deal = useStore((s) => s.deals.find((d) => d.id === dealId));
+  const doneAction = deal ? (actionsOf(deal).find((x) => x.id === doneActionId) ?? actionsOf(deal)[0] ?? null) : null;
   const [type, setType] = useState<ActivityType>("訪問");
   const [date, setDate] = useState("");
   const [memo, setMemo] = useState("");
@@ -99,6 +105,7 @@ export function ActivityModal({
     addActivity(
       { id: uid("a"), customerId, dealId, type, date: date + ":00", memo: memo.trim(), repId: ME_ID },
       dealId ? (nextOn ? { date: nextDate, content: nextContent.trim() } : null) : undefined,
+      doneAction?.id,
     );
     setBusy(false);
     toast.success("営業活動を記録しました", {
@@ -125,9 +132,10 @@ export function ActivityModal({
       }
     >
       <div className="space-y-4">
-        {deal?.nextAction && (
+        {doneAction && (
           <div className="rounded-md border border-navy-100 bg-navy-50 px-3.5 py-2.5 text-[14px] text-navy-800">
-            予定していた対応: {deal.nextAction.content}
+            予定していた対応: {doneAction.content}
+            <span className="mt-0.5 block text-[12.5px] text-navy-600">記録すると、この次回対応は済みになります(ほかの次回対応はそのまま残ります)。</span>
           </div>
         )}
         <div>
@@ -203,37 +211,53 @@ export function ActivityModal({
 }
 
 // =============== 次回対応の変更 ===============
-export function NextActionModal({ open, onClose, deal }: { open: boolean; onClose: () => void; deal?: Deal }) {
-  const setNextAction = useStore((s) => s.setNextAction);
+export function NextActionModal({ open, onClose, deal, action }: { open: boolean; onClose: () => void; deal?: Deal; action?: NextAction | null }) {
+  const addNextAction = useStore((s) => s.addNextAction);
+  const updateNextAction = useStore((s) => s.updateNextAction);
+  const removeNextAction = useStore((s) => s.removeNextAction);
+  const editing = !!action?.id;
   const [date, setDate] = useState("");
   const [content, setContent] = useState("");
   const [busy, setBusy] = useState(false);
   const [touched, setTouched] = useState(false);
   useEffect(() => {
     if (!open || !deal) return;
-    setDate(deal.nextAction?.date ?? inDays(3));
-    setContent(deal.nextAction?.content ?? "");
+    setDate(action?.date ?? inDays(3));
+    setContent(action?.content ?? "");
     setTouched(false);
-  }, [open, deal]);
+  }, [open, deal, action]);
   const err = { date: !date ? "日付を選択してください" : "", content: !content.trim() ? "内容を入力してください" : "" };
   const submit = async () => {
     setTouched(true);
     if (err.date || err.content || !deal) return;
     setBusy(true);
     await fakeApi(null, 300);
-    setNextAction(deal.id, { date, content: content.trim() });
+    if (editing) updateNextAction(deal.id, action!.id!, { date, content: content.trim() });
+    else addNextAction(deal.id, { date, content: content.trim() });
     setBusy(false);
-    toast.success("次回対応を更新しました");
+    toast.success(editing ? "次回対応を変更しました" : "次回対応を追加しました");
+    onClose();
+  };
+  const remove = async () => {
+    if (!deal || !action?.id) return;
+    await fakeApi(null, 200);
+    removeNextAction(deal.id, action.id);
+    toast.success("次回対応を削除しました");
     onClose();
   };
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="次回対応を設定"
+      title={editing ? "次回対応を変更" : "次回対応を追加"}
       width={460}
       footer={
         <>
+          {editing && (
+            <Button variant="ghost" className="mr-auto text-bad-600" onClick={remove}>
+              削除する
+            </Button>
+          )}
           <Button variant="ghost" onClick={onClose}>
             キャンセル
           </Button>

@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { CalendarCheck2, CalendarClock, CalendarPlus, Phone, PencilLine } from "lucide-react";
 import { useStore, staffName } from "../store";
-import { ME_ID, OPEN_STAGES, type Deal } from "../data/seed";
+import { toast } from "sonner";
+import { ME_ID, OPEN_STAGES, actionsOf, type Deal, type NextAction } from "../data/seed";
 import { useLoad } from "../lib/useLoad";
 import { daysFromToday, fmtDateJa, man, relDay } from "../lib/format";
 import { ActivityModal, NextActionModal } from "../components/forms";
@@ -25,21 +26,25 @@ export default function FollowUps() {
   const deals = useStore((s) => s.deals);
   const customers = useStore((s) => s.customers);
   const [scope, setScope] = useState<"me" | "all">("me");
-  const [logFor, setLogFor] = useState<Deal | null>(null);
-  const [editFor, setEditFor] = useState<Deal | null>(null);
+  const [logFor, setLogFor] = useState<{ d: Deal; na: NextAction | null } | null>(null);
+  const [editFor, setEditFor] = useState<{ d: Deal; na: NextAction | null } | null>(null);
+  const removeNextAction = useStore((s) => s.removeNextAction);
 
+  // 1つの見込案件に次回対応が複数あれば、1件ずつ並べる
+  type Entry = { d: Deal; na: NextAction | null };
   const grouped = useMemo(() => {
-    const g: Record<Bucket, Deal[]> = { overdue: [], today: [], week: [], later: [], none: [] };
+    const g: Record<Bucket, Entry[]> = { overdue: [], today: [], week: [], later: [], none: [] };
     deals
       .filter((d) => OPEN_STAGES.includes(d.stage) && (scope === "all" || d.repId === ME_ID))
       .forEach((d) => {
-        if (!d.nextAction) return g.none.push(d);
-        const n = daysFromToday(d.nextAction.date);
-        g[n < 0 ? "overdue" : n === 0 ? "today" : n <= 7 ? "week" : "later"].push(d);
+        const list = actionsOf(d);
+        if (list.length === 0) return g.none.push({ d, na: null });
+        list.forEach((na) => {
+          const n = daysFromToday(na.date);
+          g[n < 0 ? "overdue" : n === 0 ? "today" : n <= 7 ? "week" : "later"].push({ d, na });
+        });
       });
-    (Object.keys(g) as Bucket[]).forEach((k) =>
-      g[k].sort((a, b) => (a.nextAction?.date ?? "").localeCompare(b.nextAction?.date ?? "")),
-    );
+    (Object.keys(g) as Bucket[]).forEach((k) => g[k].sort((a, b) => (a.na?.date ?? "").localeCompare(b.na?.date ?? "")));
     return g;
   }, [deals, scope]);
 
@@ -131,11 +136,11 @@ export default function FollowUps() {
                 </div>
                 <Card className="overflow-hidden">
                   <AnimatePresence initial={false}>
-                    {grouped[b.key].map((d) => {
+                    {grouped[b.key].map(({ d, na }) => {
                       const c = cust(d.customerId);
                       return (
                         <motion.div
-                          key={d.id}
+                          key={d.id + (na?.id ?? "")}
                           layout
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
@@ -143,16 +148,16 @@ export default function FollowUps() {
                           className="flex flex-col gap-3 border-b border-ink-100 px-5 py-4 last:border-0 sm:flex-row sm:items-center"
                         >
                           <div className="w-full shrink-0 sm:w-28">
-                            {d.nextAction ? (
+                            {na ? (
                               <>
-                                <div className="tnum text-[15px] font-semibold text-navy-900">{fmtDateJa(d.nextAction.date)}</div>
+                                <div className="tnum text-[15px] font-semibold text-navy-900">{fmtDateJa(na.date)}</div>
                                 <div
                                   className={
                                     "mt-0.5 text-[12.5px] " +
-                                    (daysFromToday(d.nextAction.date) < 0 ? "font-medium text-bad-600" : "text-ink-500")
+                                    (daysFromToday(na.date) < 0 ? "font-medium text-bad-600" : "text-ink-500")
                                   }
                                 >
-                                  {relDay(d.nextAction.date)}
+                                  {relDay(na.date)}
                                 </div>
                               </>
                             ) : (
@@ -161,7 +166,8 @@ export default function FollowUps() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="text-[15px] font-medium text-ink-900">
-                              {d.nextAction?.content ?? "次回対応を設定してください"}
+                              {na?.content ?? "次回対応を設定してください"}
+                              {actionsOf(d).length > 1 && <span className="ml-2 text-[12px] font-normal text-ink-400">(この案件の次回対応 {actionsOf(d).length}件)</span>}
                             </div>
                             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-ink-500">
                               <Link to={`/deals/${d.id}`} className="font-medium text-navy-700 underline-offset-2 hover:underline">
@@ -179,19 +185,32 @@ export default function FollowUps() {
                             </div>
                           </div>
                           <div className="flex shrink-0 flex-wrap gap-2">
-                            {d.nextAction && (
-                              <a href={gcalUrl(`${c?.company ?? ""} ${d.nextAction.content}`, d.nextAction.date, `見込案件: ${d.title}`)} target="_blank" rel="noreferrer">
+                            {na && (
+                              <a href={gcalUrl(`${c?.company ?? ""} ${na.content}`, na.date, `見込案件: ${d.title}`)} target="_blank" rel="noreferrer">
                                 <Button variant="ghost" size="sm">
                                   <CalendarPlus size={13} />
                                   Googleカレンダーに追加
                                 </Button>
                               </a>
                             )}
-                            <Button variant="outline" size="sm" onClick={() => setEditFor(d)}>
+                            <Button variant="outline" size="sm" onClick={() => setEditFor({ d, na })}>
                               <CalendarClock size={13} />
-                              日程変更
+                              {na ? "日程変更" : "設定"}
                             </Button>
-                            <Button size="sm" onClick={() => setLogFor(d)}>
+                            {na && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-bad-600"
+                                onClick={() => {
+                                  removeNextAction(d.id, na.id!);
+                                  toast.success("次回対応を削除しました");
+                                }}
+                              >
+                                削除
+                              </Button>
+                            )}
+                            <Button size="sm" onClick={() => setLogFor({ d, na })}>
                               <PencilLine size={13} />
                               対応を記録
                             </Button>
@@ -210,11 +229,12 @@ export default function FollowUps() {
       <ActivityModal
         open={!!logFor}
         onClose={() => setLogFor(null)}
-        customerId={logFor?.customerId ?? ""}
-        dealId={logFor?.id}
-        title={logFor ? `${cust(logFor.customerId)?.company} / ${logFor.title}` : ""}
+        customerId={logFor?.d.customerId ?? ""}
+        dealId={logFor?.d.id}
+        doneActionId={logFor?.na?.id}
+        title={logFor ? `${cust(logFor.d.customerId)?.company} / ${logFor.d.title}` : ""}
       />
-      <NextActionModal open={!!editFor} onClose={() => setEditFor(null)} deal={editFor ?? undefined} />
+      <NextActionModal open={!!editFor} onClose={() => setEditFor(null)} deal={editFor?.d} action={editFor?.na ?? null} />
     </>
   );
 }

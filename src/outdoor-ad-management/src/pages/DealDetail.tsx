@@ -21,7 +21,7 @@ import {
   Users,
 } from "lucide-react";
 import { useStore, staffName } from "../store";
-import { FACE_COUNT_LABEL, OPEN_STAGES, STAGE_NO, channelGroup, industryLabel, type ActivityType, type Stage } from "../data/seed";
+import { FACE_COUNT_LABEL, OPEN_STAGES, STAGE_NO, actionsOf, channelGroup, industryLabel, type ActivityType, type NextAction, type Stage } from "../data/seed";
 import { fakeApi } from "../lib/fakeApi";
 import { useLoad } from "../lib/useLoad";
 import { contractState, faceLookup, handoverOf, holdActive } from "../lib/domain";
@@ -61,6 +61,9 @@ export default function DealDetail() {
 
   const [logOpen, setLogOpen] = useState(false);
   const [naOpen, setNaOpen] = useState(false);
+  const [naEdit, setNaEdit] = useState<NextAction | null>(null);
+  const [logAction, setLogAction] = useState<string | undefined>(undefined);
+  const removeNextAction = useStore((s) => s.removeNextAction);
   const [editOpen, setEditOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
   const [lostOpen, setLostOpen] = useState(false);
@@ -235,31 +238,53 @@ export default function DealDetail() {
               <CardHeader
                 title="次回対応"
                 right={
-                  <Button variant="ghost" size="sm" onClick={() => setNaOpen(true)}>
+                  <Button variant="ghost" size="sm" onClick={() => { setNaEdit(null); setNaOpen(true); }}>
                     <CalendarClock size={13} />
-                    {deal.nextAction ? "変更" : "設定"}
+                    追加
                   </Button>
                 }
               />
-              <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center">
-                {deal.nextAction ? (
-                  <>
-                    <div className="w-32 shrink-0">
-                      <div className="tnum text-[17px] font-semibold text-navy-900">{fmtDateJa(deal.nextAction.date)}</div>
-                      <div className={"text-[13px] " + (daysFromToday(deal.nextAction.date) < 0 ? "font-medium text-bad-600" : "text-ink-500")}>
-                        {relDay(deal.nextAction.date)}
+              {actionsOf(deal).length === 0 ? (
+                <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center">
+                  <div className="flex-1 text-[15px] text-warn-700">次回対応が設定されていません。次の一手を決めておきましょう。</div>
+                  <Button onClick={() => { setLogAction(undefined); setLogOpen(true); }}>
+                    <PencilLine size={14} />
+                    対応を記録
+                  </Button>
+                </div>
+              ) : (
+                <div className="divide-y divide-ink-100">
+                  {actionsOf(deal).map((na) => (
+                    <div key={na.id} className="flex flex-col gap-3 px-5 py-3.5 sm:flex-row sm:items-center">
+                      <div className="w-32 shrink-0">
+                        <div className="tnum text-[16px] font-semibold text-navy-900">{fmtDateJa(na.date)}</div>
+                        <div className={"text-[13px] " + (daysFromToday(na.date) < 0 ? "font-medium text-bad-600" : "text-ink-500")}>{relDay(na.date)}</div>
+                      </div>
+                      <div className="flex-1 text-[15.5px] text-ink-900">{na.content}</div>
+                      <div className="flex shrink-0 flex-wrap gap-1.5">
+                        <Button variant="ghost" size="sm" onClick={() => { setNaEdit(na); setNaOpen(true); }}>
+                          変更
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-bad-600"
+                          onClick={() => {
+                            removeNextAction(deal.id, na.id!);
+                            toast.success("次回対応を削除しました");
+                          }}
+                        >
+                          削除
+                        </Button>
+                        <Button size="sm" onClick={() => { setLogAction(na.id); setLogOpen(true); }}>
+                          <PencilLine size={13} />
+                          対応を記録
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex-1 text-[16px] text-ink-900">{deal.nextAction.content}</div>
-                  </>
-                ) : (
-                  <div className="flex-1 text-[15px] text-warn-700">次回対応が設定されていません。次の一手を決めておきましょう。</div>
-                )}
-                <Button onClick={() => setLogOpen(true)}>
-                  <PencilLine size={14} />
-                  対応を記録
-                </Button>
-              </div>
+                  ))}
+                </div>
+              )}
             </Card>
           )}
 
@@ -501,8 +526,8 @@ export default function DealDetail() {
         </div>
       </div>
 
-      <ActivityModal open={logOpen} onClose={() => setLogOpen(false)} customerId={customer.id} dealId={isOpen ? deal.id : undefined} title={`${customer.company} / ${deal.title}`} />
-      <NextActionModal open={naOpen} onClose={() => setNaOpen(false)} deal={deal} />
+      <ActivityModal open={logOpen} onClose={() => setLogOpen(false)} customerId={customer.id} dealId={isOpen ? deal.id : undefined} doneActionId={logAction} title={`${customer.company} / ${deal.title}`} />
+      <NextActionModal open={naOpen} onClose={() => setNaOpen(false)} deal={deal} action={naEdit} />
       <DealFormModal open={editOpen} onClose={() => setEditOpen(false)} deal={deal} />
       <OrderModal open={closeOpen} onClose={() => setCloseOpen(false)} deal={deal} />
       <LostModal open={lostOpen} onClose={() => setLostOpen(false)} onSubmit={async (kind, r) => {

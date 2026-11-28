@@ -16,6 +16,8 @@ import {
   type Hold,
   type LandContract,
   type NextAction,
+  actionsOf,
+  withActions,
   type Order,
   type Attachment,
   type SeedData,
@@ -101,7 +103,12 @@ interface State extends SeedData {
   addAttachments: (orderId: string, files: Omit<Attachment, "id" | "uploadedAt" | "by">[]) => void;
   removeAttachment: (orderId: string, fileId: string) => void;
   setNextAction: (id: string, na: NextAction | null) => void;
-  addActivity: (a: Activity, next?: NextAction | null) => void;
+  /** 次回対応を追加・変更・削除する(複数持てる) */
+  addNextAction: (dealId: string, na: NextAction) => void;
+  updateNextAction: (dealId: string, naId: string, na: NextAction) => void;
+  removeNextAction: (dealId: string, naId: string) => void;
+  /** 対応を記録する。doneActionId の次回対応(無ければ一番早いもの)を済みにして外し、next があれば足す */
+  addActivity: (a: Activity, next?: NextAction | null, doneActionId?: string) => void;
   // 仮押さえ
   addHold: (h: Omit<Hold, "id" | "createdAt" | "repId">) => void;
   extendHold: (id: string, until: string) => void;
@@ -191,6 +198,7 @@ export const useStore = create<State>()(
                   lostReason: stage === "失注" ? lost?.reason : undefined,
                   closedLostAt: stage === "失注" ? todayISO() : undefined,
                   nextAction: stage === "失注" ? null : d.nextAction,
+                  nextActions: stage === "失注" ? [] : d.nextActions,
                   updatedAt: todayISO(),
                 }
               : d,
@@ -199,14 +207,34 @@ export const useStore = create<State>()(
         })),
       setNextAction: (id, na) =>
         set((s) => ({
-          deals: s.deals.map((d) => (d.id === id ? { ...d, nextAction: na, updatedAt: todayISO() } : d)),
+          deals: s.deals.map((d) => (d.id === id ? { ...withActions(d, na ? [na] : []), updatedAt: todayISO() } : d)),
         })),
-      addActivity: (a, next) =>
+      addNextAction: (dealId, na) =>
+        set((s) => ({
+          deals: s.deals.map((d) => (d.id === dealId ? { ...withActions(d, [...actionsOf(d), na]), updatedAt: todayISO() } : d)),
+        })),
+      updateNextAction: (dealId, naId, na) =>
+        set((s) => ({
+          deals: s.deals.map((d) =>
+            d.id === dealId ? { ...withActions(d, actionsOf(d).map((x) => (x.id === naId ? { ...na, id: naId } : x))), updatedAt: todayISO() } : d,
+          ),
+        })),
+      removeNextAction: (dealId, naId) =>
+        set((s) => ({
+          deals: s.deals.map((d) => (d.id === dealId ? { ...withActions(d, actionsOf(d).filter((x) => x.id !== naId)), updatedAt: todayISO() } : d)),
+        })),
+      addActivity: (a, next, doneActionId) =>
         set((s) => ({
           activities: [a, ...s.activities],
           deals:
             a.dealId && next !== undefined
-              ? s.deals.map((d) => (d.id === a.dealId ? { ...d, nextAction: next, updatedAt: todayISO() } : d))
+              ? s.deals.map((d) => {
+                  if (d.id !== a.dealId) return d;
+                  const list = actionsOf(d);
+                  const doneId = doneActionId ?? list[0]?.id;
+                  const rest = list.filter((x) => x.id !== doneId);
+                  return { ...withActions(d, next ? [...rest, next] : rest), updatedAt: todayISO() };
+                })
               : s.deals,
         })),
 
@@ -254,7 +282,7 @@ export const useStore = create<State>()(
           handovers: [handover, ...s.handovers],
           holds: s.holds.filter((h) => h.dealId !== dealId),
           deals: s.deals.map((d) =>
-            d.id === dealId ? { ...d, stage: "契約締結", contractId: id, nextAction: null, updatedAt: todayISO() } : d,
+            d.id === dealId ? { ...d, stage: "契約締結", contractId: id, nextAction: null, nextActions: [], updatedAt: todayISO() } : d,
           ),
           customers: s.customers.map((c) => (c.id === deal.customerId ? { ...c, status: "取引中" } : c)),
           live: bumpLive(s.live, { newAd: 1, newAdFaces: input.faceIds.length }),
@@ -373,7 +401,7 @@ export const useStore = create<State>()(
         set({
           orders: [order, ...s.orders],
           holds: s.holds.filter((h) => h.dealId !== dealId),
-          deals: s.deals.map((d) => (d.id === dealId ? { ...d, stage: "契約締結", orderId: id, nextAction: null, updatedAt: todayISO() } : d)),
+          deals: s.deals.map((d) => (d.id === dealId ? { ...d, stage: "契約締結", orderId: id, nextAction: null, nextActions: [], updatedAt: todayISO() } : d)),
           customers: s.customers.map((c) => (c.id === deal.customerId ? { ...c, status: "取引中" } : c)),
         });
         return id;
@@ -455,7 +483,7 @@ export const useStore = create<State>()(
       };
     },
     {
-      name: "outdoor-ad-management-v7",
+      name: "outdoor-ad-management-v8",
       // 前日以前に生成したサンプルデータが未変更のまま残っていれば、今日の日付で作り直す
       onRehydrateStorage: () => (state) => {
         if (state && !state.touched && state.seededOn !== todayISO()) state.reset();

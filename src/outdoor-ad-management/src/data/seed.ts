@@ -287,8 +287,20 @@ export interface SignSpec {
 }
 
 export interface NextAction {
+  /** 次回対応ごとの番号(複数登録・削除のため) */
+  id?: string;
   date: string; // yyyy-MM-dd
   content: string;
+}
+let naSeq = 0;
+const naId = () => `n${Date.now().toString(36)}${(naSeq++).toString(36)}`;
+/** 見込案件の次回対応の一覧(日付の早い順) */
+export const actionsOf = (d: { nextActions?: NextAction[]; nextAction: NextAction | null }): NextAction[] =>
+  d.nextActions ?? (d.nextAction ? [d.nextAction] : []);
+/** 次回対応の一覧を入れ替える。nextAction には一番早いものを入れる(一覧・やること一覧の並び順に使う) */
+export function withActions<T extends { nextActions?: NextAction[]; nextAction: NextAction | null }>(d: T, list: NextAction[]): T {
+  const sorted = list.map((a) => ({ ...a, id: a.id ?? naId() })).sort((a, b) => a.date.localeCompare(b.date));
+  return { ...d, nextActions: sorted, nextAction: sorted[0] ?? null };
 }
 
 export interface Deal extends SignSpec {
@@ -303,6 +315,8 @@ export interface Deal extends SignSpec {
   expectedClose: string;
   repId: string;
   nextAction: NextAction | null;
+  /** 次回対応(複数)。nextAction は一番早いもの */
+  nextActions?: NextAction[];
   createdAt: string;
   updatedAt: string;
   notes: string;
@@ -1230,6 +1244,12 @@ export function createSeed(): SeedData {
     }
   });
 
+  deals.forEach((d, i) => {
+    const list = d.nextAction ? [d.nextAction] : [];
+    if (d.nextAction && i % 4 === 1 && OPEN_STAGES.includes(d.stage))
+      list.push({ date: iso(biz(addDays(new Date(d.nextAction.date + "T00:00:00"), int(5, 14)), 1)), content: pick(NEXT_CONTENTS) });
+    deals[i] = withActions(d, list);
+  });
   return { boards, customers, deals, activities, holds, contracts, lands, handovers, orders };
 }
 

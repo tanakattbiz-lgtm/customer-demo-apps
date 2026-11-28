@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
 import { Columns3, Handshake, List, Plus, Search, SearchX, Settings2 } from "lucide-react";
 import { useStore, staffName } from "../store";
-import { ME_ID, OPEN_STAGES, STAGE_NO, STAGES, type Deal, type Stage } from "../data/seed";
+import { ME_ID, OPEN_STAGES, STAGE_NO, STAGES, type Deal, type Stage, actionsOf } from "../data/seed";
 import { useLoad } from "../lib/useLoad";
 import { daysFromToday, fmtDate, man, yen } from "../lib/format";
 import { DealFormModal } from "../components/forms";
@@ -222,7 +222,7 @@ export default function Deals() {
                                     (n === null ? "text-warn-700" : n < 0 ? "font-medium text-bad-600" : n === 0 ? "font-medium text-navy-900" : "text-ink-500")
                                   }
                                 >
-                                  {d.nextAction ? `次回 ${d.nextAction.date.slice(5).replace("-", "/")}` : "次回対応 未設定"}
+                                  {d.nextAction ? `次回 ${d.nextAction.date.slice(5).replace("-", "/")}${actionsOf(d).length > 1 ? ` ほか${actionsOf(d).length - 1}件` : ""}` : "次回対応 未設定"}
                                 </span>
                                 <Avatar name={staffName(d.repId)} size={20} tone="light" />
                               </div>
